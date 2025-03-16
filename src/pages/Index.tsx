@@ -1,11 +1,110 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+
+import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
+import { format } from "date-fns";
+import Navbar from "@/components/Navbar";
+import SearchBar from "@/components/SearchBar";
+import BillCard from "@/components/BillCard";
+import Pagination from "@/components/Pagination";
+import { getSearchResults } from "@/utils/mockData";
+import { SearchResults } from "@/types";
 
 const Index = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const query = searchParams.get("q") || "";
+  const pageParam = searchParams.get("page");
+  const initialPage = pageParam ? parseInt(pageParam) : 1;
+  
+  const [results, setResults] = useState<SearchResults>({
+    bills: [],
+    totalPages: 0,
+    currentPage: initialPage,
+  });
+  
+  const [isLoading, setIsLoading] = useState(false);
+  const [initialLoad, setInitialLoad] = useState(true);
+
+  useEffect(() => {
+    const fetchResults = () => {
+      setIsLoading(true);
+      // Simulate API call with a small delay
+      setTimeout(() => {
+        const searchResults = getSearchResults(query, results.currentPage);
+        setResults(searchResults);
+        setIsLoading(false);
+        setInitialLoad(false);
+      }, 300);
+    };
+
+    fetchResults();
+  }, [query, results.currentPage]);
+
+  const handleSearch = (newQuery: string) => {
+    setSearchParams({ q: newQuery, page: "1" });
+    setResults(prev => ({ ...prev, currentPage: 1 }));
+  };
+
+  const handlePageChange = (page: number) => {
+    setSearchParams({ q: query, page: page.toString() });
+    setResults(prev => ({ ...prev, currentPage: page }));
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">Welcome to Your Blank App</h1>
-        <p className="text-xl text-gray-600">Start building your amazing project here!</p>
+    <div className="min-h-screen bg-gray-50 relative page-transition-wrapper">
+      <Navbar />
+      
+      <div className="max-w-5xl mx-auto pt-28 pb-20 px-6">
+        <div className="text-center mb-16">
+          <div className="hidden md:block absolute top-20 left-6 text-gray-500 text-sm">
+            {format(new Date(), "MMMM d, yyyy")}
+          </div>
+          
+          <h1 className="text-5xl md:text-7xl font-bold logo-text mb-8">Billinois</h1>
+          
+          <div className="mx-auto max-w-xl">
+            <SearchBar initialQuery={query} onSearch={handleSearch} />
+          </div>
+        </div>
+
+        {initialLoad ? (
+          <div className="space-y-4 mt-8">
+            {[1, 2, 3].map((i) => (
+              <div 
+                key={i} 
+                className="h-40 rounded-lg bg-gray-100 animate-pulse-light"
+              />
+            ))}
+          </div>
+        ) : results.bills.length > 0 ? (
+          <>
+            <div className="space-y-4 mt-8">
+              {results.bills.map((bill, index) => (
+                <BillCard 
+                  key={bill.id}
+                  bill={bill} 
+                  className="transition-all duration-300 hover:translate-x-1" 
+                  style={{ animationDelay: `${index * 100}ms` }}
+                />
+              ))}
+            </div>
+            
+            {results.totalPages > 1 && (
+              <Pagination
+                currentPage={results.currentPage}
+                totalPages={results.totalPages}
+                onPageChange={handlePageChange}
+              />
+            )}
+          </>
+        ) : (
+          <div className="text-center py-12">
+            <h3 className="text-xl font-medium mb-2">No results found</h3>
+            <p className="text-gray-500">
+              Try adjusting your search or browse all bills
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );
