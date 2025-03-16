@@ -12,14 +12,63 @@ import { fetchBills } from "@/services/billService";
 import { FALLBACK_BILLS } from "@/data/fallbackBills";
 import { toast } from "sonner";
 import { Bill } from "@/types";
+import { supabase } from "@/integrations/supabase/client";
 
 const Index = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const query = searchParams.get("q") || "";
   const pageParam = searchParams.get("page");
   const currentPage = pageParam ? parseInt(pageParam) : 1;
-  const [showUploader, setShowUploader] = useState(false);
+  const [showUploader, setShowUploader] = useState(true); // Default to visible
   const [processedBills, setProcessedBills] = useState<Bill[]>([]);
+  const [dbStatus, setDbStatus] = useState<string>("");
+  const [storageStatus, setStorageStatus] = useState<string>("");
+  
+  // Check Supabase connectivity on component mount
+  useEffect(() => {
+    const checkSupabaseConnection = async () => {
+      try {
+        // Check database
+        const { data: dbData, error: dbError } = await supabase
+          .from('bills')
+          .select('count()', { count: 'exact' });
+        
+        if (dbError) {
+          setDbStatus(`Database error: ${dbError.message}`);
+        } else {
+          setDbStatus(`Database connected, bills count: ${dbData?.count || 0}`);
+        }
+        
+        // Check storage
+        const { data: bucketsData, error: bucketsError } = await supabase
+          .storage
+          .listBuckets();
+        
+        if (bucketsError) {
+          setStorageStatus(`Storage error: ${bucketsError.message}`);
+        } else {
+          setStorageStatus(`Storage connected, buckets: ${bucketsData?.map(b => b.name).join(', ') || 'none'}`);
+          
+          // Check bill_storage bucket
+          const { data: storageFiles, error: storageError } = await supabase
+            .storage
+            .from('bill_storage')
+            .list('', { limit: 10 });
+          
+          if (storageError) {
+            setStorageStatus(prev => `${prev} | bill_storage error: ${storageError.message}`);
+          } else {
+            setStorageStatus(prev => `${prev} | bill_storage files: ${storageFiles?.length || 0}`);
+          }
+        }
+      } catch (e) {
+        console.error("Supabase connection check failed:", e);
+        setDbStatus(`Connection check failed: ${e instanceof Error ? e.message : String(e)}`);
+      }
+    };
+    
+    checkSupabaseConnection();
+  }, []);
   
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["bills", query, currentPage],
@@ -90,6 +139,16 @@ const Index = () => {
               {showUploader ? "Hide File Uploader" : "Upload Bill Files"}
             </button>
           </div>
+        </div>
+        
+        {/* Debug Info Section */}
+        <div className="mb-6 p-4 bg-gray-100 rounded-lg text-xs text-left">
+          <h3 className="font-semibold mb-1">Debug Info:</h3>
+          <p className="mb-1">Query: "{query}", Page: {currentPage}</p>
+          <p className="mb-1">DB Status: {dbStatus || 'Checking...'}</p>
+          <p className="mb-1">Storage Status: {storageStatus || 'Checking...'}</p>
+          {error && <p className="text-red-500">Error: {String(error)}</p>}
+          {data && <p>API Response: Bills count: {data.bills.length}, Total pages: {data.totalPages}</p>}
         </div>
         
         {showUploader && (
