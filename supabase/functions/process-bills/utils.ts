@@ -1,5 +1,5 @@
 
-import { corsHeaders } from "./handlers.ts";
+import { corsHeaders } from "./cors.ts";
 
 // Create a success response
 export function createSuccessResponse(data: any, status = 200) {
