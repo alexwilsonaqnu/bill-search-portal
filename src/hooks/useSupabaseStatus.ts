@@ -1,6 +1,8 @@
 
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { BILL_STORAGE_BUCKET, BILL_STORAGE_PATH, ALTERNATIVE_PATHS } from "@/services/supabase/storageConfig";
+import { countFilesInBucket } from "@/services/supabase/storageService";
 
 export const useSupabaseStatus = () => {
   const [dbStatus, setDbStatus] = useState<string>("");
@@ -35,41 +37,48 @@ export const useSupabaseStatus = () => {
           setAvailableBuckets(bucketNames);
           
           if (bucketNames.length === 0) {
-            setStorageStatus(`Storage connected, but no buckets found. The required bucket "103rd_General_Assembly" is missing.`);
+            setStorageStatus(`Storage connected, but no buckets found. The required bucket "${BILL_STORAGE_BUCKET}" is missing.`);
             return;
           }
           
-          setStorageStatus(`Storage connected, buckets: ${bucketNames.join(', ')}`);
+          // Check if the main bucket exists
+          if (!bucketNames.includes(BILL_STORAGE_BUCKET)) {
+            setStorageStatus(`Storage connected, but required bucket "${BILL_STORAGE_BUCKET}" is missing.`);
+            return;
+          }
           
-          // For each bucket, try to list contents with more detailed information
-          let fullStorageStatus = `Buckets (${bucketNames.length}):\n`;
+          // Count files in the main bucket path
+          const mainPathCount = await countFilesInBucket(BILL_STORAGE_BUCKET, BILL_STORAGE_PATH);
           
-          for (const bucket of bucketNames) {
-            try {
-              fullStorageStatus += `\n⭐ BUCKET: ${bucket}\n`;
+          // Check all paths for files
+          let fullStorageStatus = `Storage connected, buckets: ${bucketNames.join(', ')}\n`;
+          fullStorageStatus += `\n⭐ MAIN BUCKET: ${BILL_STORAGE_BUCKET}\n`;
+          
+          // If main path has files, show count
+          if (mainPathCount > 0) {
+            fullStorageStatus += `  📂 ${BILL_STORAGE_PATH}: ${mainPathCount} files found!\n`;
+            
+            // Get a sample of files
+            const { data: sampleFiles } = await supabase
+              .storage
+              .from(BILL_STORAGE_BUCKET)
+              .list(BILL_STORAGE_PATH, { limit: 5 });
               
-              // Try different folders for each bucket
-              const folderPaths = ["", "bill", "bills", "data"];
-              
-              for (const folderPath of folderPaths) {
-                const { data: files, error: listError } = await supabase
-                  .storage
-                  .from(bucket)
-                  .list(folderPath, { limit: 10 });
-                
-                if (listError) {
-                  fullStorageStatus += `  📂 ${folderPath || "/"}: Error: ${listError.message}\n`;
-                } else {
-                  const fileCount = files?.length || 0;
-                  const filesInfo = files?.map(f => `${f.name}${f.metadata?.mimetype ? ` (${f.metadata.mimetype})` : ''}`).join(', ');
-                  
-                  fullStorageStatus += `  📂 ${folderPath || "/"}: ${fileCount} files${fileCount > 0 ? 
-                    `\n    Files: ${filesInfo}` : 
-                    ' (empty)'}\n`;
-                }
+            if (sampleFiles && sampleFiles.length > 0) {
+              const fileNames = sampleFiles.map(f => f.name).join(', ');
+              fullStorageStatus += `    Sample files: ${fileNames}\n`;
+            }
+          } else {
+            fullStorageStatus += `  📂 ${BILL_STORAGE_PATH}: No files found\n`;
+            
+            // Check alternative paths
+            for (const path of ALTERNATIVE_PATHS) {
+              const count = await countFilesInBucket(BILL_STORAGE_BUCKET, path);
+              if (count > 0) {
+                fullStorageStatus += `  📂 ${path}: ${count} files found\n`;
+              } else {
+                fullStorageStatus += `  📂 ${path}: No files found\n`;
               }
-            } catch (e) {
-              fullStorageStatus += `  Error exploring bucket ${bucket}: ${e instanceof Error ? e.message : String(e)}\n`;
             }
           }
           

@@ -16,3 +16,9 @@ export const ALTERNATIVE_PATHS = [
   "bills",
   ""  // Try root of bucket as last resort
 ];
+
+// Maximum number of files to retrieve in one request
+export const MAX_FILES_TO_RETRIEVE = 1000;
+
+// Maximum number of bills to process at once
+export const MAX_BILLS_TO_PROCESS = 100;

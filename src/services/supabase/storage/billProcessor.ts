@@ -2,6 +2,8 @@
 import { Bill } from "@/types";
 import { transformStorageBill } from "@/utils/billTransformUtils";
 import { fetchFileFromBucket } from "./bucketOperations";
+import { MAX_BILLS_TO_PROCESS } from "../storageConfig";
+import { supabase } from "@/integrations/supabase/client";
 
 /**
  * Processes a JSON file from storage into a Bill object
@@ -26,7 +28,7 @@ export async function processStorageFile(bucketName: string, filePath: string, f
  * Helper function to process a batch of bill files
  */
 export async function processBillFiles(bucketName: string, folderPath: string, jsonFiles: any[]): Promise<Bill[]> {
-  const filesToProcess = jsonFiles.slice(0, 50); // Process up to 50 files
+  const filesToProcess = jsonFiles.slice(0, MAX_BILLS_TO_PROCESS);
   const bills: Bill[] = [];
   
   for (const file of filesToProcess) {
