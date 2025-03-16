@@ -103,6 +103,23 @@ const FALLBACK_BILLS: Bill[] = [
 ];
 
 /**
+ * Helper function to safely fetch from an URL with timeout
+ */
+async function safeFetch(url: string, timeoutMs: number = 5000): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  
+  try {
+    const response = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeoutId);
+    return response;
+  } catch (error) {
+    clearTimeout(timeoutId);
+    throw error;
+  }
+}
+
+/**
  * Fetches bill data from S3, falling back to demo data if necessary
  */
 export async function fetchBills(
@@ -111,22 +128,23 @@ export async function fetchBills(
   pageSize: number = 10
 ): Promise<SearchResults> {
   try {
-    // Attempt to fetch from S3
-    const response = await fetch(`${BASE_URL}/bills.json`);
+    // Attempt to fetch from S3 with a timeout
+    console.log("Fetching bills from S3...");
+    const response = await safeFetch(`${BASE_URL}/bills.json`);
     
     if (!response.ok) {
-      // If fetch fails, use fallback data but notify the user
-      console.warn("S3 fetch failed, using fallback data");
-      toast.info("Using demo data - S3 bucket not accessible");
+      console.warn(`S3 fetch failed with status: ${response.status}`);
+      toast.info("Using demo data - S3 data not available");
       return processResults(FALLBACK_BILLS, query, page, pageSize);
     }
     
     const allBills: Bill[] = await response.json();
+    console.log(`Successfully fetched ${allBills.length} bills from S3`);
     return processResults(allBills, query, page, pageSize);
   } catch (error) {
     console.error("Error fetching bills:", error);
     // Use fallback data in case of any error
-    toast.info("Using demo data - S3 bucket not accessible");
+    toast.info("Using demo data - Connection to S3 failed");
     return processResults(FALLBACK_BILLS, query, page, pageSize);
   }
 }
@@ -142,7 +160,7 @@ function processResults(
 ): SearchResults {
   // Filter bills based on search query
   const filteredBills = query
-    ? filterItems(allBills, query, ["title", "description"])
+    ? filterItems(allBills, query, ["title", "description", "id"])
     : allBills;
 
   // Paginate the filtered results
@@ -165,23 +183,43 @@ function processResults(
 export async function fetchBillById(id: string): Promise<Bill | null> {
   try {
     // Attempt to fetch from S3
-    const response = await fetch(`${BASE_URL}/bills.json`);
+    console.log(`Fetching bill ${id} from S3...`);
+    const response = await safeFetch(`${BASE_URL}/bills.json`);
     
     if (!response.ok) {
-      // If fetch fails, use fallback data but notify the user
-      console.warn("S3 fetch failed, using fallback data");
+      console.warn(`S3 fetch failed with status: ${response.status}`);
       const bill = FALLBACK_BILLS.find(bill => bill.id === id);
-      return bill || null;
+      if (!bill) {
+        toast.info(`Bill ${id} not found in demo data`);
+        return null;
+      }
+      toast.info("Using demo data - S3 data not available");
+      return bill;
     }
     
     const bills: Bill[] = await response.json();
     const bill = bills.find(bill => bill.id === id);
     
-    return bill || null;
+    if (!bill) {
+      console.warn(`Bill ${id} not found in S3 data`);
+      // Check fallback data as a last resort
+      const fallbackBill = FALLBACK_BILLS.find(b => b.id === id);
+      if (fallbackBill) {
+        toast.info("Using demo data - Bill not found in S3");
+        return fallbackBill;
+      }
+      return null;
+    }
+    
+    return bill;
   } catch (error) {
-    console.error("Error fetching bill:", error);
+    console.error(`Error fetching bill ${id}:`, error);
     // Use fallback data in case of any error
     const bill = FALLBACK_BILLS.find(bill => bill.id === id);
-    return bill || null;
+    if (bill) {
+      toast.info("Using demo data - Connection to S3 failed");
+      return bill;
+    }
+    return null;
   }
 }
