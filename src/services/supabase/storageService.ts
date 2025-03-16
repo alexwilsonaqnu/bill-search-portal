@@ -36,7 +36,7 @@ async function fetchFileFromBucket(bucketName: string, filePath: string) {
       .download(filePath);
     
     if (error) {
-      console.debug(`Error downloading file ${filePath}: ${error.message}`);
+      console.error(`Error downloading file ${filePath}: ${error.message}`);
       return null;
     }
     
@@ -52,6 +52,7 @@ async function fetchFileFromBucket(bucketName: string, filePath: string) {
  */
 async function listFilesInBucket(bucketName: string, folderPath: string) {
   try {
+    console.log(`Attempting to list files in ${bucketName}/${folderPath}`);
     const { data, error } = await supabase
       .storage
       .from(bucketName)
@@ -61,11 +62,17 @@ async function listFilesInBucket(bucketName: string, folderPath: string) {
         sortBy: { column: 'name', order: 'asc' }
       });
     
-    if (error || !data) {
-      console.debug(`Error or no data listing files in ${bucketName}/${folderPath}: ${error?.message || 'No data returned'}`);
+    if (error) {
+      console.error(`Error listing files in ${bucketName}/${folderPath}: ${error.message}`);
       return [];
     }
     
+    if (!data || data.length === 0) {
+      console.log(`No files found in ${bucketName}/${folderPath}`);
+      return [];
+    }
+    
+    console.log(`Found ${data.length} files in ${bucketName}/${folderPath}`);
     return data;
   } catch (error) {
     console.error(`Error listing files in ${bucketName}/${folderPath}:`, error);
@@ -117,11 +124,8 @@ export async function fetchBillsFromStorage(): Promise<Bill[]> {
       const storageData = await listFilesInBucket(bucketName, folderPath);
       
       if (storageData.length === 0) {
-        console.log(`No files found in "${bucketName}/${folderPath}"`);
         continue;
       }
-      
-      console.log(`Found ${storageData.length} files in "${bucketName}/${folderPath}"`);
       
       // Only process .json files
       const jsonFiles = storageData.filter(file => file.name.endsWith('.json'));
