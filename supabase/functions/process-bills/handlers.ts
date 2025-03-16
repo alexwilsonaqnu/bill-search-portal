@@ -1,5 +1,6 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { BILL_STORAGE_BUCKET, BILL_STORAGE_PATH, ALTERNATIVE_PATHS } from "./config.ts";
 
 // Shared CORS headers for all responses
 export const corsHeaders = {
@@ -31,10 +32,10 @@ export async function handleUpload(supabase, params: RequestParams) {
     throw new Error("File content must be a base64 string");
   }
   
-  // Upload to storage
+  // Upload to storage using the correct bucket
   const { data: uploadData, error: uploadError } = await supabase.storage
-    .from("bill_storage")
-    .upload(`bills/${fileName}`, fileData, {
+    .from(BILL_STORAGE_BUCKET)
+    .upload(`${BILL_STORAGE_PATH}/${fileName}`, fileData, {
       contentType: "application/json",
       upsert: true,
     });
@@ -43,7 +44,7 @@ export async function handleUpload(supabase, params: RequestParams) {
     throw new Error(`Failed to upload file: ${uploadError.message}`);
   }
   
-  console.log(`Successfully uploaded file: ${fileName}`);
+  console.log(`Successfully uploaded file: ${fileName} to ${BILL_STORAGE_BUCKET}/${BILL_STORAGE_PATH}`);
   
   // Process the uploaded file
   return await processBillFile(supabase, fileName);
@@ -51,12 +52,37 @@ export async function handleUpload(supabase, params: RequestParams) {
 
 // Handle listing of files
 export async function handleList(supabase) {
-  const { data: files, error: listError } = await supabase.storage
-    .from("bill_storage")
-    .list("bills");
+  // Try main path first
+  let { data: files, error: listError } = await supabase.storage
+    .from(BILL_STORAGE_BUCKET)
+    .list(BILL_STORAGE_PATH);
   
-  if (listError) {
-    throw new Error(`Failed to list files: ${listError.message}`);
+  // If main path doesn't work, try alternative paths
+  if (listError || !files || files.length === 0) {
+    console.log(`No files found in ${BILL_STORAGE_BUCKET}/${BILL_STORAGE_PATH}, trying alternatives`);
+    
+    for (const path of ALTERNATIVE_PATHS) {
+      const { data: altFiles, error: altError } = await supabase.storage
+        .from(BILL_STORAGE_BUCKET)
+        .list(path);
+        
+      if (!altError && altFiles && altFiles.length > 0) {
+        files = altFiles;
+        console.log(`Found ${files.length} files in alternative path: ${path}`);
+        break;
+      }
+    }
+  }
+  
+  if (!files || files.length === 0) {
+    console.log(`No files found in any path of bucket ${BILL_STORAGE_BUCKET}`);
+    return new Response(
+      JSON.stringify({ 
+        success: true, 
+        files: [] 
+      }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
   }
   
   return new Response(
@@ -70,36 +96,67 @@ export async function handleList(supabase) {
 
 // Handle processing of all files
 export async function handleProcess(supabase) {
-  const { data: files, error: listError } = await supabase.storage
-    .from("bill_storage")
-    .list("bills");
+  // Try main path first
+  let { data: files, error: listError } = await supabase.storage
+    .from(BILL_STORAGE_BUCKET)
+    .list(BILL_STORAGE_PATH);
   
-  if (listError) {
-    throw new Error(`Failed to list files: ${listError.message}`);
+  let currentPath = BILL_STORAGE_PATH;
+  
+  // If main path doesn't work, try alternative paths
+  if (listError || !files || files.length === 0) {
+    console.log(`No files found in ${BILL_STORAGE_BUCKET}/${BILL_STORAGE_PATH}, trying alternatives`);
+    
+    for (const path of ALTERNATIVE_PATHS) {
+      const { data: altFiles, error: altError } = await supabase.storage
+        .from(BILL_STORAGE_BUCKET)
+        .list(path);
+        
+      if (!altError && altFiles && altFiles.length > 0) {
+        files = altFiles;
+        currentPath = path;
+        console.log(`Found ${files.length} files in alternative path: ${path}`);
+        break;
+      }
+    }
   }
   
   if (!files || files.length === 0) {
     return new Response(
       JSON.stringify({ 
         success: true, 
-        message: "No files found in the bill_storage bucket",
+        message: `No files found in the ${BILL_STORAGE_BUCKET} bucket in any path`,
         processed: 0 
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
   
-  console.log(`Found ${files.length} files to process`);
+  console.log(`Found ${files.length} files to process in ${currentPath}`);
+  
+  // Process only JSON files
+  const jsonFiles = files.filter(file => file.name.endsWith(".json"));
+  
+  if (jsonFiles.length === 0) {
+    return new Response(
+      JSON.stringify({ 
+        success: true, 
+        message: `No JSON files found in the ${BILL_STORAGE_BUCKET} bucket`,
+        processed: 0 
+      }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+  
+  console.log(`Found ${jsonFiles.length} JSON files to process`);
   
   // Process each file
   let processedCount = 0;
   const results = [];
   
-  for (const file of files) {
-    if (!file.name.endsWith(".json")) continue;
-    
+  for (const file of jsonFiles) {
     try {
-      const result = await processBillFile(supabase, file.name);
+      const result = await processBillFile(supabase, file.name, currentPath);
       const data = await result.json();
       results.push(data);
       processedCount++;
@@ -124,13 +181,13 @@ export async function handleProcess(supabase) {
 }
 
 // Helper function to process a single bill file
-export async function processBillFile(supabase, fileName) {
-  console.log(`Processing file: ${fileName}`);
+export async function processBillFile(supabase, fileName, folderPath = BILL_STORAGE_PATH) {
+  console.log(`Processing file: ${fileName} from ${folderPath}`);
   
   // Download the file from storage
   const { data: fileData, error: downloadError } = await supabase.storage
-    .from("bill_storage")
-    .download(`bills/${fileName}`);
+    .from(BILL_STORAGE_BUCKET)
+    .download(`${folderPath}/${fileName}`);
   
   if (downloadError) {
     throw new Error(`Failed to download file ${fileName}: ${downloadError.message}`);
