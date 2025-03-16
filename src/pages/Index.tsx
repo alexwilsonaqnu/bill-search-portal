@@ -8,6 +8,7 @@ import SearchBar from "@/components/SearchBar";
 import BillCard from "@/components/BillCard";
 import Pagination from "@/components/Pagination";
 import { fetchBills } from "@/services/billService";
+import { FALLBACK_BILLS } from "@/data/fallbackBills";
 import { toast } from "sonner";
 
 const Index = () => {
@@ -92,17 +93,37 @@ const Index = () => {
             )}
           </>
         ) : (
-          <div className="text-center py-12">
-            <h3 className="text-xl font-medium mb-2">No bills found</h3>
-            <p className="text-gray-500 mb-6">
-              {error ? "There was an error loading the bills." : "Try adjusting your search or browse all bills"}
-            </p>
-            <button 
-              onClick={handleRetry}
-              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
-            >
-              Retry Loading Bills
-            </button>
+          <div className="flex flex-col gap-8">
+            <div className="text-center py-8">
+              <h3 className="text-xl font-medium mb-2">No bills found from data source</h3>
+              <p className="text-gray-500 mb-6">
+                {error ? "There was an error loading the bills." : "Try adjusting your search or browse all bills"}
+              </p>
+              <button 
+                onClick={handleRetry}
+                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+              >
+                Retry Loading Bills
+              </button>
+            </div>
+            
+            {/* Sample Bills Section (for demonstration) */}
+            <div className="border-t pt-8">
+              <h2 className="text-2xl font-semibold mb-6 text-center">Sample Bills Preview</h2>
+              <div className="space-y-4">
+                {FALLBACK_BILLS.map((bill, index) => (
+                  <BillCard 
+                    key={bill.id}
+                    bill={bill} 
+                    className="transition-all duration-300 hover:translate-x-1" 
+                    animationDelay={`${index * 100}ms`}
+                  />
+                ))}
+              </div>
+              <div className="text-center text-sm text-gray-500 mt-4">
+                These are sample bills from the fallback data.
+              </div>
+            </div>
           </div>
         )}
       </div>
