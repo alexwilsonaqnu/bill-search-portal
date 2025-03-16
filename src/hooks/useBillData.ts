@@ -34,7 +34,6 @@ export function useBillData({ id }: UseBillDataProps): UseBillDataResult {
     retry: 2,
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
-    // Silent handling of specific errors for demo purposes
     meta: {
       onSettled: (_data: any, err: any) => {
         if (err) {
@@ -47,7 +46,7 @@ export function useBillData({ id }: UseBillDataProps): UseBillDataResult {
   return {
     bill: bill || null,
     isLoading,
-    isError: isError && !bill, // Only consider it an error if we don't have fallback data
+    isError,
     error: error as Error | null
   };
 }
