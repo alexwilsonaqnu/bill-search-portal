@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { FileText } from "lucide-react";
@@ -12,6 +11,19 @@ interface BillCardProps {
 }
 
 const BillCard = ({ bill, className = "", animationDelay }: BillCardProps) => {
+  const formatTitle = () => {
+    if (bill.title && bill.title.length > 10 && !bill.title.includes(bill.id)) {
+      return bill.title;
+    }
+    return `${bill.title || "House Bill"} - ${bill.description.split('.')[0] || "Legislative Proposal"}`;
+  };
+
+  const getSummary = () => {
+    if (!bill.description) return "No description available";
+    if (bill.description.length < 120) return bill.description;
+    return bill.description.substring(0, 120) + "...";
+  };
+
   return (
     <Card 
       className={`bill-card overflow-hidden animate-fade-up ${className}`}
@@ -33,14 +45,21 @@ const BillCard = ({ bill, className = "", animationDelay }: BillCardProps) => {
         </div>
       </CardHeader>
       <CardContent>
-        <h3 className="text-lg font-medium mb-2">{bill.title}</h3>
-        <p className="text-gray-600 text-sm line-clamp-3 mb-4">{bill.description}</p>
+        <h3 className="text-lg font-medium mb-2 text-blue-800">{formatTitle()}</h3>
+        <p className="text-gray-600 text-sm line-clamp-3 mb-4">{getSummary()}</p>
         <div className="flex items-center justify-between">
-          {bill.status && (
-            <span className="inline-block px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-xs">
-              {bill.status}
-            </span>
-          )}
+          <div className="flex gap-2">
+            {bill.status && (
+              <span className="inline-block px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-xs">
+                {bill.status}
+              </span>
+            )}
+            {bill.versions && bill.versions.length > 0 && (
+              <span className="inline-block px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs">
+                {bill.versions.length} version{bill.versions.length > 1 ? 's' : ''}
+              </span>
+            )}
+          </div>
           <Link to={`/bill/${bill.id}`} className="ml-auto">
             <Button 
               className="select-button"
