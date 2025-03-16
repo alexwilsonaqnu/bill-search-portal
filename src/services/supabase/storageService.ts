@@ -36,6 +36,7 @@ async function fetchFileFromBucket(bucketName: string, filePath: string) {
       .download(filePath);
     
     if (error) {
+      console.debug(`Error downloading file ${filePath}: ${error.message}`);
       return null;
     }
     
@@ -61,6 +62,7 @@ async function listFilesInBucket(bucketName: string, folderPath: string) {
       });
     
     if (error || !data) {
+      console.debug(`Error or no data listing files in ${bucketName}/${folderPath}: ${error?.message || 'No data returned'}`);
       return [];
     }
     
