@@ -10,15 +10,18 @@ import { fetchBillById } from "@/services/billService";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { normalizeBillId } from "@/utils/billTransformUtils";
 
 const BillDetail = () => {
   const { id } = useParams<{ id: string }>();
   const [selectedTool, setSelectedTool] = useState<"overview" | "comparison">("overview");
 
+  const normalizedId = id ? normalizeBillId(id) : "";
+
   const { data: bill, isLoading, error } = useQuery({
-    queryKey: ["bill", id],
-    queryFn: () => fetchBillById(id!),
-    enabled: !!id,
+    queryKey: ["bill", normalizedId],
+    queryFn: () => fetchBillById(normalizedId),
+    enabled: !!normalizedId,
   });
 
   if (error) {

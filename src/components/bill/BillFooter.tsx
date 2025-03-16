@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { Bill } from "@/types";
 import { getTags } from "@/utils/billCardUtils";
+import { normalizeBillId } from "@/utils/billTransformUtils";
 
 interface BillFooterProps {
   bill: Bill;
@@ -12,6 +13,7 @@ interface BillFooterProps {
 
 const BillFooter = ({ bill }: BillFooterProps) => {
   const tags = getTags(bill);
+  const normalizedId = normalizeBillId(bill.id);
   
   return (
     <div className="flex items-center justify-between flex-wrap gap-y-2">
@@ -23,7 +25,7 @@ const BillFooter = ({ bill }: BillFooterProps) => {
         ))}
       </div>
       
-      <Link to={`/bill/${bill.id}`} className="inline-block">
+      <Link to={`/bill/${normalizedId}`} className="inline-block">
         <Button size="sm" variant="ghost" className="text-xs">
           View Details
         </Button>

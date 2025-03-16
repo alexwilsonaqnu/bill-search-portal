@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { processResults } from "@/utils/billProcessingUtils";
 import { fetchBillsFromSupabase, fetchBillByIdFromSupabase } from "@/services/supabaseBillService";
 import { FALLBACK_BILLS } from "@/data/fallbackBills";
+import { normalizeBillId } from "@/utils/billTransformUtils";
 
 /**
  * Fetches bill data from Supabase, falling back to demo data if necessary
@@ -41,16 +42,23 @@ export async function fetchBills(
  */
 export async function fetchBillById(id: string): Promise<Bill | null> {
   try {
+    const normalizedId = normalizeBillId(id);
+    console.log(`Fetching bill with normalized ID: ${normalizedId}`);
+    
     // Try to fetch from Supabase first
-    const bill = await fetchBillByIdFromSupabase(id);
+    const bill = await fetchBillByIdFromSupabase(normalizedId);
     
     if (bill) {
       return bill;
     }
     
     // If not found in Supabase, try fallback data
-    console.log(`Bill ${id} not found in Supabase, checking fallback data...`);
-    const fallbackBill = FALLBACK_BILLS.find(bill => bill.id === id);
+    console.log(`Bill ${normalizedId} not found in Supabase, checking fallback data...`);
+    
+    // Try to find the bill in fallback data, checking both the original and normalized ID
+    const fallbackBill = FALLBACK_BILLS.find(bill => 
+      normalizeBillId(bill.id) === normalizedId || bill.id === id
+    );
     
     if (!fallbackBill) {
       toast.info(`Bill ${id} not found`);
@@ -62,7 +70,11 @@ export async function fetchBillById(id: string): Promise<Bill | null> {
   } catch (error) {
     console.error(`Error in fetchBillById ${id}:`, error);
     
-    const bill = FALLBACK_BILLS.find(bill => bill.id === id);
+    const normalizedId = normalizeBillId(id);
+    const bill = FALLBACK_BILLS.find(bill => 
+      normalizeBillId(bill.id) === normalizedId || bill.id === id
+    );
+    
     if (!bill) return null;
     
     toast.info("Using demo data - Connection to Supabase failed");

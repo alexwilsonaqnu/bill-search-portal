@@ -11,8 +11,12 @@ export function transformSupabaseBill(item: any): Bill {
   // Handle case where bill is nested inside a 'bill' property (as in the example JSON)
   const billObject = item.bill || item;
   
+  // Ensure ID is a string
+  const id = billObject.bill_id || billObject.id || "";
+  const idString = id.toString();
+  
   return {
-    id: billObject.bill_id || billObject.id || "",
+    id: idString,
     title: billObject.title || "",
     description: billObject.description || "",
     status: billObject.status || "",
@@ -23,6 +27,13 @@ export function transformSupabaseBill(item: any): Bill {
     // Include the full data object for additional properties
     data: billData
   };
+}
+
+/**
+ * Normalizes bill ID to a consistent string format
+ */
+export function normalizeBillId(id: string | number): string {
+  return id.toString();
 }
 
 /**
@@ -41,8 +52,12 @@ export function transformStorageBill(fileName: string, fileContent: any): Bill {
     // Handle case where bill is nested inside a 'bill' property (as in the example JSON)
     const billObject = parsedContent.bill || parsedContent;
     
+    // Ensure ID is a string
+    const billId = billObject.bill_id || id;
+    const idString = billId.toString();
+    
     return {
-      id: billObject.bill_id || id,
+      id: idString,
       title: billObject.title || `Bill ${id}`,
       description: billObject.description || "",
       status: billObject.status_date ? `Last updated: ${billObject.status_date}` : "",
