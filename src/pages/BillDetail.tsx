@@ -1,7 +1,6 @@
-
 import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { ChevronLeft, Star } from "lucide-react";
+import { ChevronLeft, Star, AlertCircle } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import Navbar from "@/components/Navbar";
 import ChangeIndex from "@/components/ChangeIndex";
@@ -17,15 +16,18 @@ const BillDetail = () => {
   const [selectedTool, setSelectedTool] = useState<"overview" | "comparison">("overview");
 
   const normalizedId = id ? normalizeBillId(id) : "";
-
-  const { data: bill, isLoading, error } = useQuery({
+  
+  const { data: bill, isLoading, error, isError } = useQuery({
     queryKey: ["bill", normalizedId],
     queryFn: () => fetchBillById(normalizedId),
     enabled: !!normalizedId,
+    retry: 2,
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 
   if (error) {
-    toast.error("Failed to load bill details. Please try again later.");
+    console.error("Bill fetch error:", error);
   }
 
   if (isLoading) {
@@ -47,16 +49,26 @@ const BillDetail = () => {
     );
   }
 
-  if (!bill) {
+  if (isError || !bill) {
     return (
       <div className="min-h-screen bg-gray-50">
         <Navbar />
         <div className="max-w-6xl mx-auto pt-28 pb-20 px-6 text-center animate-fade-in">
-          <h2 className="text-2xl font-semibold mb-4">Bill Not Found</h2>
-          <p className="mb-6">The bill you're looking for doesn't exist or has been removed.</p>
-          <Link to="/">
-            <Button>Return to Home</Button>
-          </Link>
+          <div className="flex flex-col items-center justify-center">
+            <AlertCircle className="h-16 w-16 text-red-500 mb-4" />
+            <h2 className="text-2xl font-semibold mb-4">Bill Not Found</h2>
+            <p className="mb-6">
+              We couldn't find bill {id} in our database. This might be due to:
+            </p>
+            <ul className="list-disc text-left mb-6 max-w-md">
+              <li className="mb-2">The bill ID you entered is incorrect</li>
+              <li className="mb-2">The bill hasn't been uploaded to our system yet</li>
+              <li className="mb-2">There was an error connecting to the data source</li>
+            </ul>
+            <Link to="/">
+              <Button>Return to Bill Search</Button>
+            </Link>
+          </div>
         </div>
       </div>
     );

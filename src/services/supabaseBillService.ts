@@ -31,7 +31,7 @@ export async function fetchBillsFromSupabase() {
     return [];
   } catch (error) {
     console.error("Error fetching bills:", error);
-    return null;
+    throw error; // Let the caller handle the error instead of returning null
   }
 }
 
@@ -43,19 +43,23 @@ export async function fetchBillByIdFromSupabase(id: string): Promise<Bill | null
   try {
     console.log(`Fetching bill ${id} from Supabase...`);
     
+    // Check if we're dealing with a numeric ID (likely a memorial resolution)
+    const isNumericId = /^\d+$/.test(id);
+    if (isNumericId) {
+      console.log(`ID ${id} appears to be a memorial resolution or numeric ID`);
+    }
+    
     // First try to fetch from the database table with exact ID
-    const databaseBill = await fetchBillByIdFromDatabase(id);
+    let databaseBill = await fetchBillByIdFromDatabase(id);
     
     if (databaseBill) {
+      console.log(`Found bill ${id} in database table`);
       return databaseBill;
     }
     
-    // Is this a purely numeric ID (memorial resolution)?
-    const isNumericId = /^\d+$/.test(id);
-    
-    // Try common prefixes if it's a numeric ID
+    // If it's a numeric ID, try common prefixes
     if (isNumericId) {
-      console.log(`ID ${id} is numeric, trying with common prefixes...`);
+      console.log(`Trying to find numeric ID ${id} with common prefixes...`);
       const prefixes = ['HB', 'SB', 'HR', 'SR'];
       
       for (const prefix of prefixes) {
@@ -63,6 +67,9 @@ export async function fetchBillByIdFromSupabase(id: string): Promise<Bill | null
         console.log(`Trying with prefix: ${prefixedId}`);
         const prefixedBill = await fetchBillByIdFromDatabase(prefixedId);
         if (prefixedBill) {
+          console.log(`Found bill with ID ${prefixedId} in database`);
+          // Make sure the returned bill has the requested ID format
+          prefixedBill.id = id;
           return prefixedBill;
         }
       }
@@ -72,9 +79,10 @@ export async function fetchBillByIdFromSupabase(id: string): Promise<Bill | null
     console.log(`Bill ${id} not found in table, trying storage buckets...`);
     
     // Try directly with the given ID
-    const storageBill = await fetchBillByIdFromStorage(id);
+    let storageBill = await fetchBillByIdFromStorage(id);
     
     if (storageBill) {
+      console.log(`Found bill ${id} in storage`);
       return storageBill;
     }
     
@@ -86,15 +94,27 @@ export async function fetchBillByIdFromSupabase(id: string): Promise<Bill | null
         console.log(`Trying storage with prefix: ${prefixedId}`);
         const prefixedBill = await fetchBillByIdFromStorage(prefixedId);
         if (prefixedBill) {
+          console.log(`Found bill with ID ${prefixedId} in storage`);
+          // Make sure the returned bill has the requested ID format
+          prefixedBill.id = id;
           return prefixedBill;
         }
       }
     }
     
+    // If still not found, manually check for a special case for this specific bill ID
+    if (id === '1635636') {
+      console.log("Special case detected for bill 1635636");
+      
+      // Here we could make a custom API call to another data source if needed
+      // For now, we'll throw an error to be caught by the caller
+      throw new Error("Bill 1635636 requires a custom data source");
+    }
+    
     console.warn(`Bill ${id} not found in any Supabase storage bucket`);
-    return null;
+    throw new Error(`Bill ${id} not found in Supabase`);
   } catch (error) {
     console.error(`Error fetching bill ${id}:`, error);
-    return null;
+    throw error; // Let the caller handle the error
   }
 }

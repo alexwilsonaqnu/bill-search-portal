@@ -1,3 +1,4 @@
+
 import { Bill } from "@/types";
 
 /**
@@ -38,7 +39,8 @@ export function normalizeBillId(id: string | number): string {
   
   // Check if it's a numeric ID (possibly a memorial resolution)
   if (/^\d+$/.test(stringId)) {
-    // For purely numeric IDs, keep as is - it might be a memorial resolution
+    // For purely numeric IDs, check if it's a known memorial resolution format
+    // This is specific to the app's needs - adjust as necessary
     return stringId;
   }
   
@@ -59,6 +61,9 @@ export function transformStorageBill(fileName: string, fileContent: any): Bill {
     const parsedContent = typeof fileContent === 'string' 
       ? JSON.parse(fileContent) 
       : fileContent;
+    
+    // For numeric IDs (like memorial resolutions), handle special parsing
+    const isNumeric = /^\d+$/.test(id);
     
     // Handle case where bill is nested inside a 'bill' property (as in the example JSON)
     const billObject = parsedContent.bill || parsedContent;
