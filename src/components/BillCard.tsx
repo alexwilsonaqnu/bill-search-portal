@@ -1,9 +1,9 @@
-
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { FileText, Calendar, Tag, Flag } from "lucide-react";
+import { FileText, Calendar, Tag, Flag, Activity, Users } from "lucide-react";
 import { Bill } from "@/types";
 import { Link } from "react-router-dom";
+import { Badge } from "@/components/ui/badge";
 
 interface BillCardProps {
   bill: Bill;
@@ -12,28 +12,22 @@ interface BillCardProps {
 }
 
 const BillCard = ({ bill, className = "", animationDelay }: BillCardProps) => {
-  // Format the title to be more human-readable
   const formatTitle = () => {
-    // If it has a proper title that isn't just the ID, use it
     if (bill.title && bill.title.length > 10 && !bill.title.includes(bill.id)) {
       return bill.title;
     }
     
-    // Create a title from the first sentence of the description
     const firstSentence = bill.description?.split('.')?.filter(s => s.trim().length > 0)?.[0];
     if (firstSentence && firstSentence.length > 10) {
       return firstSentence;
     }
     
-    // Fallback to basic format
     return `${bill.title || bill.id} - Legislative Proposal`;
   };
 
-  // Get a concise summary from the description
   const getSummary = () => {
     if (!bill.description) return "No description available";
     
-    // Use the description without the first sentence as summary
     const sentences = bill.description.split('.').filter(s => s.trim().length > 0);
     if (sentences.length > 1) {
       const remainingSentences = sentences.slice(1).join('. ');
@@ -43,7 +37,6 @@ const BillCard = ({ bill, className = "", animationDelay }: BillCardProps) => {
       return remainingSentences;
     }
     
-    // If there's only one sentence, use a portion as summary
     if (bill.description.length > 150) {
       return bill.description.substring(0, 150) + "...";
     }
@@ -51,7 +44,6 @@ const BillCard = ({ bill, className = "", animationDelay }: BillCardProps) => {
     return bill.description;
   };
 
-  // Get the sponsor or authors if available
   const getSponsor = () => {
     if (bill.data?.sponsor) return bill.data.sponsor;
     if (bill.data?.author) return bill.data.author;
@@ -63,7 +55,20 @@ const BillCard = ({ bill, className = "", animationDelay }: BillCardProps) => {
     return null;
   };
 
-  // Get relevant dates (introduced, last action, etc)
+  const getCoSponsors = () => {
+    if (!bill.data) return [];
+    
+    const possibleFields = ['cosponsors', 'co_sponsors', 'coSponsors', 'co-sponsors'];
+    
+    for (const field of possibleFields) {
+      if (bill.data[field] && Array.isArray(bill.data[field]) && bill.data[field].length > 0) {
+        return bill.data[field].slice(0, 3);
+      }
+    }
+    
+    return [];
+  };
+
   const getRelevantDate = () => {
     if (bill.lastUpdated) return bill.lastUpdated;
     if (bill.data?.introducedDate) return bill.data.introducedDate;
@@ -71,32 +76,63 @@ const BillCard = ({ bill, className = "", animationDelay }: BillCardProps) => {
     return "N/A";
   };
 
-  // Get tags or categories if available
+  const getMostRecentAction = () => {
+    if (!bill.data) return null;
+    
+    const possibleFields = ['lastAction', 'last_action', 'recentAction', 'recent_action', 'latestAction'];
+    
+    for (const field of possibleFields) {
+      if (bill.data[field] && typeof bill.data[field] === 'string') {
+        return bill.data[field];
+      }
+      
+      if (bill.data[field] && typeof bill.data[field] === 'object') {
+        const actionObj = bill.data[field];
+        if (actionObj.description || actionObj.text || actionObj.action) {
+          return actionObj.description || actionObj.text || actionObj.action;
+        }
+      }
+    }
+    
+    return null;
+  };
+
+  const getActionType = () => {
+    if (!bill.data) return null;
+    
+    const possibleFields = ['actionType', 'action_type', 'type', 'lastActionType'];
+    
+    for (const field of possibleFields) {
+      if (bill.data[field] && typeof bill.data[field] === 'string') {
+        return bill.data[field];
+      }
+    }
+    
+    return null;
+  };
+
   const getTags = () => {
     if (!bill.data) return [];
     
     const possibleTagFields = ['topics', 'categories', 'tags', 'subjects'];
     for (const field of possibleTagFields) {
       if (bill.data[field] && Array.isArray(bill.data[field]) && bill.data[field].length > 0) {
-        return bill.data[field].slice(0, 2); // Return max 2 tags
+        return bill.data[field].slice(0, 2);
       }
     }
     
     return [];
   };
   
-  // Get first three lines of the bill text content
   const getFirstThreeLines = () => {
     if (!bill.versions || bill.versions.length === 0 || !bill.versions[0].sections || bill.versions[0].sections.length === 0) {
       return null;
     }
     
-    // Get content from the first section of the first version
     const firstContent = bill.versions[0].sections.find(section => section.content)?.content;
     
     if (!firstContent) return null;
     
-    // Split by newlines and get first three lines
     const lines = firstContent.split('\n').filter(line => line.trim().length > 0);
     if (lines.length === 0) return null;
     
@@ -105,9 +141,12 @@ const BillCard = ({ bill, className = "", animationDelay }: BillCardProps) => {
   };
   
   const sponsor = getSponsor();
+  const coSponsors = getCoSponsors();
   const tags = getTags();
   const relevantDate = getRelevantDate();
   const firstThreeLines = getFirstThreeLines();
+  const mostRecentAction = getMostRecentAction();
+  const actionType = getActionType();
 
   return (
     <Card 
@@ -133,58 +172,53 @@ const BillCard = ({ bill, className = "", animationDelay }: BillCardProps) => {
         <h3 className="text-lg font-medium mb-2 text-blue-800">{formatTitle()}</h3>
         <p className="text-gray-600 text-sm line-clamp-3 mb-4">{getSummary()}</p>
         
-        {/* First three lines of bill text */}
+        {bill.data?.description && bill.data.description !== bill.description && (
+          <div className="mb-4">
+            <h4 className="text-xs font-semibold text-gray-700 mb-1">Official Description:</h4>
+            <p className="text-gray-600 text-sm line-clamp-2">{bill.data.description}</p>
+          </div>
+        )}
+        
+        {mostRecentAction && (
+          <div className="mb-4">
+            <h4 className="text-xs font-semibold text-gray-700 mb-1 flex items-center gap-1">
+              <Activity className="h-3 w-3" /> Recent Action:
+            </h4>
+            <p className="text-gray-600 text-sm line-clamp-2">{mostRecentAction}</p>
+            {actionType && (
+              <Badge variant="outline" className="mt-1 text-xs">
+                {actionType}
+              </Badge>
+            )}
+          </div>
+        )}
+        
         {firstThreeLines && (
           <div className="p-3 bg-gray-50 border border-gray-100 rounded-md mb-4 text-xs text-gray-700 italic">
             <p className="line-clamp-3 whitespace-pre-line">{firstThreeLines}</p>
           </div>
         )}
         
-        {/* Sponsor info if available */}
         {sponsor && (
-          <div className="flex items-center text-xs text-gray-600 mb-3">
+          <div className="flex items-center text-xs text-gray-600 mb-1">
             <span className="mr-2">Sponsor:</span>
             <span className="font-medium">{sponsor}</span>
           </div>
         )}
         
+        {coSponsors.length > 0 && (
+          <div className="flex items-center text-xs text-gray-600 mb-3">
+            <span className="mr-2 flex items-center gap-1">
+              <Users className="h-3 w-3" /> Co-sponsors:
+            </span>
+            <span className="font-medium">
+              {coSponsors.join(", ")}
+              {bill.data?.cosponsors?.length > 3 && ` +${bill.data.cosponsors.length - 3} more`}
+            </span>
+          </div>
+        )}
+        
         <div className="flex items-center justify-between flex-wrap gap-y-2">
           <div className="flex flex-wrap gap-2">
-            {/* Status badge */}
-            {bill.status && (
-              <span className="inline-block px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-xs flex items-center gap-1">
-                <Flag className="h-3 w-3" /> {bill.status}
-              </span>
-            )}
-            
-            {/* Versions badge */}
-            {bill.versions && bill.versions.length > 0 && (
-              <span className="inline-block px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs">
-                {bill.versions.length} version{bill.versions.length > 1 ? 's' : ''}
-              </span>
-            )}
-            
-            {/* Tags badges */}
-            {tags.map((tag, index) => (
-              <span key={index} className="inline-block px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-xs flex items-center gap-1">
-                <Tag className="h-3 w-3" /> {tag}
-              </span>
-            ))}
-          </div>
-          
-          <Link to={`/bill/${bill.id}`} className="ml-auto mt-auto">
-            <Button 
-              className="select-button"
-              variant="default"
-              size="sm"
-            >
-              VIEW DETAILS
-            </Button>
-          </Link>
-        </div>
-      </CardContent>
-    </Card>
-  );
-};
+            {
 
-export default BillCard;
