@@ -9,8 +9,8 @@ interface BillSummaryProps {
 const BillSummary = ({ bill }: BillSummaryProps) => {
   return (
     <div>
-      <h3 className="text-lg font-medium mb-2 text-blue-800">{formatTitle(bill)}</h3>
-      <p className="text-gray-600 text-sm line-clamp-3 mb-4">{getSummary(bill)}</p>
+      <h3 className="text-lg font-medium mb-2 text-blue-800">{bill.title}</h3>
+      <p className="text-gray-600 text-sm line-clamp-3 mb-4">{bill.description}</p>
       
       {bill.data?.description && bill.data.description !== bill.description && (
         <div className="mb-4">
