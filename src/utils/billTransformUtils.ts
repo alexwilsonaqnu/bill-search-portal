@@ -16,7 +16,9 @@ export function transformSupabaseBill(item: any): Bill {
     lastUpdated: item.last_updated ? new Date(item.last_updated).toISOString().split('T')[0] : "",
     // Use nested data from the JSON or empty arrays if not present
     versions: Array.isArray(billData.versions) ? billData.versions : [],
-    changes: Array.isArray(billData.changes) ? billData.changes : []
+    changes: Array.isArray(billData.changes) ? billData.changes : [],
+    // Include the full data object for additional properties
+    data: billData
   };
 }
 
@@ -40,7 +42,9 @@ export function transformStorageBill(fileName: string, fileContent: any): Bill {
       status: billData.status || "",
       lastUpdated: billData.lastUpdated || "",
       versions: Array.isArray(billData.versions) ? billData.versions : [],
-      changes: Array.isArray(billData.changes) ? billData.changes : []
+      changes: Array.isArray(billData.changes) ? billData.changes : [],
+      // Include the full data object for additional properties
+      data: billData
     };
   } catch (error) {
     console.error(`Error parsing bill ${fileName}:`, error);

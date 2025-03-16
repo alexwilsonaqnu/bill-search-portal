@@ -7,6 +7,7 @@ export interface Bill {
   status?: string;
   versions: BillVersion[];
   changes: Change[];
+  data?: Record<string, any>; // Additional data from JSON
 }
 
 export interface BillVersion {
