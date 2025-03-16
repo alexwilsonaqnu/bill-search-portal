@@ -83,14 +83,14 @@ export async function fetchFileFromBucket(bucketName: string, filePath: string) 
  */
 export async function countFilesInBucket(bucketName: string, folderPath: string): Promise<number> {
   try {
-    const { count, error } = await supabase
+    // First, we need to list files to count them manually since count property is not available
+    const { data, error } = await supabase
       .storage
       .from(bucketName)
       .list(folderPath, {
-        limit: 1,
+        limit: MAX_FILES_TO_RETRIEVE,
         offset: 0,
-        sortBy: { column: 'name', order: 'asc' },
-        count: 'exact'
+        sortBy: { column: 'name', order: 'asc' }
       });
     
     if (error) {
@@ -98,8 +98,9 @@ export async function countFilesInBucket(bucketName: string, folderPath: string)
       return 0;
     }
     
-    console.log(`Total count in ${bucketName}/${folderPath}: ${count || 0}`);
-    return count || 0;
+    const fileCount = data ? data.length : 0;
+    console.log(`Total count in ${bucketName}/${folderPath}: ${fileCount}`);
+    return fileCount;
   } catch (error) {
     console.error(`Error counting files in ${bucketName}/${folderPath}:`, error);
     return 0;

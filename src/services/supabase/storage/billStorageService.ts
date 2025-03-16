@@ -1,5 +1,6 @@
 
 import { Bill } from "@/types";
+import { supabase } from "@/integrations/supabase/client"; // Add the missing import
 import { BILL_STORAGE_BUCKET, BILL_STORAGE_PATH, ALTERNATIVE_PATHS, MAX_BILLS_TO_PROCESS } from "../storageConfig";
 import { listFilesInBucket, countFilesInBucket } from "./bucketOperations";
 import { processBillFiles, processStorageFile } from "./billProcessor";
