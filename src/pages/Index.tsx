@@ -36,7 +36,9 @@ const Index = () => {
         if (dbError) {
           setDbStatus(`Database error: ${dbError.message}`);
         } else {
-          setDbStatus(`Database connected, bills count: ${dbData?.count || 0}`);
+          // Fix: Correctly access the count value from the response
+          const count = dbData?.[0]?.count ?? 0;
+          setDbStatus(`Database connected, bills count: ${count}`);
         }
         
         // Check storage
