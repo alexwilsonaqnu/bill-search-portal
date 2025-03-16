@@ -85,9 +85,29 @@ const BillCard = ({ bill, className = "", animationDelay }: BillCardProps) => {
     return [];
   };
   
+  // Get first three lines of the bill text content
+  const getFirstThreeLines = () => {
+    if (!bill.versions || bill.versions.length === 0 || !bill.versions[0].sections || bill.versions[0].sections.length === 0) {
+      return null;
+    }
+    
+    // Get content from the first section of the first version
+    const firstContent = bill.versions[0].sections.find(section => section.content)?.content;
+    
+    if (!firstContent) return null;
+    
+    // Split by newlines and get first three lines
+    const lines = firstContent.split('\n').filter(line => line.trim().length > 0);
+    if (lines.length === 0) return null;
+    
+    const firstThreeLines = lines.slice(0, 3).join('\n');
+    return firstThreeLines;
+  };
+  
   const sponsor = getSponsor();
   const tags = getTags();
   const relevantDate = getRelevantDate();
+  const firstThreeLines = getFirstThreeLines();
 
   return (
     <Card 
@@ -112,6 +132,13 @@ const BillCard = ({ bill, className = "", animationDelay }: BillCardProps) => {
       <CardContent>
         <h3 className="text-lg font-medium mb-2 text-blue-800">{formatTitle()}</h3>
         <p className="text-gray-600 text-sm line-clamp-3 mb-4">{getSummary()}</p>
+        
+        {/* First three lines of bill text */}
+        {firstThreeLines && (
+          <div className="p-3 bg-gray-50 border border-gray-100 rounded-md mb-4 text-xs text-gray-700 italic">
+            <p className="line-clamp-3 whitespace-pre-line">{firstThreeLines}</p>
+          </div>
+        )}
         
         {/* Sponsor info if available */}
         {sponsor && (
