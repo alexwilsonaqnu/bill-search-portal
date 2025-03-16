@@ -11,6 +11,13 @@ const BillSummary = ({ bill }: BillSummaryProps) => {
       <h3 className="text-lg font-medium mb-2 text-blue-800">{bill.title}</h3>
       <p className="text-gray-600 text-sm line-clamp-3 mb-4">{bill.description}</p>
       
+      {bill.data?.title && bill.data.title !== bill.title && (
+        <div className="mb-4">
+          <h4 className="text-xs font-semibold text-gray-700 mb-1">Original Title:</h4>
+          <p className="text-gray-600 text-sm line-clamp-2">{bill.data.title}</p>
+        </div>
+      )}
+      
       {bill.data?.description && bill.data.description !== bill.description && (
         <div className="mb-4">
           <h4 className="text-xs font-semibold text-gray-700 mb-1">Official Description:</h4>

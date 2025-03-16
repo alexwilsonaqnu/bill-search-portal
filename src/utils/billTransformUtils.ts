@@ -8,12 +8,15 @@ export function transformSupabaseBill(item: any): Bill {
   // Handle the nested data JSON field that contains versions and changes
   const billData = typeof item.data === 'object' ? item.data : {};
   
+  // Handle case where bill is nested inside a 'bill' property (as in the example JSON)
+  const billObject = item.bill || item;
+  
   return {
-    id: item.id,
-    title: item.title,
-    description: item.description || "",
-    status: item.status || "",
-    lastUpdated: item.last_updated ? new Date(item.last_updated).toISOString().split('T')[0] : "",
+    id: billObject.bill_id || billObject.id || "",
+    title: billObject.title || "",
+    description: billObject.description || "",
+    status: billObject.status || "",
+    lastUpdated: billObject.status_date ? new Date(billObject.status_date).toISOString().split('T')[0] : "",
     // Use nested data from the JSON or empty arrays if not present
     versions: Array.isArray(billData.versions) ? billData.versions : [],
     changes: Array.isArray(billData.changes) ? billData.changes : [],
@@ -31,20 +34,41 @@ export function transformStorageBill(fileName: string, fileContent: any): Bill {
   
   try {
     // Parse the JSON content if it's a string
-    const billData = typeof fileContent === 'string' 
+    const parsedContent = typeof fileContent === 'string' 
       ? JSON.parse(fileContent) 
       : fileContent;
     
+    // Handle case where bill is nested inside a 'bill' property (as in the example JSON)
+    const billObject = parsedContent.bill || parsedContent;
+    
     return {
-      id: id,
-      title: billData.title || `Bill ${id}`,
-      description: billData.description || "",
-      status: billData.status || "",
-      lastUpdated: billData.lastUpdated || "",
-      versions: Array.isArray(billData.versions) ? billData.versions : [],
-      changes: Array.isArray(billData.changes) ? billData.changes : [],
+      id: billObject.bill_id || id,
+      title: billObject.title || `Bill ${id}`,
+      description: billObject.description || "",
+      status: billObject.status_date ? `Last updated: ${billObject.status_date}` : "",
+      lastUpdated: billObject.status_date || "",
+      versions: Array.isArray(billObject.texts) 
+        ? billObject.texts.map((text: any) => ({
+            id: text.doc_id || "",
+            name: text.type || "",
+            status: "",
+            date: text.date || "",
+            sections: [{
+              id: "s1",
+              title: "Content",
+              content: text.state_link || ""
+            }]
+          })) 
+        : [],
+      changes: billObject.history 
+        ? billObject.history.map((item: any, index: number) => ({
+            id: `c${index}`,
+            description: item.action || "",
+            details: item.date || ""
+          })) 
+        : [],
       // Include the full data object for additional properties
-      data: billData
+      data: parsedContent
     };
   } catch (error) {
     console.error(`Error parsing bill ${fileName}:`, error);
