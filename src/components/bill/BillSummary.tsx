@@ -1,6 +1,5 @@
 
 import { Bill } from "@/types";
-import { formatTitle, getSummary } from "@/utils/billCardUtils";
 
 interface BillSummaryProps {
   bill: Bill;
