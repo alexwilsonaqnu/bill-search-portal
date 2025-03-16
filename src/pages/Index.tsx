@@ -21,7 +21,7 @@ const Index = () => {
   const [showUploader, setShowUploader] = useState(true);
   const [processedBills, setProcessedBills] = useState<Bill[]>([]);
   
-  const { dbStatus, storageStatus } = useSupabaseStatus();
+  const { dbStatus, storageStatus, availableBuckets } = useSupabaseStatus();
   
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["bills", query, currentPage],
@@ -77,6 +77,7 @@ const Index = () => {
           currentPage={currentPage}
           dbStatus={dbStatus}
           storageStatus={storageStatus}
+          buckets={availableBuckets}
           error={error}
           data={data}
         />
