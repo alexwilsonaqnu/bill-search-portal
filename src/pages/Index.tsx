@@ -7,15 +7,19 @@ import Navbar from "@/components/Navbar";
 import SearchBar from "@/components/SearchBar";
 import BillCard from "@/components/BillCard";
 import Pagination from "@/components/Pagination";
+import BillUploader from "@/components/BillUploader";
 import { fetchBills } from "@/services/billService";
 import { FALLBACK_BILLS } from "@/data/fallbackBills";
 import { toast } from "sonner";
+import { Bill } from "@/types";
 
 const Index = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const query = searchParams.get("q") || "";
   const pageParam = searchParams.get("page");
   const currentPage = pageParam ? parseInt(pageParam) : 1;
+  const [showUploader, setShowUploader] = useState(false);
+  const [processedBills, setProcessedBills] = useState<Bill[]>([]);
   
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["bills", query, currentPage],
@@ -44,6 +48,23 @@ const Index = () => {
     toast.info("Retrying bill fetch...");
     refetch();
   };
+  
+  const handleBillsProcessed = (bills: Bill[]) => {
+    setProcessedBills(bills);
+    toast.success(`${bills.length} bills are now available`);
+    refetch();
+  };
+  
+  const toggleUploader = () => {
+    setShowUploader(!showUploader);
+  };
+
+  // Determine if we have bills to show
+  const billsToShow = data?.bills && data.bills.length > 0 
+    ? data.bills 
+    : processedBills.length > 0 
+      ? processedBills 
+      : null;
 
   return (
     <div className="min-h-screen bg-gray-50 relative page-transition-wrapper">
@@ -60,7 +81,22 @@ const Index = () => {
           <div className="mx-auto max-w-xl">
             <SearchBar initialQuery={query} onSearch={handleSearch} />
           </div>
+
+          <div className="mt-4">
+            <button
+              onClick={toggleUploader}
+              className="text-blue-600 hover:text-blue-800 text-sm underline"
+            >
+              {showUploader ? "Hide File Uploader" : "Upload Bill Files"}
+            </button>
+          </div>
         </div>
+        
+        {showUploader && (
+          <div className="mb-8">
+            <BillUploader onBillsProcessed={handleBillsProcessed} />
+          </div>
+        )}
 
         {isLoading ? (
           <div className="space-y-4 mt-8">
@@ -71,10 +107,10 @@ const Index = () => {
               />
             ))}
           </div>
-        ) : data?.bills && data.bills.length > 0 ? (
+        ) : billsToShow ? (
           <>
             <div className="space-y-4 mt-8">
-              {data.bills.map((bill, index) => (
+              {billsToShow.map((bill, index) => (
                 <BillCard 
                   key={bill.id}
                   bill={bill} 
@@ -84,7 +120,7 @@ const Index = () => {
               ))}
             </div>
             
-            {data.totalPages > 1 && (
+            {data?.totalPages > 1 && (
               <Pagination
                 currentPage={data.currentPage}
                 totalPages={data.totalPages}
@@ -97,14 +133,16 @@ const Index = () => {
             <div className="text-center py-8">
               <h3 className="text-xl font-medium mb-2">No bills found from data source</h3>
               <p className="text-gray-500 mb-6">
-                {error ? "There was an error loading the bills." : "Try adjusting your search or browse all bills"}
+                {error ? "There was an error loading the bills." : "Try uploading JSON files or browse sample bills below"}
               </p>
-              <button 
-                onClick={handleRetry}
-                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
-              >
-                Retry Loading Bills
-              </button>
+              <div className="space-x-4">
+                <button 
+                  onClick={handleRetry}
+                  className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+                >
+                  Retry Loading Bills
+                </button>
+              </div>
             </div>
             
             {/* Sample Bills Section (for demonstration) */}
