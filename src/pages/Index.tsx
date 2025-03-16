@@ -7,7 +7,7 @@ import Navbar from "@/components/Navbar";
 import SearchBar from "@/components/SearchBar";
 import BillCard from "@/components/BillCard";
 import Pagination from "@/components/Pagination";
-import { fetchBills } from "@/services/s3Service";
+import { fetchBills } from "@/services/billService";
 import { toast } from "sonner";
 
 const Index = () => {

@@ -6,7 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import Navbar from "@/components/Navbar";
 import ChangeIndex from "@/components/ChangeIndex";
 import VersionComparison from "@/components/VersionComparison";
-import { fetchBillById } from "@/services/s3Service";
+import { fetchBillById } from "@/services/billService";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
