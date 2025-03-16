@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 export const useSupabaseStatus = () => {
   const [dbStatus, setDbStatus] = useState<string>("");
   const [storageStatus, setStorageStatus] = useState<string>("");
+  const [availableBuckets, setAvailableBuckets] = useState<string[]>([]);
   
   useEffect(() => {
     const checkSupabaseConnection = async () => {
@@ -22,7 +23,7 @@ export const useSupabaseStatus = () => {
           setDbStatus(`Database connected, bills count: ${count}`);
         }
         
-        // Check storage
+        // Check storage and list all available buckets
         const { data: bucketsData, error: bucketsError } = await supabase
           .storage
           .listBuckets();
@@ -30,18 +31,30 @@ export const useSupabaseStatus = () => {
         if (bucketsError) {
           setStorageStatus(`Storage error: ${bucketsError.message}`);
         } else {
-          setStorageStatus(`Storage connected, buckets: ${bucketsData?.map(b => b.name).join(', ') || 'none'}`);
+          const bucketNames = bucketsData?.map(b => b.name) || [];
+          setAvailableBuckets(bucketNames);
+          setStorageStatus(`Storage connected, buckets: ${bucketNames.join(', ') || 'none'}`);
           
-          // Check bill_storage bucket
-          const { data: storageFiles, error: storageError } = await supabase
-            .storage
-            .from('bill_storage')
-            .list('', { limit: 10 });
-          
-          if (storageError) {
-            setStorageStatus(prev => `${prev} | bill_storage error: ${storageError.message}`);
-          } else {
-            setStorageStatus(prev => `${prev} | bill_storage files: ${storageFiles?.length || 0}`);
+          // For each bucket, try to list contents
+          for (const bucket of bucketNames) {
+            try {
+              const { data: files, error: listError } = await supabase
+                .storage
+                .from(bucket)
+                .list('', { limit: 10 });
+              
+              if (listError) {
+                setStorageStatus(prev => `${prev} | ${bucket} error: ${listError.message}`);
+              } else {
+                const fileCount = files?.length || 0;
+                const fileNames = files?.map(f => f.name).slice(0, 3).join(', ');
+                setStorageStatus(prev => 
+                  `${prev} | ${bucket}: ${fileCount} files${fileCount > 0 ? ` (examples: ${fileNames}${fileCount > 3 ? '...' : ''})` : ''}`
+                );
+              }
+            } catch (e) {
+              console.error(`Error listing contents of bucket ${bucket}:`, e);
+            }
           }
         }
       } catch (e) {
@@ -53,5 +66,5 @@ export const useSupabaseStatus = () => {
     checkSupabaseConnection();
   }, []);
 
-  return { dbStatus, storageStatus };
+  return { dbStatus, storageStatus, availableBuckets };
 };
