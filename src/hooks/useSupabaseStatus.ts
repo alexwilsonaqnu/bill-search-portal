@@ -10,16 +10,16 @@ export const useSupabaseStatus = () => {
   useEffect(() => {
     const checkSupabaseConnection = async () => {
       try {
-        // Check database
+        // Check database by fetching bills without using aggregate functions
         const { data: dbData, error: dbError } = await supabase
           .from('bills')
-          .select('count()', { count: 'exact' });
+          .select('id');
         
         if (dbError) {
           setDbStatus(`Database error: ${dbError.message}`);
         } else {
-          // Correctly access the count value from the response
-          const count = dbData?.[0]?.count ?? 0;
+          // Manually count the results instead of using COUNT()
+          const count = dbData?.length || 0;
           setDbStatus(`Database connected, bills count: ${count}`);
         }
         
