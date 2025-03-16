@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { transformSupabaseBill, transformStorageBill } from "@/utils/billTransformUtils";
 import { FALLBACK_BILLS } from "@/data/fallbackBills";
 
-const BUCKET_NAME = "103rd_General_Assembly";
+const BUCKET_NAME = "2023-2024_103rd_General_Assembly";
 const FOLDER_PATH = "bill";
 
 /**
