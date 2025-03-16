@@ -8,11 +8,15 @@ import { Link } from "react-router-dom";
 interface BillCardProps {
   bill: Bill;
   className?: string;
+  animationDelay?: string;
 }
 
-const BillCard = ({ bill, className = "" }: BillCardProps) => {
+const BillCard = ({ bill, className = "", animationDelay }: BillCardProps) => {
   return (
-    <Card className={`bill-card overflow-hidden animate-fade-up ${className}`}>
+    <Card 
+      className={`bill-card overflow-hidden animate-fade-up ${className}`}
+      style={animationDelay ? { animationDelay } : undefined}
+    >
       <div className="flex items-start gap-4">
         <div className="flex-shrink-0 p-2 bg-gray-100 rounded-full">
           <Info className="h-6 w-6 text-gray-500" />

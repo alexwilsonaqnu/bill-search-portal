@@ -1,32 +1,29 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { ChevronLeft, Star } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import Navbar from "@/components/Navbar";
 import ChangeIndex from "@/components/ChangeIndex";
 import VersionComparison from "@/components/VersionComparison";
-import { Bill } from "@/types";
-import { getBillById } from "@/utils/mockData";
+import { fetchBillById } from "@/services/s3Service";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 const BillDetail = () => {
   const { id } = useParams<{ id: string }>();
-  const [bill, setBill] = useState<Bill | null>(null);
   const [selectedTool, setSelectedTool] = useState<"overview" | "comparison">("overview");
-  const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    if (id) {
-      setIsLoading(true);
-      // Simulate API call
-      setTimeout(() => {
-        const foundBill = getBillById(id);
-        setBill(foundBill || null);
-        setIsLoading(false);
-      }, 500);
-    }
-  }, [id]);
+  const { data: bill, isLoading, error } = useQuery({
+    queryKey: ["bill", id],
+    queryFn: () => fetchBillById(id!),
+    enabled: !!id,
+  });
+
+  if (error) {
+    toast.error("Failed to load bill details. Please try again later.");
+  }
 
   if (isLoading) {
     return (
@@ -111,12 +108,12 @@ const BillDetail = () => {
                   <Star className="h-5 w-5 mr-3 mt-0.5" />
                   <div>
                     <div className="font-medium">Comparison Tool</div>
-                    <div className="text-sm text-gray-600">Menu description.</div>
+                    <div className="text-sm text-gray-600">Compare different versions of the bill</div>
                   </div>
                 </button>
               </div>
               
-              {bill.changes.length > 0 && (
+              {bill.changes && bill.changes.length > 0 && (
                 <div className="mt-8">
                   <ChangeIndex changes={bill.changes} />
                 </div>
@@ -146,7 +143,7 @@ const BillDetail = () => {
                   </div>
                 )}
                 
-                {bill.versions.length > 0 && (
+                {bill.versions && bill.versions.length > 0 && (
                   <div>
                     <h3 className="font-semibold mb-4">Bill Versions</h3>
                     <div className="space-y-4">
@@ -172,7 +169,11 @@ const BillDetail = () => {
             ) : (
               <div className="bg-white rounded-lg border shadow-sm p-6">
                 <h2 className="text-2xl font-semibold mb-6">Version Comparison</h2>
-                <VersionComparison versions={bill.versions} />
+                {bill.versions && bill.versions.length > 1 ? (
+                  <VersionComparison versions={bill.versions} />
+                ) : (
+                  <p className="text-gray-500">This bill only has one version. Comparison is not available.</p>
+                )}
               </div>
             )}
           </div>

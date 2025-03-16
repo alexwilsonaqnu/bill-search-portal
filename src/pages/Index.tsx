@@ -2,51 +2,37 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { format } from "date-fns";
+import { useQuery } from "@tanstack/react-query";
 import Navbar from "@/components/Navbar";
 import SearchBar from "@/components/SearchBar";
 import BillCard from "@/components/BillCard";
 import Pagination from "@/components/Pagination";
-import { getSearchResults } from "@/utils/mockData";
-import { SearchResults } from "@/types";
+import { fetchBills } from "@/services/s3Service";
+import { toast } from "sonner";
 
 const Index = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const query = searchParams.get("q") || "";
   const pageParam = searchParams.get("page");
-  const initialPage = pageParam ? parseInt(pageParam) : 1;
+  const currentPage = pageParam ? parseInt(pageParam) : 1;
   
-  const [results, setResults] = useState<SearchResults>({
-    bills: [],
-    totalPages: 0,
-    currentPage: initialPage,
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["bills", query, currentPage],
+    queryFn: () => fetchBills(query, currentPage),
   });
-  
-  const [isLoading, setIsLoading] = useState(false);
-  const [initialLoad, setInitialLoad] = useState(true);
 
   useEffect(() => {
-    const fetchResults = () => {
-      setIsLoading(true);
-      // Simulate API call with a small delay
-      setTimeout(() => {
-        const searchResults = getSearchResults(query, results.currentPage);
-        setResults(searchResults);
-        setIsLoading(false);
-        setInitialLoad(false);
-      }, 300);
-    };
-
-    fetchResults();
-  }, [query, results.currentPage]);
+    if (error) {
+      toast.error("Failed to load bills. Please try again later.");
+    }
+  }, [error]);
 
   const handleSearch = (newQuery: string) => {
     setSearchParams({ q: newQuery, page: "1" });
-    setResults(prev => ({ ...prev, currentPage: 1 }));
   };
 
   const handlePageChange = (page: number) => {
     setSearchParams({ q: query, page: page.toString() });
-    setResults(prev => ({ ...prev, currentPage: page }));
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -67,7 +53,7 @@ const Index = () => {
           </div>
         </div>
 
-        {initialLoad ? (
+        {isLoading ? (
           <div className="space-y-4 mt-8">
             {[1, 2, 3].map((i) => (
               <div 
@@ -76,23 +62,23 @@ const Index = () => {
               />
             ))}
           </div>
-        ) : results.bills.length > 0 ? (
+        ) : data?.bills && data.bills.length > 0 ? (
           <>
             <div className="space-y-4 mt-8">
-              {results.bills.map((bill, index) => (
+              {data.bills.map((bill, index) => (
                 <BillCard 
                   key={bill.id}
                   bill={bill} 
                   className="transition-all duration-300 hover:translate-x-1" 
-                  style={{ animationDelay: `${index * 100}ms` }}
+                  animationDelay={`${index * 100}ms`}
                 />
               ))}
             </div>
             
-            {results.totalPages > 1 && (
+            {data.totalPages > 1 && (
               <Pagination
-                currentPage={results.currentPage}
-                totalPages={results.totalPages}
+                currentPage={data.currentPage}
+                totalPages={data.totalPages}
                 onPageChange={handlePageChange}
               />
             )}
