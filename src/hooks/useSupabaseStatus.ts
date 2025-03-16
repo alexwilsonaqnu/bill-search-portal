@@ -35,7 +35,7 @@ export const useSupabaseStatus = () => {
           setAvailableBuckets(bucketNames);
           
           if (bucketNames.length === 0) {
-            setStorageStatus(`Storage connected, but no buckets found. The required bucket "2023-2024_103rd_General_Assembly" is missing.`);
+            setStorageStatus(`Storage connected, but no buckets found. The required bucket "103rd_General_Assembly" is missing.`);
             return;
           }
           

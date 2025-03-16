@@ -7,7 +7,8 @@ import { FALLBACK_BILLS } from "@/data/fallbackBills";
 
 // We'll try different bucket names since we're not sure which one contains the bills
 const POSSIBLE_BUCKETS = [
-  "2023-2024_103rd_General_Assembly", 
+  "103rd_General_Assembly", 
+  "2023-2024_103rd_General_Assembly", // Keep as fallback
   "bill_storage",
   "bills"
 ];
