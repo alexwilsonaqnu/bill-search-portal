@@ -37,7 +37,6 @@ export async function fetchBillsFromSupabase() {
 
 /**
  * Fetches a specific bill by ID from Supabase
- * Now with improved ID matching for memorial resolutions and numeric IDs
  */
 export async function fetchBillByIdFromSupabase(id: string): Promise<Bill | null> {
   try {
@@ -100,15 +99,6 @@ export async function fetchBillByIdFromSupabase(id: string): Promise<Bill | null
           return prefixedBill;
         }
       }
-    }
-    
-    // If still not found, manually check for a special case for this specific bill ID
-    if (id === '1635636') {
-      console.log("Special case detected for bill 1635636");
-      
-      // Here we could make a custom API call to another data source if needed
-      // For now, we'll throw an error to be caught by the caller
-      throw new Error("Bill 1635636 requires a custom data source");
     }
     
     console.warn(`Bill ${id} not found in any Supabase storage bucket`);
