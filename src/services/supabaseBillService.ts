@@ -37,25 +37,30 @@ export async function fetchBillsFromSupabase() {
 
 /**
  * Fetches a specific bill by ID from Supabase
- * Now with improved ID matching for numeric IDs
+ * Now with improved ID matching for memorial resolutions and numeric IDs
  */
 export async function fetchBillByIdFromSupabase(id: string): Promise<Bill | null> {
   try {
     console.log(`Fetching bill ${id} from Supabase...`);
     
-    // First try to fetch from the database table
+    // First try to fetch from the database table with exact ID
     const databaseBill = await fetchBillByIdFromDatabase(id);
     
     if (databaseBill) {
       return databaseBill;
     }
     
-    // Try alternative format - if it's a numeric ID, try with common prefixes
+    // Is this a purely numeric ID (memorial resolution)?
     const isNumericId = /^\d+$/.test(id);
+    
+    // Try common prefixes if it's a numeric ID
     if (isNumericId) {
+      console.log(`ID ${id} is numeric, trying with common prefixes...`);
       const prefixes = ['HB', 'SB', 'HR', 'SR'];
+      
       for (const prefix of prefixes) {
         const prefixedId = `${prefix}${id}`;
+        console.log(`Trying with prefix: ${prefixedId}`);
         const prefixedBill = await fetchBillByIdFromDatabase(prefixedId);
         if (prefixedBill) {
           return prefixedBill;
@@ -73,11 +78,12 @@ export async function fetchBillByIdFromSupabase(id: string): Promise<Bill | null
       return storageBill;
     }
     
-    // If it's a numeric ID, try common prefixes
+    // If it's a numeric ID, try common prefixes for storage as well
     if (isNumericId) {
       const prefixes = ['HB', 'SB', 'HR', 'SR'];
       for (const prefix of prefixes) {
         const prefixedId = `${prefix}${id}`;
+        console.log(`Trying storage with prefix: ${prefixedId}`);
         const prefixedBill = await fetchBillByIdFromStorage(prefixedId);
         if (prefixedBill) {
           return prefixedBill;

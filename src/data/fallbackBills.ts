@@ -129,5 +129,38 @@ export const FALLBACK_BILLS: Bill[] = [
         description: "Passed unanimously"
       }
     ]
+  },
+  {
+    id: "1635636",
+    title: "Memorial Resolution 1635636",
+    description: "A resolution commemorating public service achievements",
+    status: "In Committee",
+    lastUpdated: "2024-03-17",
+    versions: [
+      {
+        id: "v1",
+        name: "Original Version",
+        status: "Introduced",
+        date: "2024-03-01",
+        sections: [
+          {
+            id: "s1",
+            title: "Purpose",
+            content: "This resolution commemorates outstanding public service achievements."
+          },
+          {
+            id: "s2",
+            title: "Honorees",
+            content: "The individuals honored by this resolution have demonstrated exceptional commitment to public service."
+          }
+        ]
+      }
+    ],
+    changes: [
+      {
+        id: "c1",
+        description: "Initial introduction of the resolution"
+      }
+    ]
   }
 ];

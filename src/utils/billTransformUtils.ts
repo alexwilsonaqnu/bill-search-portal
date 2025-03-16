@@ -1,4 +1,3 @@
-
 import { Bill } from "@/types";
 
 /**
@@ -31,14 +30,21 @@ export function transformSupabaseBill(item: any): Bill {
 
 /**
  * Normalizes bill ID to a consistent string format
- * Also handles special cases like numeric IDs
+ * Also handles special cases like numeric IDs and memorial resolutions
  */
 export function normalizeBillId(id: string | number): string {
   // Ensure it's a string
-  const stringId = id.toString();
+  const stringId = id.toString().trim();
   
-  // Return the normalized ID
-  return stringId;
+  // Check if it's a numeric ID (possibly a memorial resolution)
+  if (/^\d+$/.test(stringId)) {
+    // For purely numeric IDs, keep as is - it might be a memorial resolution
+    return stringId;
+  }
+  
+  // For IDs with prefixes (HB, SB, etc.), return the normalized version
+  // Remove any non-alphanumeric characters for consistency
+  return stringId.replace(/[^a-zA-Z0-9]/g, '');
 }
 
 /**
