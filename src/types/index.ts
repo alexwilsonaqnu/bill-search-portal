@@ -34,4 +34,5 @@ export type SearchResults = {
   bills: Bill[];
   totalPages: number;
   currentPage: number;
+  totalItems: number; // Adding the missing totalItems property
 };
