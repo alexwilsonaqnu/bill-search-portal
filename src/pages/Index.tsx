@@ -16,14 +16,16 @@ const Index = () => {
   const pageParam = searchParams.get("page");
   const currentPage = pageParam ? parseInt(pageParam) : 1;
   
-  const { data, isLoading, error } = useQuery({
+  const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["bills", query, currentPage],
     queryFn: () => fetchBills(query, currentPage),
+    staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
   useEffect(() => {
     if (error) {
       toast.error("Failed to load bills. Please try again later.");
+      console.error("Bill fetch error:", error);
     }
   }, [error]);
 
@@ -34,6 +36,12 @@ const Index = () => {
   const handlePageChange = (page: number) => {
     setSearchParams({ q: query, page: page.toString() });
     window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  // Add a retry button if we have no bills
+  const handleRetry = () => {
+    toast.info("Retrying bill fetch...");
+    refetch();
   };
 
   return (
@@ -85,10 +93,16 @@ const Index = () => {
           </>
         ) : (
           <div className="text-center py-12">
-            <h3 className="text-xl font-medium mb-2">No results found</h3>
-            <p className="text-gray-500">
-              Try adjusting your search or browse all bills
+            <h3 className="text-xl font-medium mb-2">No bills found</h3>
+            <p className="text-gray-500 mb-6">
+              {error ? "There was an error loading the bills." : "Try adjusting your search or browse all bills"}
             </p>
+            <button 
+              onClick={handleRetry}
+              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+            >
+              Retry Loading Bills
+            </button>
           </div>
         )}
       </div>

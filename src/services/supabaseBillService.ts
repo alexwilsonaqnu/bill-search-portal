@@ -20,6 +20,10 @@ export async function fetchBillsFromSupabase() {
       .from('bills')
       .select('*');
     
+    if (tableError) {
+      console.warn(`Error fetching from bills table: ${tableError.message}`);
+    }
+    
     if (!tableError && tableData && tableData.length > 0) {
       console.log(`Successfully fetched ${tableData.length} bills from Supabase table`);
       const transformedBills: Bill[] = tableData.map(item => transformSupabaseBill(item));
@@ -29,24 +33,52 @@ export async function fetchBillsFromSupabase() {
     // If database table has no data, try fetching from storage
     console.log("No bills found in table, trying storage bucket...");
     
+    // List available buckets for debugging
+    const { data: buckets, error: bucketsError } = await supabase
+      .storage
+      .listBuckets();
+      
+    if (bucketsError) {
+      console.error(`Error listing buckets: ${bucketsError.message}`);
+    } else {
+      console.log("Available buckets:", buckets.map(b => b.name));
+    }
+    
     // List all files in the storage bucket
+    console.log(`Looking in bucket: ${BUCKET_NAME}, folder: ${FOLDER_PATH}`);
     const { data: storageData, error: storageError } = await supabase
       .storage
       .from(BUCKET_NAME)
-      .list(FOLDER_PATH);
+      .list(FOLDER_PATH, {
+        limit: 100,
+        offset: 0,
+        sortBy: { column: 'name', order: 'asc' }
+      });
     
     if (storageError) {
-      console.warn(`Supabase storage fetch failed: ${storageError.message}`);
-      toast.info("Using demo data - Supabase data not available");
+      console.error(`Supabase storage fetch failed: ${storageError.message}`);
+      toast.info("Using demo data - Supabase storage access error");
       return null;
     }
     
     if (!storageData || storageData.length === 0) {
-      console.log("No bills found in storage bucket");
+      console.log(`No files found in bucket "${BUCKET_NAME}" under path "${FOLDER_PATH}"`);
+      
+      // Try listing contents at the root level to see if folder path is incorrect
+      const { data: rootFiles, error: rootError } = await supabase
+        .storage
+        .from(BUCKET_NAME)
+        .list('', { limit: 20 });
+        
+      if (!rootError && rootFiles && rootFiles.length > 0) {
+        console.log(`Found ${rootFiles.length} files/folders at the root level:`, 
+          rootFiles.map(f => f.name));
+      }
+      
       return [];
     }
     
-    console.log(`Found ${storageData.length} files in storage bucket`);
+    console.log(`Found ${storageData.length} files in storage bucket under "${FOLDER_PATH}"`);
     
     // Only process .json files
     const jsonFiles = storageData.filter(file => file.name.endsWith('.json'));
@@ -56,12 +88,16 @@ export async function fetchBillsFromSupabase() {
       return [];
     }
     
-    // Fetch and process each JSON file (limit to 10 for performance if there are many)
+    console.log(`Found ${jsonFiles.length} JSON files to process`);
+    
+    // Fetch and process each JSON file (limit to 50 for performance if there are many)
     const filesToProcess = jsonFiles.slice(0, 50);
     const bills: Bill[] = [];
     
     for (const file of filesToProcess) {
       const filePath = `${FOLDER_PATH}/${file.name}`;
+      console.log(`Processing file: ${filePath}`);
+      
       const { data: fileContent, error: fileError } = await supabase
         .storage
         .from(BUCKET_NAME)
