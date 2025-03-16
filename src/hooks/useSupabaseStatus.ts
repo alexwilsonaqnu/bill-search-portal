@@ -33,29 +33,47 @@ export const useSupabaseStatus = () => {
         } else {
           const bucketNames = bucketsData?.map(b => b.name) || [];
           setAvailableBuckets(bucketNames);
-          setStorageStatus(`Storage connected, buckets: ${bucketNames.join(', ') || 'none'}`);
           
-          // For each bucket, try to list contents
+          if (bucketNames.length === 0) {
+            setStorageStatus(`Storage connected, but no buckets found. The required bucket "2023-2024_103rd_General_Assembly" is missing.`);
+            return;
+          }
+          
+          setStorageStatus(`Storage connected, buckets: ${bucketNames.join(', ')}`);
+          
+          // For each bucket, try to list contents with more detailed information
+          let fullStorageStatus = `Buckets (${bucketNames.length}):\n`;
+          
           for (const bucket of bucketNames) {
             try {
-              const { data: files, error: listError } = await supabase
-                .storage
-                .from(bucket)
-                .list('', { limit: 10 });
+              fullStorageStatus += `\n⭐ BUCKET: ${bucket}\n`;
               
-              if (listError) {
-                setStorageStatus(prev => `${prev} | ${bucket} error: ${listError.message}`);
-              } else {
-                const fileCount = files?.length || 0;
-                const fileNames = files?.map(f => f.name).slice(0, 3).join(', ');
-                setStorageStatus(prev => 
-                  `${prev} | ${bucket}: ${fileCount} files${fileCount > 0 ? ` (examples: ${fileNames}${fileCount > 3 ? '...' : ''})` : ''}`
-                );
+              // Try different folders for each bucket
+              const folderPaths = ["", "bill", "bills", "data"];
+              
+              for (const folderPath of folderPaths) {
+                const { data: files, error: listError } = await supabase
+                  .storage
+                  .from(bucket)
+                  .list(folderPath, { limit: 10 });
+                
+                if (listError) {
+                  fullStorageStatus += `  📂 ${folderPath || "/"}: Error: ${listError.message}\n`;
+                } else {
+                  const fileCount = files?.length || 0;
+                  const filesInfo = files?.map(f => `${f.name}${f.metadata?.mimetype ? ` (${f.metadata.mimetype})` : ''}`).join(', ');
+                  
+                  fullStorageStatus += `  📂 ${folderPath || "/"}: ${fileCount} files${fileCount > 0 ? 
+                    `\n    Files: ${filesInfo}` : 
+                    ' (empty)'}\n`;
+                }
               }
             } catch (e) {
-              console.error(`Error listing contents of bucket ${bucket}:`, e);
+              fullStorageStatus += `  Error exploring bucket ${bucket}: ${e instanceof Error ? e.message : String(e)}\n`;
             }
           }
+          
+          setStorageStatus(fullStorageStatus);
         }
       } catch (e) {
         console.error("Supabase connection check failed:", e);
