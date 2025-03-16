@@ -1,8 +1,10 @@
+
 import { Bill, SearchResults } from "@/types";
 import { filterItems, paginateItems } from "@/utils/paginationUtils";
 import { toast } from "sonner";
 
-const BASE_URL = "https://billinois-bill.s3.amazonaws.com"; // S3 bucket URL
+// Updated S3 bucket URL to match the one in Python script
+const BASE_URL = "https://billinois-bills.s3.amazonaws.com"; // S3 bucket URL
 
 // Fallback data for development/demo
 const FALLBACK_BILLS: Bill[] = [
@@ -141,6 +143,7 @@ export async function fetchBills(
 ): Promise<SearchResults> {
   try {
     console.log("Fetching bills from S3...");
+    // Try to fetch bills.json from the updated bucket URL
     const response = await safeFetch(`${BASE_URL}/bills.json`);
     
     if (!response.ok) {
