@@ -1,7 +1,8 @@
 
 import { Bill, SearchResults } from "@/types";
+import { filterItems, paginateItems } from "@/utils/paginationUtils";
 
-const BASE_URL = "https://your-s3-bucket-url.s3.amazonaws.com"; // Replace with your actual S3 bucket URL
+const BASE_URL = "https://billinois-bill.s3.amazonaws.com"; // Updated S3 bucket URL
 
 /**
  * Fetches bill data from S3
@@ -12,11 +13,7 @@ export async function fetchBills(
   pageSize: number = 10
 ): Promise<SearchResults> {
   try {
-    // In a real implementation, you would:
-    // 1. Make a request to your S3 bucket or API gateway
-    // 2. Filter and paginate results on the server or in this function
-
-    // For now, we'll simulate an API call to S3
+    // Fetch bills from the S3 bucket
     const response = await fetch(`${BASE_URL}/bills.json`);
     
     if (!response.ok) {
@@ -25,25 +22,22 @@ export async function fetchBills(
     
     const allBills: Bill[] = await response.json();
     
-    // Filter bills if a search query is provided
+    // Filter bills based on search query
     const filteredBills = query
-      ? allBills.filter(
-          (bill) =>
-            bill.title.toLowerCase().includes(query.toLowerCase()) ||
-            bill.description.toLowerCase().includes(query.toLowerCase())
-        )
+      ? filterItems(allBills, query, ["title", "description"])
       : allBills;
 
-    // Paginate results
-    const totalPages = Math.ceil(filteredBills.length / pageSize);
-    const start = (page - 1) * pageSize;
-    const end = start + pageSize;
-    const paginatedBills = filteredBills.slice(start, end);
+    // Paginate the filtered results
+    const { paginatedItems, totalPages, currentPage } = paginateItems(
+      filteredBills,
+      page,
+      pageSize
+    );
 
     return {
-      bills: paginatedBills,
+      bills: paginatedItems,
       totalPages,
-      currentPage: page,
+      currentPage,
     };
   } catch (error) {
     console.error("Error fetching bills:", error);
@@ -60,10 +54,7 @@ export async function fetchBills(
  */
 export async function fetchBillById(id: string): Promise<Bill | null> {
   try {
-    // In a real implementation, you might have individual files for each bill
-    // or a more efficient lookup mechanism
-    
-    // For now, we'll fetch all bills and find the matching one
+    // Fetch bills from the S3 bucket
     const response = await fetch(`${BASE_URL}/bills.json`);
     
     if (!response.ok) {
