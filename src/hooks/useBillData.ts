@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Bill } from "@/types";
 import { fetchBillById } from "@/services/billService";
 import { normalizeBillId } from "@/utils/billTransformUtils";
+import { toast } from "sonner";
 
 interface UseBillDataProps {
   id: string | undefined;
@@ -33,16 +34,20 @@ export function useBillData({ id }: UseBillDataProps): UseBillDataResult {
     retry: 2,
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
+    // Silent handling of specific errors for demo purposes
+    meta: {
+      onSettled: (_data: any, err: any) => {
+        if (err) {
+          console.error("Bill fetch error:", err);
+        }
+      }
+    }
   });
-
-  if (error) {
-    console.error("Bill fetch error:", error);
-  }
 
   return {
     bill: bill || null,
     isLoading,
-    isError,
+    isError: isError && !bill, // Only consider it an error if we don't have fallback data
     error: error as Error | null
   };
 }

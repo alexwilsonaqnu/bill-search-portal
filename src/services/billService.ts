@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { processResults } from "@/utils/billProcessingUtils";
 import { fetchBillsFromSupabase, fetchBillByIdFromSupabase } from "@/services/supabaseBillService";
 import { normalizeBillId } from "@/utils/billTransformUtils";
+import { FALLBACK_BILLS } from "@/data/fallbackBills";
 
 /**
  * Fetches bill data from Supabase
@@ -33,6 +34,7 @@ export async function fetchBills(
 
 /**
  * Attempts to find a bill by ID using various methods
+ * Falls back to demo data for specific IDs
  */
 export async function fetchBillById(id: string): Promise<Bill | null> {
   try {
@@ -42,7 +44,13 @@ export async function fetchBillById(id: string): Promise<Bill | null> {
     const normalizedId = normalizeBillId(id);
     console.log(`Normalized ID for lookup: ${normalizedId}`);
     
-    // Try to fetch from Supabase with appropriate handling
+    // First check if we have a fallback bill for this ID
+    // This lets us show demo content for specific IDs when testing
+    const fallbackBill = FALLBACK_BILLS.find(bill => 
+      normalizeBillId(bill.id) === normalizedId || bill.id === id
+    );
+    
+    // Try to fetch from Supabase first
     try {
       const bill = await fetchBillByIdFromSupabase(normalizedId);
       if (bill) {
@@ -51,9 +59,24 @@ export async function fetchBillById(id: string): Promise<Bill | null> {
       }
     } catch (error) {
       console.error(`Supabase fetch error: ${error}`);
-      // We'll show the error to the user instead of showing demo data
+      
+      // If we have fallback data, return it instead of showing an error
+      if (fallbackBill) {
+        console.log(`Using fallback data for bill ID: ${id}`);
+        toast.info(`Using demo data for bill ${id}`);
+        return fallbackBill;
+      }
+      
+      // We'll show the error to the user
       toast.error(`Error fetching bill ${id}: ${error instanceof Error ? error.message : String(error)}`);
-      return null;
+      throw error;
+    }
+    
+    // If not found in Supabase but we have fallback data, use it
+    if (fallbackBill) {
+      console.log(`Bill not found in Supabase, using fallback data for: ${id}`);
+      toast.info(`Using demo data for bill ${id}`);
+      return fallbackBill;
     }
     
     // Bill not found
@@ -63,6 +86,6 @@ export async function fetchBillById(id: string): Promise<Bill | null> {
   } catch (error) {
     console.error(`Error in fetchBillById ${id}:`, error);
     toast.error(`Error fetching bill ${id}`);
-    return null;
+    throw error;
   }
 }
