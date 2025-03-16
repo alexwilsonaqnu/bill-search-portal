@@ -1,15 +1,7 @@
 import { Bill, SearchResults } from "@/types";
 import { filterItems, paginateItems } from "@/utils/paginationUtils";
 import { toast } from "sonner";
-import { createClient } from "@supabase/supabase-js";
-
-// Supabase client setup
-// Note: These environment variables need to be set for your project
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
-
-// Initialize the Supabase client
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
+import { supabase } from "@/integrations/supabase/client";
 
 // Fallback data for development/demo (keeping the same demo data)
 const FALLBACK_BILLS: Bill[] = [
@@ -129,14 +121,32 @@ export async function fetchBills(
       return processResults(FALLBACK_BILLS, query, page, pageSize);
     }
     
-    if (!data || data.length === 0) {
-      console.log("No bills found in Supabase, using fallback data");
-      toast.info("Using demo data - No bills found in Supabase");
-      return processResults(FALLBACK_BILLS, query, page, pageSize);
+    // Transform the data from Supabase format to our app's Bill format
+    if (data && data.length > 0) {
+      console.log(`Successfully fetched ${data.length} bills from Supabase`);
+      
+      const transformedBills: Bill[] = data.map(item => {
+        // If the item has a data JSON field that contains bill data, use it
+        const billData = item.data || {};
+        
+        return {
+          id: item.id,
+          title: item.title,
+          description: item.description || "",
+          status: item.status || "",
+          lastUpdated: item.last_updated ? new Date(item.last_updated).toISOString().split('T')[0] : "",
+          // Use nested data from the JSON or empty arrays if not present
+          versions: billData.versions || [],
+          changes: billData.changes || []
+        };
+      });
+      
+      return processResults(transformedBills, query, page, pageSize);
     }
     
-    console.log(`Successfully fetched ${data.length} bills from Supabase`);
-    return processResults(data, query, page, pageSize);
+    console.log("No bills found in Supabase, using fallback data");
+    toast.info("Using demo data - No bills found in Supabase");
+    return processResults(FALLBACK_BILLS, query, page, pageSize);
   } catch (error) {
     console.error("Error fetching bills:", error);
     toast.info("Using demo data - Connection to Supabase failed");
@@ -207,7 +217,21 @@ export async function fetchBillById(id: string): Promise<Bill | null> {
       return null;
     }
     
-    return data;
+    // Transform the Supabase data to our app's Bill format
+    const billData = data.data || {};
+    
+    const transformedBill: Bill = {
+      id: data.id,
+      title: data.title,
+      description: data.description || "",
+      status: data.status || "",
+      lastUpdated: data.last_updated ? new Date(data.last_updated).toISOString().split('T')[0] : "",
+      // Use nested data from the JSON or empty arrays if not present
+      versions: billData.versions || [],
+      changes: billData.changes || []
+    };
+    
+    return transformedBill;
   } catch (error) {
     console.error(`Error fetching bill ${id}:`, error);
     
