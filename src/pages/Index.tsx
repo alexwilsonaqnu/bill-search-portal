@@ -4,7 +4,6 @@ import { useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import Navbar from "@/components/Navbar";
 import { fetchBills } from "@/services/billService";
-import { FALLBACK_BILLS } from "@/data/fallbackBills";
 import { toast } from "sonner";
 import HeaderSection from "@/components/HeaderSection";
 import DebugInfo from "@/components/DebugInfo";
@@ -66,7 +65,7 @@ const Index = () => {
           error={error}
           onRetry={handleRetry}
           onPageChange={handlePageChange}
-          fallbackBills={FALLBACK_BILLS}
+          fallbackBills={[]}
         />
       </div>
     </div>

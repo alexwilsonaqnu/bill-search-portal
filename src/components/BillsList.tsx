@@ -71,7 +71,7 @@ const BillsList = ({
       <div className="text-center py-8">
         <h3 className="text-xl font-medium mb-2">No bills found from data source</h3>
         <p className="text-gray-500 mb-6">
-          {error ? "There was an error loading the bills." : "Try uploading JSON files or browse sample bills below"}
+          {error ? "There was an error loading the bills." : "Try uploading JSON files or adjust your search criteria"}
         </p>
         <div className="space-x-4">
           <Button 
@@ -80,24 +80,6 @@ const BillsList = ({
           >
             Retry Loading Bills
           </Button>
-        </div>
-      </div>
-      
-      {/* Sample Bills Section */}
-      <div className="border-t pt-8">
-        <h2 className="text-2xl font-semibold mb-6 text-center">Sample Bills Preview</h2>
-        <div className="space-y-4">
-          {fallbackBills.map((bill, index) => (
-            <BillCard 
-              key={bill.id}
-              bill={bill} 
-              className="transition-all duration-300 hover:translate-x-1" 
-              animationDelay={`${index * 100}ms`}
-            />
-          ))}
-        </div>
-        <div className="text-center text-sm text-gray-500 mt-4">
-          These are sample bills from the fallback data.
         </div>
       </div>
     </div>
