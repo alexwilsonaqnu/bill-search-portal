@@ -37,6 +37,7 @@ export async function fetchBillsFromSupabase() {
 
 /**
  * Fetches a specific bill by ID from Supabase
+ * Now with improved ID matching for numeric IDs
  */
 export async function fetchBillByIdFromSupabase(id: string): Promise<Bill | null> {
   try {
@@ -49,13 +50,39 @@ export async function fetchBillByIdFromSupabase(id: string): Promise<Bill | null
       return databaseBill;
     }
     
+    // Try alternative format - if it's a numeric ID, try with common prefixes
+    const isNumericId = /^\d+$/.test(id);
+    if (isNumericId) {
+      const prefixes = ['HB', 'SB', 'HR', 'SR'];
+      for (const prefix of prefixes) {
+        const prefixedId = `${prefix}${id}`;
+        const prefixedBill = await fetchBillByIdFromDatabase(prefixedId);
+        if (prefixedBill) {
+          return prefixedBill;
+        }
+      }
+    }
+    
     // If not found in database table, try fetching from storage
     console.log(`Bill ${id} not found in table, trying storage buckets...`);
     
+    // Try directly with the given ID
     const storageBill = await fetchBillByIdFromStorage(id);
     
     if (storageBill) {
       return storageBill;
+    }
+    
+    // If it's a numeric ID, try common prefixes
+    if (isNumericId) {
+      const prefixes = ['HB', 'SB', 'HR', 'SR'];
+      for (const prefix of prefixes) {
+        const prefixedId = `${prefix}${id}`;
+        const prefixedBill = await fetchBillByIdFromStorage(prefixedId);
+        if (prefixedBill) {
+          return prefixedBill;
+        }
+      }
     }
     
     console.warn(`Bill ${id} not found in any Supabase storage bucket`);

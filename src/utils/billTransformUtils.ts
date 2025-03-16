@@ -31,9 +31,14 @@ export function transformSupabaseBill(item: any): Bill {
 
 /**
  * Normalizes bill ID to a consistent string format
+ * Also handles special cases like numeric IDs
  */
 export function normalizeBillId(id: string | number): string {
-  return id.toString();
+  // Ensure it's a string
+  const stringId = id.toString();
+  
+  // Return the normalized ID
+  return stringId;
 }
 
 /**

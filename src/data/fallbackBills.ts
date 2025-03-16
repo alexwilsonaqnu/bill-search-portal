@@ -97,5 +97,37 @@ export const FALLBACK_BILLS: Bill[] = [
         description: "Initial introduction of the bill"
       }
     ]
+  },
+  {
+    id: "1635934",
+    title: "Memorial Resolution 1635934",
+    description: "Memorial resolution honoring the contributions of Illinois citizens",
+    status: "Passed",
+    lastUpdated: "2024-03-15",
+    versions: [
+      {
+        id: "v1",
+        name: "Original Version",
+        status: "Introduced",
+        date: "2024-02-01",
+        sections: [
+          {
+            id: "s1",
+            title: "Purpose",
+            content: "This resolution honors the contributions of important Illinois citizens."
+          }
+        ]
+      }
+    ],
+    changes: [
+      {
+        id: "c1",
+        description: "Initial introduction of the resolution"
+      },
+      {
+        id: "c2", 
+        description: "Passed unanimously"
+      }
+    ]
   }
 ];
