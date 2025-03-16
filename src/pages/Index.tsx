@@ -6,7 +6,6 @@ import Navbar from "@/components/Navbar";
 import { fetchBills } from "@/services/billService";
 import { toast } from "sonner";
 import HeaderSection from "@/components/HeaderSection";
-import DebugInfo from "@/components/DebugInfo";
 import BillsList from "@/components/BillsList";
 import { useSupabaseStatus } from "@/hooks/useSupabaseStatus";
 
@@ -46,16 +45,6 @@ const Index = () => {
         <HeaderSection 
           query={query} 
           onSearch={handleSearch} 
-        />
-        
-        <DebugInfo 
-          query={query}
-          currentPage={currentPage}
-          dbStatus={dbStatus}
-          storageStatus={storageStatus}
-          buckets={availableBuckets}
-          error={error}
-          data={data}
         />
 
         <BillsList 
