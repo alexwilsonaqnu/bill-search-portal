@@ -2,7 +2,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { Bill } from "@/types";
 import { transformStorageBill } from "@/utils/billTransformUtils";
-import { POSSIBLE_BUCKETS, POSSIBLE_FOLDERS } from "./storageConfig";
+import { BILL_STORAGE_BUCKET, BILL_STORAGE_PATH, ALTERNATIVE_PATHS } from "./storageConfig";
 
 /**
  * Lists all available storage buckets
@@ -103,63 +103,56 @@ async function processStorageFile(bucketName: string, filePath: string, fileName
  * Fetches all bill files from storage
  */
 export async function fetchBillsFromStorage(): Promise<Bill[]> {
-  // List available buckets
-  const availableBuckets = await listAvailableBuckets();
-  console.log("Available buckets:", availableBuckets);
+  console.log(`Trying to fetch bills from bucket: ${BILL_STORAGE_BUCKET}`);
   
-  // Try each possible bucket and folder combination
-  for (const bucketName of POSSIBLE_BUCKETS) {
-    // Check if the bucket exists in the available buckets
-    if (!availableBuckets.includes(bucketName)) {
-      console.log(`Bucket "${bucketName}" does not exist, skipping`);
-      continue;
+  // First try the main configured path
+  const mainPathFiles = await listFilesInBucket(BILL_STORAGE_BUCKET, BILL_STORAGE_PATH);
+  if (mainPathFiles.length > 0) {
+    console.log(`Found ${mainPathFiles.length} files in main path: ${BILL_STORAGE_PATH}`);
+    
+    // Process the JSON files
+    const jsonFiles = mainPathFiles.filter(file => file.name.endsWith('.json'));
+    if (jsonFiles.length > 0) {
+      return processBillFiles(BILL_STORAGE_BUCKET, BILL_STORAGE_PATH, jsonFiles);
     }
-    
-    console.log(`Checking bucket: ${bucketName}`);
-    
-    for (const folderPath of POSSIBLE_FOLDERS) {
-      console.log(`Checking folder path: "${folderPath}" in bucket "${bucketName}"`);
-      
-      // List all files in the storage bucket and folder
-      const storageData = await listFilesInBucket(bucketName, folderPath);
-      
-      if (storageData.length === 0) {
-        continue;
-      }
-      
-      // Only process .json files
-      const jsonFiles = storageData.filter(file => file.name.endsWith('.json'));
-      
-      if (jsonFiles.length === 0) {
-        console.log(`No JSON files found in "${bucketName}/${folderPath}"`);
-        continue;
-      }
-      
-      console.log(`Found ${jsonFiles.length} JSON files to process in "${bucketName}/${folderPath}"`);
-      
-      // Process the files
-      const filesToProcess = jsonFiles.slice(0, 50);
-      const bills: Bill[] = [];
-      
-      for (const file of filesToProcess) {
-        const filePath = folderPath ? `${folderPath}/${file.name}` : file.name;
-        console.log(`Processing file: ${filePath} from bucket ${bucketName}`);
-        
-        const bill = await processStorageFile(bucketName, filePath, file.name);
-        if (bill) {
-          bills.push(bill);
-        }
-      }
-      
-      if (bills.length > 0) {
-        console.log(`Successfully processed ${bills.length} bills from "${bucketName}/${folderPath}"`);
-        return bills;
+  }
+  
+  // If no files found in main path, try alternative paths
+  console.log("No JSON files found in main path, trying alternative paths...");
+  for (const alternatePath of ALTERNATIVE_PATHS) {
+    const files = await listFilesInBucket(BILL_STORAGE_BUCKET, alternatePath);
+    if (files.length > 0) {
+      const jsonFiles = files.filter(file => file.name.endsWith('.json'));
+      if (jsonFiles.length > 0) {
+        console.log(`Found ${jsonFiles.length} JSON files in alternative path: ${alternatePath}`);
+        return processBillFiles(BILL_STORAGE_BUCKET, alternatePath, jsonFiles);
       }
     }
   }
   
-  console.log("No bills could be processed from any storage bucket");
+  console.log("No bills could be processed from any storage path");
   return [];
+}
+
+/**
+ * Helper function to process a batch of bill files
+ */
+async function processBillFiles(bucketName: string, folderPath: string, jsonFiles: any[]): Promise<Bill[]> {
+  const filesToProcess = jsonFiles.slice(0, 50); // Process up to 50 files
+  const bills: Bill[] = [];
+  
+  for (const file of filesToProcess) {
+    const filePath = folderPath ? `${folderPath}/${file.name}` : file.name;
+    console.log(`Processing file: ${filePath} from bucket ${bucketName}`);
+    
+    const bill = await processStorageFile(bucketName, filePath, file.name);
+    if (bill) {
+      bills.push(bill);
+    }
+  }
+  
+  console.log(`Successfully processed ${bills.length} bills from "${bucketName}/${folderPath}"`);
+  return bills;
 }
 
 /**
@@ -173,29 +166,28 @@ export async function fetchBillByIdFromStorage(id: string): Promise<Bill | null>
     `${id.toLowerCase()}.json`
   ];
   
-  // List available buckets
-  const availableBuckets = await listAvailableBuckets();
-  
-  // Try each possible bucket and folder combination
-  for (const bucketName of POSSIBLE_BUCKETS) {
-    // Check if the bucket exists in the available buckets
-    if (!availableBuckets.includes(bucketName)) {
-      continue;
+  // First try the main path
+  for (const fileName of possibleFileNames) {
+    const filePath = `${BILL_STORAGE_PATH}/${fileName}`;
+    const bill = await processStorageFile(BILL_STORAGE_BUCKET, filePath, fileName);
+    if (bill) {
+      console.log(`Found bill ${id} in storage at ${filePath}`);
+      return bill;
     }
-    
-    for (const folderPath of POSSIBLE_FOLDERS) {
-      for (const fileName of possibleFileNames) {
-        const filePath = folderPath ? `${folderPath}/${fileName}` : fileName;
-        
-        const bill = await processStorageFile(bucketName, filePath, fileName);
-        if (bill) {
-          console.log(`Found bill ${id} in storage as ${filePath} in bucket ${bucketName}`);
-          return bill;
-        }
+  }
+  
+  // If not found in the main path, try alternative paths
+  for (const alternatePath of ALTERNATIVE_PATHS) {
+    for (const fileName of possibleFileNames) {
+      const filePath = alternatePath ? `${alternatePath}/${fileName}` : fileName;
+      const bill = await processStorageFile(BILL_STORAGE_BUCKET, filePath, fileName);
+      if (bill) {
+        console.log(`Found bill ${id} in storage at ${filePath}`);
+        return bill;
       }
     }
   }
   
-  console.warn(`Bill ${id} not found in any Supabase storage bucket`);
+  console.warn(`Bill ${id} not found in any storage path`);
   return null;
 }
