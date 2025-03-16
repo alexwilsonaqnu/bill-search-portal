@@ -1,7 +1,10 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { corsHeaders, handleUpload, handleList, handleProcess, RequestParams } from "./handlers.ts";
+import { corsHeaders, RequestParams } from "./cors.ts";
+import { handleUpload } from "./uploadHandler.ts";
+import { handleList } from "./listHandler.ts";
+import { handleProcess } from "./processHandler.ts";
 import { createSuccessResponse, createErrorResponse, initializeSupabase } from "./utils.ts";
 
 serve(async (req) => {
