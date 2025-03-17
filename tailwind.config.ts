@@ -63,7 +63,7 @@ export default {
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
 				},
-				// Custom colors for our bill portal
+				// Restored original blue and green colors
 				brand: {
 					primary: '#47A8FF',
 					secondary: '#4DB6AC',

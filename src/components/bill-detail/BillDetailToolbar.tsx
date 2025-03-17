@@ -2,20 +2,18 @@
 import { Bill } from "@/types";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { FileText, GitCompare, Upload } from "lucide-react";
+import { FileText, GitCompare } from "lucide-react";
 
 interface BillDetailToolbarProps {
   bill: Bill;
-  selectedTool: "overview" | "comparison" | "upload";
-  setSelectedTool: (tool: "overview" | "comparison" | "upload") => void;
-  showUploadOption?: boolean;
+  selectedTool: "overview" | "comparison";
+  setSelectedTool: (tool: "overview" | "comparison") => void;
 }
 
 const BillDetailToolbar = ({ 
   bill, 
   selectedTool, 
-  setSelectedTool,
-  showUploadOption = false
+  setSelectedTool
 }: BillDetailToolbarProps) => {
   return (
     <Card className="bg-white rounded-lg border shadow-sm p-6">
@@ -39,17 +37,6 @@ const BillDetailToolbar = ({
           <GitCompare className="h-4 w-4 mr-2" />
           Compare Versions
         </Button>
-        
-        {showUploadOption && (
-          <Button
-            variant={selectedTool === "upload" ? "default" : "outline"}
-            className="w-full justify-start"
-            onClick={() => setSelectedTool("upload")}
-          >
-            <Upload className="h-4 w-4 mr-2" />
-            Upload Text
-          </Button>
-        )}
       </div>
       
       {/* Display additional info or bill stats here */}
