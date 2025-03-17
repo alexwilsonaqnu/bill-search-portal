@@ -13,6 +13,7 @@ interface BillFooterProps {
 
 const BillFooter = ({ bill }: BillFooterProps) => {
   const tags = getTags(bill);
+  // Make sure we use the normalized ID for the link URL
   const normalizedId = normalizeBillId(bill.id);
   
   return (
