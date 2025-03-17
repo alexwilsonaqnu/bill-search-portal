@@ -20,7 +20,7 @@ const BillTextHash = ({ textHash, billId }: BillTextHashProps) => {
     fetchActualText();
   }, [billId]);
   
-  if (!textHash && !billId) return null;
+  if (!billId) return null;
   
   const fetchActualText = async () => {
     if (isLoading || textContent) return;
@@ -81,12 +81,14 @@ const BillTextHash = ({ textHash, billId }: BillTextHashProps) => {
       
       {!textContent && !isLoading && (
         <div>
-          <p className="text-sm text-gray-700 font-mono bg-gray-50 p-2 rounded border">
-            {textHash || "Loading bill text..."}
-          </p>
-          <p className="text-xs text-gray-500 mt-1">
-            Attempting to fetch the actual bill text...
-          </p>
+          <Button
+            onClick={fetchActualText}
+            disabled={isLoading}
+            size="sm"
+            className="mt-2"
+          >
+            {isLoading ? "Loading..." : "Load Bill Text"}
+          </Button>
         </div>
       )}
       
