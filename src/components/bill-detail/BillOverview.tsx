@@ -34,6 +34,9 @@ const BillOverview = ({ bill }: BillOverviewProps) => {
   // Check if bill has text content
   const hasTextContent = !!bill.data?.text_content;
   
+  // Extract the text hash from bill data
+  const textHash = bill.data?.text_hash || "";
+  
   // Function to fetch the content from ILGA website
   const fetchExternalContent = async () => {
     if (!ilgaUrl) return;
@@ -147,11 +150,14 @@ const BillOverview = ({ bill }: BillOverviewProps) => {
           )}
           
           {/* Bill Text Hash */}
-          {bill.data?.text_hash && (
+          {textHash && (
             <div>
-              <h3 className="font-semibold mb-2">Text Hash</h3>
+              <h3 className="font-semibold mb-2">Text Hash (MD5)</h3>
               <p className="text-sm text-gray-700 font-mono bg-gray-50 p-2 rounded border">
-                {bill.data.text_hash}
+                {textHash}
+              </p>
+              <p className="text-xs text-gray-500 mt-1">
+                This MD5 hash represents the unique fingerprint of the bill's text content
               </p>
             </div>
           )}
