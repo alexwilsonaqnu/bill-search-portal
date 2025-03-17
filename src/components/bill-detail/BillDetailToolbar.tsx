@@ -17,25 +17,29 @@ const BillDetailToolbar = ({
 }: BillDetailToolbarProps) => {
   return (
     <Card className="bg-white rounded-lg border shadow-sm p-6">
-      <h3 className="text-lg font-semibold mb-4">Analysis Tools</h3>
+      <h3 className="text-lg font-semibold mb-4">
+        <span className="text-[#35B7CD]">Bill</span>
+        <span className="text-[#8CC63F]">inois</span>
+        <span className="text-gray-700"> Choose Tool</span>
+      </h3>
       
       <div className="space-y-2">
         <Button
           variant={selectedTool === "overview" ? "default" : "outline"}
-          className="w-full justify-start"
+          className={`w-full justify-start ${selectedTool === "overview" ? "bg-[#35B7CD] hover:bg-[#2A9BB0]" : ""}`}
           onClick={() => setSelectedTool("overview")}
         >
           <FileText className="h-4 w-4 mr-2" />
-          Overview
+          Overall view
         </Button>
         
         <Button
           variant={selectedTool === "comparison" ? "default" : "outline"}
-          className="w-full justify-start"
+          className={`w-full justify-start ${selectedTool === "comparison" ? "bg-[#35B7CD] hover:bg-[#2A9BB0]" : ""}`}
           onClick={() => setSelectedTool("comparison")}
         >
           <GitCompare className="h-4 w-4 mr-2" />
-          Compare Versions
+          Comparison Tool
         </Button>
       </div>
       

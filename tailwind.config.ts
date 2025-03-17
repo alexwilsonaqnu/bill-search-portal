@@ -63,11 +63,11 @@ export default {
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
 				},
-				// Restored original blue and green colors
+				// Updated brand colors to match the screenshots
 				brand: {
-					primary: '#47A8FF',
-					secondary: '#4DB6AC',
-					accent: '#6FCF97',
+					primary: '#35B7CD', // Teal blue (for "Bill" in logo and buttons)
+					secondary: '#8CC63F', // Light green (for "inois" in logo)
+					accent: '#6FCF97', // Accent green
 				}
 			},
 			borderRadius: {
