@@ -21,9 +21,11 @@ export async function fetchFromLegiscan(billId: string, apiKey: string): Promise
     // Special handling for specific bill IDs that we know have issues
     if (billId === '1636716') {
       console.log('Using special handling for bill 1636716');
-      // For bill 1636716, we need to use a specific doc_id
-      const url = `https://api.legiscan.com/?key=${apiKey}&op=getBillText&id=1987297&state=IL`;
-      console.log(`Fetching bill text with specific doc_id: ${url.replace(apiKey, 'API_KEY_HIDDEN')}`);
+      // For bill 1636716, we need to use the correct document ID 
+      // This document ID corresponds to the actual bill text for HB3717
+      const docId = '2025696';
+      const url = `https://api.legiscan.com/?key=${apiKey}&op=getBillText&id=${docId}&state=IL`;
+      console.log(`Fetching bill text with specific docId: ${url.replace(apiKey, 'API_KEY_HIDDEN')}`);
       
       const response = await fetch(url);
       if (!response.ok) {
@@ -36,7 +38,7 @@ export async function fetchFromLegiscan(billId: string, apiKey: string): Promise
         console.error('Special handling for 1636716 failed:', data);
         // Fall back to regular fetch
       } else {
-        console.log('Successfully fetched bill text with special doc_id for 1636716');
+        console.log('Successfully fetched bill text with special docId for 1636716');
         const base64Text = data.text.doc;
         const decodedText = decodeBase64Text(base64Text);
         
@@ -48,7 +50,7 @@ export async function fetchFromLegiscan(billId: string, apiKey: string): Promise
               text: PDF_DETECTION_MESSAGE,
               docId: data.text.doc_id,
               mimeType: 'application/pdf',
-              title: data.text.title || "Illinois Bill 1636716",
+              title: "Illinois House Bill 3717", // Set correct title
               isPdf: true,
               base64: base64Text,
               url: data.text.state_link || null,
@@ -69,7 +71,7 @@ export async function fetchFromLegiscan(billId: string, apiKey: string): Promise
             text: decodedText,
             docId: data.text.doc_id,
             mimeType: data.text.mime,
-            title: data.text.title || "Illinois Bill 1636716",
+            title: "Illinois House Bill 3717", // Set correct title
             url: data.text.state_link || null,
             state: "Illinois"
           }),
