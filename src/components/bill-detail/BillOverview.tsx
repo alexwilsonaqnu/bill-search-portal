@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ExternalLink, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 interface BillOverviewProps {
   bill: Bill;
@@ -31,17 +32,58 @@ const BillOverview = ({ bill }: BillOverviewProps) => {
   // Extract the ILGA URL
   const ilgaUrl = getIlgaUrl();
   
-  // Check if bill has text content
-  const hasTextContent = !!bill.data?.text_content;
+  // Check if bill has text content - look in multiple possible locations
+  const getTextContent = () => {
+    // Direct text_content field
+    if (bill.data?.text_content) return bill.data.text_content;
+    
+    // Check in texts array
+    if (bill.data?.texts && Array.isArray(bill.data.texts)) {
+      const textWithContent = bill.data.texts.find(t => t.content);
+      if (textWithContent) return textWithContent.content;
+    }
+    
+    // Check in text field
+    if (bill.data?.text) return bill.data.text;
+    
+    // Check in full_text field
+    if (bill.data?.full_text) return bill.data.full_text;
+    
+    return null;
+  };
+  
+  const billTextContent = getTextContent();
+  const hasTextContent = !!billTextContent;
   
   // Extract the text hash from bill data
   const textHash = bill.data?.text_hash || "";
   
+  // Determine text format (html or plain text)
+  const getTextFormat = () => {
+    if (bill.data?.text_format) return bill.data.text_format;
+    
+    // Try to auto-detect format
+    if (billTextContent && typeof billTextContent === 'string') {
+      if (billTextContent.trim().startsWith('<') && billTextContent.includes('</')) {
+        return 'html';
+      }
+    }
+    
+    return 'text';
+  };
+  
+  const textFormat = getTextFormat();
+  
   // Function to fetch the content from ILGA website
   const fetchExternalContent = async () => {
-    if (!ilgaUrl) return;
+    if (!ilgaUrl) {
+      toast.error("No external URL found for this bill");
+      return;
+    }
     
     setIsLoadingExternalContent(true);
+    toast.info("Fetching bill text from ILGA website...");
+    
     try {
       // We need to use a proxy to bypass CORS restrictions
       const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/proxy-content?url=${encodeURIComponent(ilgaUrl)}`);
@@ -49,17 +91,29 @@ const BillOverview = ({ bill }: BillOverviewProps) => {
       if (response.ok) {
         const text = await response.text();
         setExternalContent(text);
+        toast.success("Successfully loaded bill text");
       } else {
         console.error("Failed to fetch content:", response.statusText);
+        toast.error(`Failed to load content: ${response.statusText}`);
         setExternalContent(`Failed to load content from ${ilgaUrl}`);
       }
     } catch (error) {
       console.error("Error fetching content:", error);
+      toast.error(`Error fetching content: ${error instanceof Error ? error.message : String(error)}`);
       setExternalContent(`Error: ${error instanceof Error ? error.message : String(error)}`);
     } finally {
       setIsLoadingExternalContent(false);
     }
   };
+  
+  console.log("Bill data:", {
+    hasTextContent,
+    textFormat,
+    billTextAvailable: !!billTextContent,
+    billDataKeys: bill.data ? Object.keys(bill.data) : [],
+    externalUrl: ilgaUrl,
+    textHash
+  });
   
   return (
     <div className="space-y-6">
@@ -124,7 +178,7 @@ const BillOverview = ({ bill }: BillOverviewProps) => {
           {ilgaUrl && (
             <div>
               <h3 className="font-semibold mb-2">External Resources</h3>
-              <div className="flex space-x-3">
+              <div className="flex flex-wrap gap-3">
                 <a 
                   href={ilgaUrl} 
                   target="_blank" 
@@ -179,16 +233,16 @@ const BillOverview = ({ bill }: BillOverviewProps) => {
         </div>
       </Card>
       
-      {/* Uploaded Content Display */}
+      {/* Bill Text Content Display */}
       {hasTextContent && (
         <Card className="bg-white rounded-lg border shadow-sm p-6">
           <h2 className="text-2xl font-semibold mb-4">Bill Text Content</h2>
           <div className="prose max-w-none">
-            {bill.data?.text_format === 'html' ? (
-              <div dangerouslySetInnerHTML={{ __html: bill.data.text_content }} />
+            {textFormat === 'html' ? (
+              <div dangerouslySetInnerHTML={{ __html: billTextContent }} />
             ) : (
               <pre className="whitespace-pre-wrap bg-gray-50 p-4 rounded text-sm font-mono overflow-auto max-h-[800px]">
-                {bill.data?.text_content}
+                {billTextContent}
               </pre>
             )}
           </div>
@@ -228,6 +282,28 @@ const BillOverview = ({ bill }: BillOverviewProps) => {
             </Card>
           ))}
         </div>
+      )}
+      
+      {/* No Content Notice */}
+      {!hasTextContent && !externalContent && !bill.versions?.length && (
+        <Card className="bg-white rounded-lg border shadow-sm p-6">
+          <div className="text-center py-8">
+            <h3 className="text-xl font-medium text-gray-700 mb-2">No Bill Text Available</h3>
+            <p className="text-gray-600 mb-6">
+              The full text for this bill is not currently available in our system.
+            </p>
+            
+            {ilgaUrl ? (
+              <Button onClick={fetchExternalContent} disabled={isLoadingExternalContent}>
+                {isLoadingExternalContent ? "Loading..." : "Load Text from ILGA Website"}
+              </Button>
+            ) : (
+              <p className="italic text-gray-500">
+                No external source is available for this bill.
+              </p>
+            )}
+          </div>
+        </Card>
       )}
     </div>
   );
