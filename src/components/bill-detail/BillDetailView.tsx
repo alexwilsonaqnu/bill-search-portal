@@ -8,13 +8,20 @@ import BillDetailToolbar from "./BillDetailToolbar";
 import BillOverview from "./BillOverview";
 import BillComparisonContainer from "./BillComparisonContainer";
 import BillSponsors from "@/components/bill/BillSponsors";
+import BillTextUploader from "./BillTextUploader";
 
 interface BillDetailViewProps {
   bill: Bill;
 }
 
 const BillDetailView = ({ bill }: BillDetailViewProps) => {
-  const [selectedTool, setSelectedTool] = useState<"overview" | "comparison">("overview");
+  const [selectedTool, setSelectedTool] = useState<"overview" | "comparison" | "upload">("overview");
+  const [uploadedContent, setUploadedContent] = useState<string | null>(null);
+
+  const handleUploadComplete = (content: string) => {
+    setUploadedContent(content);
+    setSelectedTool("overview");
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 page-transition-wrapper">
@@ -41,14 +48,17 @@ const BillDetailView = ({ bill }: BillDetailViewProps) => {
               bill={bill} 
               selectedTool={selectedTool}
               setSelectedTool={setSelectedTool} 
+              showUploadOption={true}
             />
           </div>
           
           <div className="md:col-span-2">
             {selectedTool === "overview" ? (
-              <BillOverview bill={bill} />
-            ) : (
+              <BillOverview bill={uploadedContent ? {...bill, data: {...bill.data, text_content: uploadedContent}} : bill} />
+            ) : selectedTool === "comparison" ? (
               <BillComparisonContainer bill={bill} />
+            ) : (
+              <BillTextUploader billId={bill.id} onUploadComplete={handleUploadComplete} />
             )}
           </div>
         </div>
