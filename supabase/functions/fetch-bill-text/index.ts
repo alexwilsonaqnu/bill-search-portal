@@ -1,7 +1,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { decode as base64Decode } from "https://deno.land/std@0.168.0/encoding/base64.ts";
-import { createHash } from "https://deno.land/std@0.168.0/crypto/mod.ts";
+import { createHash as cryptoHash } from "https://deno.land/std@0.168.0/crypto/mod.ts";
 
 const LEGISCAN_API_KEY = Deno.env.get('LEGISCAN_API_KEY');
 
@@ -68,9 +68,9 @@ serve(async (req) => {
     const decodedText = new TextDecoder().decode(decodedTextBytes);
     
     // Verify MD5 hash
-    const md5Hash = createHash("md5");
-    md5Hash.update(decodedTextBytes);
-    const calculatedHash = md5Hash.toString();
+    const md5 = cryptoHash("md5");
+    md5.update(decodedTextBytes);
+    const calculatedHash = md5.toString();
     
     if (calculatedHash !== providedHash) {
       console.warn("MD5 hash mismatch! Data may be corrupted.");
