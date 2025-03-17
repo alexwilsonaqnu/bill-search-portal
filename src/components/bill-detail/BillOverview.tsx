@@ -94,6 +94,16 @@ const BillOverview = ({ bill }: BillOverviewProps) => {
               <h4 className="font-medium text-lg">{version.name}</h4>
               {version.date && <p className="text-sm text-gray-500 mb-4">{version.date}</p>}
               
+              {/* Display Text Hash if available */}
+              {bill.data?.text_hash && (
+                <div className="mb-4">
+                  <p className="text-sm font-medium">Text Hash:</p>
+                  <p className="text-sm text-gray-700 font-mono bg-gray-50 p-2 rounded border">
+                    {bill.data.text_hash}
+                  </p>
+                </div>
+              )}
+              
               <div className="mt-4 space-y-6">
                 {version.sections.map((section) => (
                   <div key={section.id} className="border-t pt-4 first:border-t-0 first:pt-0">
