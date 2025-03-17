@@ -138,7 +138,11 @@ const BillOverview = ({ bill }: BillOverviewProps) => {
             fetchExternalContent={fetchExternalContent}
           />
           
-          <BillTextHash textHash={textHash} billId={legiscanBillId} />
+          <BillTextHash 
+            textHash={textHash} 
+            billId={legiscanBillId}
+            externalUrl={ilgaUrl} 
+          />
           
           <BillHistoryView changes={bill.changes} />
         </div>

@@ -1,6 +1,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { decode as base64Decode } from "https://deno.land/std@0.168.0/encoding/base64.ts";
+import "https://deno.land/x/xhr@0.1.0/mod.ts";
 
 const LEGISCAN_API_KEY = Deno.env.get('LEGISCAN_API_KEY');
 
@@ -36,6 +37,19 @@ Sec. 3-14-7. Successful reentry.
 (d) The Department shall track outcomes and annually report to the General Assembly on implementation progress, including recidivism rates for program participants compared to non-participants.
 
 Section 99. Effective date. This Act takes effect upon becoming law.
+`;
+
+// PDF detection and handling message
+const PDF_DETECTION_MESSAGE = `
+This bill appears to be in PDF format which cannot be displayed directly in the browser.
+
+The application has detected PDF content markers (%PDF) in the response. For proper viewing of PDF content:
+
+1. You can use the "View External Content" button to access the bill on the official website
+2. PDF content requires special rendering which is currently not supported in-app
+3. Try downloading the document from the official source for better viewing
+
+Note: Some legislative documents are only available in PDF format to preserve formatting and official typesetting.
 `;
 
 serve(async (req) => {
@@ -152,6 +166,26 @@ serve(async (req) => {
     // Decode BASE64
     const decodedTextBytes = base64Decode(base64Text);
     const decodedText = new TextDecoder().decode(decodedTextBytes);
+    
+    // Check if the content is a PDF (starts with %PDF)
+    if (decodedText.trim().startsWith('%PDF')) {
+      console.log('Detected PDF content, returning friendly message');
+      return new Response(
+        JSON.stringify({
+          text: PDF_DETECTION_MESSAGE,
+          docId: data.text.doc_id,
+          mimeType: 'application/pdf', // Mark as PDF
+          title: data.text.title || "",
+          isPdf: true
+        }),
+        { 
+          headers: { 
+            'Content-Type': 'application/json',
+            ...corsHeaders 
+          } 
+        }
+      );
+    }
     
     // Return the decoded text with metadata
     return new Response(
