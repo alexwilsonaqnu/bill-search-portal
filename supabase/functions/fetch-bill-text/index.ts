@@ -39,17 +39,16 @@ Sec. 3-14-7. Successful reentry.
 Section 99. Effective date. This Act takes effect upon becoming law.
 `;
 
-// PDF detection and handling message
+// Updated PDF detection message
 const PDF_DETECTION_MESSAGE = `
-This bill appears to be in PDF format which cannot be displayed directly in the browser.
+This bill is available in PDF format. The system will attempt to display it in the PDF viewer and extract text.
 
-The application has detected PDF content markers (%PDF) in the response. For proper viewing of PDF content:
+You can:
+1. View the PDF in the built-in viewer
+2. Extract text from the PDF using our OCR process
+3. View the original document on the official website
 
-1. You can use the "View External Content" button to access the bill on the official website
-2. PDF content requires special rendering which is currently not supported in-app
-3. Try downloading the document from the official source for better viewing
-
-Note: Some legislative documents are only available in PDF format to preserve formatting and official typesetting.
+PDF content will be displayed in the viewer below for your convenience.
 `;
 
 serve(async (req) => {
@@ -169,14 +168,16 @@ serve(async (req) => {
     
     // Check if the content is a PDF (starts with %PDF)
     if (decodedText.trim().startsWith('%PDF')) {
-      console.log('Detected PDF content, returning friendly message');
+      console.log('Detected PDF content, returning both PDF data and friendly message');
       return new Response(
         JSON.stringify({
           text: PDF_DETECTION_MESSAGE,
           docId: data.text.doc_id,
           mimeType: 'application/pdf', // Mark as PDF
           title: data.text.title || "",
-          isPdf: true
+          isPdf: true,
+          base64: base64Text, // Include the original base64 data for PDF rendering
+          url: data.text.state_link || null
         }),
         { 
           headers: { 
@@ -193,7 +194,8 @@ serve(async (req) => {
         text: decodedText,
         docId: data.text.doc_id,
         mimeType: data.text.mime,
-        title: data.text.title || ""
+        title: data.text.title || "",
+        url: data.text.state_link || null
       }),
       { 
         headers: { 

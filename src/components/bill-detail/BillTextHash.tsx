@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
-import { AlertCircle, Maximize, Minimize, FileText, ExternalLink, ChevronLeft, ChevronRight } from "lucide-react";
+import { AlertCircle, Maximize, Minimize, FileText, ExternalLink, ChevronLeft, ChevronRight, FileSearch } from "lucide-react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import BillChat from "./BillChat";
 import * as pdfjsLib from 'pdfjs-dist';
@@ -31,6 +31,8 @@ const BillTextHash = ({ textHash, billId, externalUrl }: BillTextHashProps) => {
   const [totalPages, setTotalPages] = useState(0);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [pdfDocument, setPdfDocument] = useState<any>(null);
+  const [isExtractingText, setIsExtractingText] = useState(false);
+  const [extractedText, setExtractedText] = useState<string | null>(null);
   
   // Automatically fetch the bill text when the component mounts
   useEffect(() => {
@@ -98,6 +100,45 @@ const BillTextHash = ({ textHash, billId, externalUrl }: BillTextHashProps) => {
       console.error("Error loading PDF:", error);
       toast.error("Failed to load PDF document");
       return null;
+    }
+  };
+  
+  // New function to extract text from PDF using OCR
+  const extractTextFromPdf = async () => {
+    if (!pdfBase64) {
+      toast.error("No PDF data available for text extraction");
+      return;
+    }
+    
+    setIsExtractingText(true);
+    toast.info("Extracting text from PDF...");
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('pdf-to-text', {
+        body: { pdfBase64 }
+      });
+      
+      if (error) {
+        throw new Error(`Error invoking function: ${error.message}`);
+      }
+      
+      if (data.error) {
+        throw new Error(data.error);
+      }
+      
+      setExtractedText(data.text);
+      toast.success(`Text successfully extracted using ${data.method}`);
+      
+      // If we got good text, make it available for chat
+      if (data.text && data.text.length > 100) {
+        setTextContent(data.text);
+        setIsHtmlContent(false);
+      }
+    } catch (error) {
+      console.error("Error extracting text from PDF:", error);
+      toast.error(`Failed to extract text: ${error.message}`);
+    } finally {
+      setIsExtractingText(false);
     }
   };
   
@@ -297,8 +338,20 @@ const BillTextHash = ({ textHash, billId, externalUrl }: BillTextHashProps) => {
             <canvas ref={canvasRef} className="max-w-full" />
           </div>
           
-          {externalUrl && (
-            <div className="mt-4 flex justify-end">
+          <div className="mt-4 flex justify-between items-center">
+            {/* OCR Extract Text Button */}
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={extractTextFromPdf}
+              disabled={isExtractingText || !pdfBase64}
+              className="flex items-center gap-2"
+            >
+              <FileSearch className="h-4 w-4" />
+              {isExtractingText ? "Extracting Text..." : "Extract Text from PDF"}
+            </Button>
+            
+            {externalUrl && (
               <Button
                 variant="outline"
                 size="sm"
@@ -308,6 +361,16 @@ const BillTextHash = ({ textHash, billId, externalUrl }: BillTextHashProps) => {
                 <ExternalLink className="h-4 w-4" />
                 View Original PDF
               </Button>
+            )}
+          </div>
+          
+          {/* Display extracted text if available */}
+          {extractedText && (
+            <div className="mt-4 p-4 bg-gray-50 border rounded-md">
+              <h4 className="text-sm font-medium mb-2">Extracted Text:</h4>
+              <div className="whitespace-pre-wrap text-sm font-mono overflow-auto max-h-[300px]">
+                {extractedText}
+              </div>
             </div>
           )}
         </div>
@@ -417,8 +480,20 @@ const BillTextHash = ({ textHash, billId, externalUrl }: BillTextHashProps) => {
                 <canvas ref={canvasRef} className="max-h-full" />
               </div>
               
-              {externalUrl && (
-                <div className="mt-4 flex justify-end">
+              <div className="mt-4 flex justify-between items-center">
+                {/* OCR Extract Text Button */}
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={extractTextFromPdf}
+                  disabled={isExtractingText || !pdfBase64}
+                  className="flex items-center gap-2"
+                >
+                  <FileSearch className="h-4 w-4" />
+                  {isExtractingText ? "Extracting Text..." : "Extract Text from PDF"}
+                </Button>
+                
+                {externalUrl && (
                   <Button
                     variant="outline"
                     size="sm"
@@ -428,6 +503,16 @@ const BillTextHash = ({ textHash, billId, externalUrl }: BillTextHashProps) => {
                     <ExternalLink className="h-4 w-4" />
                     View Original PDF
                   </Button>
+                )}
+              </div>
+              
+              {/* Display extracted text if available */}
+              {extractedText && (
+                <div className="mt-4 p-4 bg-gray-50 border rounded-md overflow-auto max-h-[300px]">
+                  <h4 className="text-sm font-medium mb-2">Extracted Text:</h4>
+                  <div className="whitespace-pre-wrap text-sm font-mono">
+                    {extractedText}
+                  </div>
                 </div>
               )}
             </div>
@@ -468,8 +553,10 @@ const BillTextHash = ({ textHash, billId, externalUrl }: BillTextHashProps) => {
         </DialogContent>
       </Dialog>
 
-      {/* Chat component - disabled for PDF content since it can't be analyzed properly */}
-      {textContent && !isPdfContent && <BillChat billText={textContent} />}
+      {/* Chat component - disabled for PDF content unless text has been extracted */}
+      {(textContent && !isPdfContent) || (extractedText && extractedText.length > 100) ? (
+        <BillChat billText={extractedText || textContent || ""} />
+      ) : null}
     </div>
   );
 };
