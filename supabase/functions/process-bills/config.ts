@@ -1,18 +1,18 @@
 
 // Main bucket name for bill storage
-export const BILL_STORAGE_BUCKET = "103rd_General_Assembly";
+export const BILL_STORAGE_BUCKET = "104th_General_Assembly";
 
 // Main folder path for bills within the bucket
-export const BILL_STORAGE_PATH = "2023-2024_103rd_General_Assembly/bill";
+export const BILL_STORAGE_PATH = "2025-2026_104th_General_Assembly/bill";
 
 // Alternative paths to try if the main path doesn't work
 export const ALTERNATIVE_PATHS = [
-  "2023-2024_103rd_General_Assembly/bills",
+  "2025-2026_104th_General_Assembly/bills",
   "bills",
   "bill",
-  "2023-2024_103rd_General_Assembly", // Try the entire directory
-  "2024-bills",                        // New folder for additional bills
-  "2023-bills",                        // Potential historical bills
+  "2025-2026_104th_General_Assembly", // Try the entire directory
+  "2025-bills",                        // New folder for additional bills
+  "2026-bills",                        // New folder for additional bills
   ""  // Try root of bucket as last resort
 ];
 
@@ -21,3 +21,4 @@ export const MAX_FILES_TO_RETRIEVE = 1000;
 
 // Maximum number of bills to process at once
 export const MAX_BILLS_TO_PROCESS = 200; // Increased from 100
+
