@@ -33,7 +33,7 @@ const BillChat = ({ billText }: BillChatProps) => {
     if (!inputMessage.trim() || !billText) return;
     
     // Add user message to chat
-    const userMessage = { role: "user", content: inputMessage };
+    const userMessage: Message = { role: "user", content: inputMessage };
     setMessages(prev => [...prev, userMessage]);
     setInputMessage("");
     setIsLoading(true);
@@ -41,7 +41,7 @@ const BillChat = ({ billText }: BillChatProps) => {
     try {
       // Format messages for OpenAI API
       const apiMessages = messages.map(msg => ({
-        role: msg.role,
+        role: msg.role as "user" | "assistant",
         content: msg.content,
       }));
       
