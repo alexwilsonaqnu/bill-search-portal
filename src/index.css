@@ -1,4 +1,3 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -114,12 +113,13 @@
     @apply font-bold;
   }
   
-  .logo-bill {
-    color: #35B7CD;
-  }
-  
-  .logo-inois {
-    color: #8CC63F;
+  /* Billinois logo with gradient from blue to green */
+  .billinois-logo {
+    background: linear-gradient(90deg, #39B8CF 0%, #8DC642 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    color: transparent;
   }
 }
 

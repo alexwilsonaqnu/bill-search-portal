@@ -15,9 +15,8 @@ const HeaderSection = ({ query, onSearch }: HeaderSectionProps) => {
         {format(new Date(), "MMMM d, yyyy")}
       </div>
       
-      <h1 className="text-5xl md:text-7xl font-bold mb-8">
-        <span className="logo-bill">Bill</span>
-        <span className="logo-inois">inois</span>
+      <h1 className="text-5xl md:text-7xl font-bold mb-8 billinois-logo">
+        Billinois
       </h1>
       
       <div className="mx-auto max-w-xl">

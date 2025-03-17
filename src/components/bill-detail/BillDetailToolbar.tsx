@@ -18,8 +18,7 @@ const BillDetailToolbar = ({
   return (
     <Card className="bg-white rounded-lg border shadow-sm p-6">
       <h3 className="text-lg font-semibold mb-4">
-        <span className="logo-bill">Bill</span>
-        <span className="logo-inois">inois</span>
+        <span className="billinois-logo">Billinois</span>
         <span className="text-gray-700"> Choose Tool</span>
       </h3>
       
@@ -43,7 +42,6 @@ const BillDetailToolbar = ({
         </Button>
       </div>
       
-      {/* Display additional info or bill stats here */}
       <div className="mt-6 pt-6 border-t border-gray-100">
         <h4 className="text-sm font-medium mb-3">Bill Information</h4>
         <div className="space-y-2">

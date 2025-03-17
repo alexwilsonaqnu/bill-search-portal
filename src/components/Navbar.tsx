@@ -9,9 +9,8 @@ const Navbar = () => {
           to="/"
           className="inline-block transition-transform duration-300 hover:scale-105"
         >
-          <h1 className="text-4xl font-bold">
-            <span className="logo-bill">Bill</span>
-            <span className="logo-inois">inois</span>
+          <h1 className="text-4xl font-bold billinois-logo">
+            Billinois
           </h1>
         </Link>
       </div>
