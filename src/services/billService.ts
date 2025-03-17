@@ -14,6 +14,7 @@ export async function fetchBills(
   pageSize: number = 10
 ): Promise<SearchResults> {
   try {
+    console.log(`Fetching bills with query: "${query}", page: ${page}, pageSize: ${pageSize}`);
     const bills = await fetchBillsFromSupabase();
     
     if (!bills || bills.length === 0) {
@@ -21,6 +22,8 @@ export async function fetchBills(
       toast.warning("No bills found in the database");
       return { bills: [], currentPage: page, totalPages: 0, totalItems: 0 };
     }
+    
+    console.log(`Found ${bills.length} total bills, processing results...`);
     
     // Process the bills from Supabase
     return processResults(bills, query, page, pageSize);

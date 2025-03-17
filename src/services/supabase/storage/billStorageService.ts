@@ -1,66 +1,87 @@
 
 import { Bill } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
-import { BILL_STORAGE_BUCKET, BILL_STORAGE_PATH, ALTERNATIVE_PATHS } from "../storageConfig";
+import { BILL_STORAGE_BUCKET, BILL_STORAGE_PATH, ALTERNATIVE_PATHS, MAX_BILLS_TO_PROCESS } from "../storageConfig";
 import { listFilesInBucket, countFilesInBucket } from "./bucketOperations";
 import { processBillFiles, processStorageFile } from "./billProcessor";
 import { toast } from "sonner";
 
 /**
- * Fetches bill files from storage with optional pagination
+ * Fetches bill files from storage with optional pagination and combining results from multiple paths
  */
 export async function fetchBillsFromStorage(page = 1, pageSize = 100): Promise<Bill[]> {
   console.log(`Trying to fetch bills from bucket: ${BILL_STORAGE_BUCKET}, page: ${page}, pageSize: ${pageSize}`);
   
-  // First try the main configured path
-  const totalCount = await countFilesInBucket(BILL_STORAGE_BUCKET, BILL_STORAGE_PATH);
+  let allBills: Bill[] = [];
+  const pathsToSearch = [BILL_STORAGE_PATH, ...ALTERNATIVE_PATHS];
   
-  if (totalCount > 0) {
-    const offset = (page - 1) * pageSize;
-    console.log(`Found ${totalCount} total files in main path: ${BILL_STORAGE_PATH}, fetching page ${page} (offset ${offset})`);
-    
-    const { data: mainPathFiles, error } = await supabaseListWithPagination(
-      BILL_STORAGE_BUCKET, 
-      BILL_STORAGE_PATH, 
-      pageSize, 
-      offset
-    );
-    
-    if (error) {
-      console.error(`Error fetching files: ${error.message}`);
-      toast.error(`Error loading bills: ${error.message}`);
-      return [];
+  // Try each path and combine results
+  for (const path of pathsToSearch) {
+    if (allBills.length >= MAX_BILLS_TO_PROCESS) {
+      console.log(`Reached maximum bill limit (${MAX_BILLS_TO_PROCESS}), stopping search.`);
+      break;
     }
     
-    if (mainPathFiles.length > 0) {
-      console.log(`Found ${mainPathFiles.length} files in main path for page ${page}`);
+    const totalCount = await countFilesInBucket(BILL_STORAGE_BUCKET, path);
+    
+    if (totalCount > 0) {
+      console.log(`Found ${totalCount} total files in path: ${path}`);
       
-      // Process the JSON files
-      const jsonFiles = mainPathFiles.filter(file => file.name.endsWith('.json'));
-      if (jsonFiles.length > 0) {
-        console.log(`Processing ${jsonFiles.length} JSON files for page ${page}`);
-        toast.info(`Loading ${jsonFiles.length} bills (page ${page} of ${Math.ceil(totalCount / pageSize)})`);
-        return processBillFiles(BILL_STORAGE_BUCKET, BILL_STORAGE_PATH, jsonFiles);
+      const { data: pathFiles, error } = await supabaseListWithPagination(
+        BILL_STORAGE_BUCKET, 
+        path, 
+        Math.min(100, pageSize), // Limit to 100 per path for better performance
+        0 // Start from the beginning for each path
+      );
+      
+      if (error) {
+        console.error(`Error fetching files from ${path}: ${error.message}`);
+        continue; // Try next path
+      }
+      
+      if (pathFiles && pathFiles.length > 0) {
+        console.log(`Found ${pathFiles.length} files in path: ${path}`);
+        
+        // Process the JSON files
+        const jsonFiles = pathFiles.filter(file => file.name.endsWith('.json'));
+        if (jsonFiles.length > 0) {
+          console.log(`Processing ${jsonFiles.length} JSON files from ${path}`);
+          
+          // Calculate how many more bills we can process
+          const remainingCapacity = MAX_BILLS_TO_PROCESS - allBills.length;
+          const filesToProcess = jsonFiles.slice(0, remainingCapacity);
+          
+          if (filesToProcess.length > 0) {
+            toast.info(`Loading ${filesToProcess.length} bills from ${path || 'root directory'}`);
+            const pathBills = await processBillFiles(BILL_STORAGE_BUCKET, path, filesToProcess);
+            
+            // Add bills from this path to the combined results, avoiding duplicates
+            const existingIds = new Set(allBills.map(bill => bill.id));
+            for (const bill of pathBills) {
+              if (!existingIds.has(bill.id)) {
+                allBills.push(bill);
+                existingIds.add(bill.id);
+              }
+            }
+            
+            console.log(`Added ${pathBills.length} unique bills from ${path}, total: ${allBills.length}`);
+          }
+        }
       }
     }
   }
   
-  // If no files found in main path, try alternative paths
-  console.log("No JSON files found in main path, trying alternative paths...");
-  for (const alternatePath of ALTERNATIVE_PATHS) {
-    const files = await listFilesInBucket(BILL_STORAGE_BUCKET, alternatePath);
-    if (files.length > 0) {
-      const jsonFiles = files.filter(file => file.name.endsWith('.json'));
-      if (jsonFiles.length > 0) {
-        console.log(`Found ${jsonFiles.length} JSON files in alternative path: ${alternatePath}`);
-        toast.info(`Loading ${Math.min(jsonFiles.length, 100)} bills from alternate path`);
-        return processBillFiles(BILL_STORAGE_BUCKET, alternatePath, jsonFiles.slice(0, 100));
-      }
-    }
+  if (allBills.length === 0) {
+    console.log("No bills could be processed from any storage path");
+  } else {
+    console.log(`Successfully processed a total of ${allBills.length} bills from all paths`);
   }
   
-  console.log("No bills could be processed from any storage path");
-  return [];
+  // Apply simple pagination to the combined results
+  const startIndex = (page - 1) * pageSize;
+  const paginatedBills = allBills.slice(startIndex, startIndex + pageSize);
+  
+  return allBills; // Return all bills so they can be properly filtered and sorted
 }
 
 /**
@@ -84,7 +105,7 @@ async function supabaseListWithPagination(bucketName: string, folderPath: string
 
 /**
  * Fetches a specific bill by ID from storage
- * Enhanced to properly handle numeric IDs
+ * Enhanced to search across multiple paths
  */
 export async function fetchBillByIdFromStorage(id: string, specialPath?: string): Promise<Bill | null> {
   // Try different possible file extensions/formats
@@ -114,54 +135,43 @@ export async function fetchBillByIdFromStorage(id: string, specialPath?: string)
     }
   }
   
-  // First try the main path or the special path if provided
-  const initialPath = specialPath ? specialPath : BILL_STORAGE_PATH;
+  // First try the special path if provided, otherwise try all paths
+  const pathsToSearch = specialPath ? [specialPath] : [BILL_STORAGE_PATH, ...ALTERNATIVE_PATHS];
   
-  for (const fileName of possibleFileNames) {
-    const filePath = `${initialPath}/${fileName}`;
-    const bill = await processStorageFile(BILL_STORAGE_BUCKET, filePath, fileName);
-    if (bill) {
-      console.log(`Found bill ${id} in storage at ${filePath}`);
-      return bill;
+  for (const path of pathsToSearch) {
+    for (const fileName of possibleFileNames) {
+      const filePath = path ? `${path}/${fileName}` : fileName;
+      console.log(`Looking for bill ${id} at ${filePath}`);
+      
+      const bill = await processStorageFile(BILL_STORAGE_BUCKET, filePath, fileName);
+      if (bill) {
+        console.log(`Found bill ${id} in storage at ${filePath}`);
+        return bill;
+      }
     }
   }
   
-  // If no special path was provided, continue with alternative paths
-  if (!specialPath) {
-    // If not found in the main path, try alternative paths
-    for (const alternatePath of ALTERNATIVE_PATHS) {
-      for (const fileName of possibleFileNames) {
-        const filePath = alternatePath ? `${alternatePath}/${fileName}` : fileName;
-        const bill = await processStorageFile(BILL_STORAGE_BUCKET, filePath, fileName);
-        if (bill) {
-          console.log(`Found bill ${id} in storage at ${filePath}`);
-          return bill;
-        }
+  // For numeric IDs, also try searching for any bill that contains this ID in the content
+  if (isNumeric) {
+    console.log(`Numeric ID ${id} not found in standard locations, will look for it in bill content`);
+    try {
+      // Get all bills from storage
+      const allBills = await fetchBillsFromStorage();
+      // Look for any bill that might have this numeric ID in its data
+      const matchingBill = allBills.find(bill => {
+        // Check if data contains this numeric ID
+        const stringifiedData = JSON.stringify(bill.data);
+        return stringifiedData.includes(`"bill_id":"${id}"`) || 
+               stringifiedData.includes(`"bill_id":${id}`) ||
+               bill.id === id;
+      });
+      
+      if (matchingBill) {
+        console.log(`Found bill with numeric ID ${id} in bill content`);
+        return matchingBill;
       }
-    }
-    
-    // For numeric IDs, also try searching for any bill that contains this ID in the content
-    if (isNumeric) {
-      console.log(`Numeric ID ${id} not found in standard locations, will look for it in bill content`);
-      try {
-        // Get all bills from storage
-        const allBills = await fetchBillsFromStorage();
-        // Look for any bill that might have this numeric ID in its data
-        const matchingBill = allBills.find(bill => {
-          // Check if data contains this numeric ID
-          const stringifiedData = JSON.stringify(bill.data);
-          return stringifiedData.includes(`"bill_id":"${id}"`) || 
-                 stringifiedData.includes(`"bill_id":${id}`) ||
-                 bill.id === id;
-        });
-        
-        if (matchingBill) {
-          console.log(`Found bill with numeric ID ${id} in bill content`);
-          return matchingBill;
-        }
-      } catch (error) {
-        console.error(`Error searching bills for numeric ID ${id}:`, error);
-      }
+    } catch (error) {
+      console.error(`Error searching bills for numeric ID ${id}:`, error);
     }
   }
   

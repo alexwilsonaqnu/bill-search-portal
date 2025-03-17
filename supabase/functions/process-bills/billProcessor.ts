@@ -15,7 +15,7 @@ export async function processBillFile(supabase, fileName, folderPath = "") {
     .download(`${folderPath}/${fileName}`);
   
   if (downloadError) {
-    throw new Error(`Failed to download file ${fileName}: ${downloadError.message}`);
+    throw new Error(`Failed to download file ${fileName} from ${folderPath}: ${downloadError.message}`);
   }
   
   // Parse the JSON content
@@ -50,12 +50,13 @@ export async function processBillFile(supabase, fileName, folderPath = "") {
     throw new Error(`Failed to insert/update bill ${id}: ${insertError.message}`);
   }
   
-  console.log(`Successfully processed bill: ${id}`);
+  console.log(`Successfully processed bill: ${id} from ${folderPath}`);
   
   return new Response(
     JSON.stringify({ 
       success: true, 
       message: `Successfully processed bill: ${id}`,
+      path: folderPath,
       bill: insertData ? insertData[0] : record
     }),
     { headers: { ...corsHeaders, "Content-Type": "application/json" } }
