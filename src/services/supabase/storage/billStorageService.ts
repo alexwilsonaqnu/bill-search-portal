@@ -22,6 +22,7 @@ export async function fetchBillsFromStorage(page = 1, pageSize = 100): Promise<B
       break;
     }
     
+    console.log(`Checking path: ${BILL_STORAGE_BUCKET}/${path}`);
     const totalCount = await countFilesInBucket(BILL_STORAGE_BUCKET, path);
     
     if (totalCount > 0) {

@@ -12,6 +12,9 @@ export async function handleProcess(supabase) {
   const processedBills = [];
   let totalProcessed = 0;
   
+  console.log(`Starting bill processing with bucket: ${BILL_STORAGE_BUCKET}`);
+  console.log(`Paths to search: ${pathsToSearch.join(', ')}`);
+  
   for (const path of pathsToSearch) {
     // Stop if we've reached the processing limit
     if (totalProcessed >= MAX_BILLS_TO_PROCESS) {
