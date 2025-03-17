@@ -46,6 +46,12 @@ const Index = () => {
           query={query} 
           onSearch={handleSearch} 
         />
+        
+        {!isLoading && data?.bills && data.bills.length > 0 && (
+          <div className="mb-4 text-sm text-gray-500 italic">
+            Bills are sorted by most recent updates first
+          </div>
+        )}
 
         <BillsList 
           isLoading={isLoading}
