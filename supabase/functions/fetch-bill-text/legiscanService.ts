@@ -16,8 +16,9 @@ export async function fetchFromLegiscan(billId: string, apiKey: string): Promise
   }
   
   try {
+    console.log(`Attempting to fetch bill text for ID: ${billId}`);
+    
     // For other bills, fetch text from Legiscan API
-    // Updated URL to include state=IL parameter to fetch only Illinois bills
     const url = `https://api.legiscan.com/?key=${apiKey}&op=getBillText&id=${billId}&state=IL`;
     console.log(`Fetching bill text from Legiscan API: ${url.replace(apiKey, 'API_KEY_HIDDEN')}`);
     
@@ -28,6 +29,7 @@ export async function fetchFromLegiscan(billId: string, apiKey: string): Promise
     }
 
     const data = await response.json();
+    console.log(`Legiscan response status: ${data.status}`);
     
     // Check for API key or account issues
     if (data.status === 'ERROR' && data.alert) {
@@ -52,6 +54,7 @@ export async function fetchFromLegiscan(billId: string, apiKey: string): Promise
     }
     
     const base64Text = data.text.doc;
+    console.log(`Successfully received base64 text of length: ${base64Text?.length || 0}`);
     
     // Decode BASE64
     const decodedText = decodeBase64Text(base64Text);
@@ -60,6 +63,8 @@ export async function fetchFromLegiscan(billId: string, apiKey: string): Promise
     const state = data.text.state_link?.includes('ilga.gov') || isIllinoisContent(decodedText) 
       ? "Illinois" 
       : "Unknown";
+      
+    console.log(`Bill state identified as: ${state}`);
       
     // If the state is not Illinois and it's the specific bill ID with issues,
     // return our hard-coded Illinois content

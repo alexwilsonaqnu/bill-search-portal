@@ -26,6 +26,11 @@ const BillTextHash = ({ textHash, billId, externalUrl }: BillTextHashProps) => {
   const [pdfBase64, setPdfBase64] = useState<string | null>(null);
   const [extractedText, setExtractedText] = useState<string | null>(null);
   
+  // Log the billId to help with debugging
+  useEffect(() => {
+    console.log(`BillTextHash component using billId: ${billId} and textHash: ${textHash}`);
+  }, [billId, textHash]);
+  
   // Automatically fetch the bill text when the component mounts
   useEffect(() => {
     if (billId) {
@@ -40,10 +45,12 @@ const BillTextHash = ({ textHash, billId, externalUrl }: BillTextHashProps) => {
     
     setIsLoading(true);
     setError(null);
+    console.log(`Fetching text for bill with ID: ${billId}`);
     toast.info("Fetching bill text from Legiscan...");
     
     try {
       const result = await fetchBillText(billId);
+      console.log(`Received response for bill ${billId}:`, result);
       
       // Check if content is PDF
       if (result.isPdf) {

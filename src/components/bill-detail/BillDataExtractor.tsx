@@ -8,41 +8,50 @@ interface BillDataExtractorProps {
 const BillDataExtractor = ({ bill }: BillDataExtractorProps) => {
   // Function to extract the ILGA URL if present in the bill data
   const getIlgaUrl = () => {
-    if (bill.data?.texts?.[0]?.state_link) {
-      return bill.data.texts[0].state_link;
+    // Check for nested bill data structure
+    const billData = bill.data?.bill || bill.data;
+    
+    if (billData?.texts?.[0]?.state_link) {
+      return billData.texts[0].state_link;
     }
-    if (bill.data?.text_url) {
-      return bill.data.text_url;
+    if (billData?.text_url) {
+      return billData.text_url;
     }
     // Look for a URL pattern in any field
-    const billString = JSON.stringify(bill.data);
+    const billString = JSON.stringify(billData);
     const urlMatch = billString.match(/https?:\/\/www\.ilga\.gov\/legislation\/\S+\.htm/);
     return urlMatch ? urlMatch[0] : null;
   };
   
   // Check if bill has text content - look in multiple possible locations
   const getTextContent = () => {
+    // Check for nested bill data structure
+    const billData = bill.data?.bill || bill.data;
+    
     // Direct text_content field
-    if (bill.data?.text_content) return bill.data.text_content;
+    if (billData?.text_content) return billData.text_content;
     
     // Check in texts array
-    if (bill.data?.texts && Array.isArray(bill.data.texts)) {
-      const textWithContent = bill.data.texts.find(t => t.content);
+    if (billData?.texts && Array.isArray(billData.texts)) {
+      const textWithContent = billData.texts.find(t => t.content);
       if (textWithContent) return textWithContent.content;
     }
     
     // Check in text field
-    if (bill.data?.text) return bill.data.text;
+    if (billData?.text) return billData.text;
     
     // Check in full_text field
-    if (bill.data?.full_text) return bill.data.full_text;
+    if (billData?.full_text) return billData.full_text;
     
     return null;
   };
   
   // Determine text format (html or plain text)
   const getTextFormat = () => {
-    if (bill.data?.text_format) return bill.data.text_format;
+    // Check for nested bill data structure
+    const billData = bill.data?.bill || bill.data;
+    
+    if (billData?.text_format) return billData.text_format;
     
     // Try to auto-detect format
     const billTextContent = getTextContent();
@@ -56,10 +65,18 @@ const BillDataExtractor = ({ bill }: BillDataExtractorProps) => {
   };
   
   // Extract the text hash from bill data
-  const textHash = bill.data?.text_hash || "";
+  const billData = bill.data?.bill || bill.data;
+  const textHash = billData?.text_hash || "";
   
   // Get the Legiscan Bill ID if available
-  const legiscanBillId = bill.data?.bill_id || bill.data?.doc_id || bill.id;
+  // First check in nested bill structure, then in direct fields
+  const legiscanBillId = 
+    billData?.bill_id || 
+    billData?.doc_id || 
+    bill.data?.bill?.bill_id || 
+    bill.id;
+  
+  console.log("Extracted Legiscan Bill ID:", legiscanBillId, "from bill with ID:", bill.id);
   
   // Extract and return all bill data
   const ilgaUrl = getIlgaUrl();
