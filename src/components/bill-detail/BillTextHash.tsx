@@ -6,6 +6,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
 import { AlertCircle, Maximize, Minimize } from "lucide-react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
+import BillChat from "./BillChat";
 
 interface BillTextHashProps {
   textHash: string;
@@ -90,7 +91,7 @@ const BillTextHash = ({ textHash, billId }: BillTextHashProps) => {
   };
   
   return (
-    <div className="space-y-2">
+    <div className="space-y-2 relative">
       <div className="flex items-center justify-between">
         <h3 className="font-semibold">Bill Text</h3>
         {!textContent && isLoading && (
@@ -196,6 +197,9 @@ const BillTextHash = ({ textHash, billId }: BillTextHashProps) => {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Chat component */}
+      {textContent && <BillChat billText={textContent} />}
     </div>
   );
 };
