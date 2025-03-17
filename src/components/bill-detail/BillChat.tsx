@@ -1,6 +1,6 @@
 
 import { useState, useRef, useEffect } from "react";
-import { MessageCircle, X, Send, MessageSquare } from "lucide-react";
+import { MessageSquare, X, Send } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -95,22 +95,23 @@ const BillChat = ({ billText }: BillChatProps) => {
         <Button 
           onClick={toggleChat} 
           size="lg" 
-          className="rounded-full shadow-lg h-14 w-14 p-0 flex items-center justify-center"
+          className="rounded-full shadow-lg h-auto p-4 flex flex-col items-center justify-center gap-2 bg-brand-primary hover:bg-brand-primary/90"
         >
-          <MessageCircle className="h-6 w-6" />
+          <MessageSquare className="h-6 w-6" />
+          <span className="text-xs font-medium">Ask this bill questions</span>
         </Button>
       ) : (
         <div className="bg-white rounded-lg shadow-xl w-80 sm:w-96 flex flex-col border">
-          <div className="flex justify-between items-center p-4 border-b">
+          <div className="flex justify-between items-center p-4 border-b bg-brand-primary text-white">
             <div className="flex items-center">
-              <MessageSquare className="h-5 w-5 mr-2 text-blue-500" />
+              <MessageSquare className="h-5 w-5 mr-2" />
               <h3 className="font-semibold">Chat with the Bill</h3>
             </div>
             <Button 
               variant="ghost" 
               size="sm" 
               onClick={toggleChat} 
-              className="h-8 w-8 p-0"
+              className="h-8 w-8 p-0 text-white hover:bg-brand-primary/80"
             >
               <X className="h-4 w-4" />
             </Button>
@@ -119,7 +120,7 @@ const BillChat = ({ billText }: BillChatProps) => {
           <div className="flex-1 overflow-y-auto p-4 max-h-96 min-h-[300px]">
             {messages.length === 0 ? (
               <div className="text-center text-gray-500 mt-10">
-                <MessageCircle className="h-10 w-10 mx-auto mb-3 opacity-50" />
+                <MessageSquare className="h-10 w-10 mx-auto mb-3 opacity-50 text-brand-primary" />
                 <p>Ask questions about this bill and get AI-powered answers.</p>
               </div>
             ) : (
@@ -132,7 +133,7 @@ const BillChat = ({ billText }: BillChatProps) => {
                     <div 
                       className={`max-w-[80%] rounded-lg p-3 ${
                         msg.role === 'user' 
-                          ? 'bg-blue-500 text-white' 
+                          ? 'bg-brand-primary text-white' 
                           : 'bg-gray-100 text-gray-800'
                       }`}
                     >
@@ -144,9 +145,9 @@ const BillChat = ({ billText }: BillChatProps) => {
                   <div className="flex justify-start">
                     <div className="bg-gray-100 text-gray-800 rounded-lg p-3 max-w-[80%]">
                       <div className="flex space-x-2">
-                        <div className="h-2 w-2 bg-gray-400 rounded-full animate-bounce"></div>
-                        <div className="h-2 w-2 bg-gray-400 rounded-full animate-bounce delay-75"></div>
-                        <div className="h-2 w-2 bg-gray-400 rounded-full animate-bounce delay-150"></div>
+                        <div className="h-2 w-2 bg-brand-primary rounded-full animate-bounce"></div>
+                        <div className="h-2 w-2 bg-brand-primary rounded-full animate-bounce delay-75"></div>
+                        <div className="h-2 w-2 bg-brand-primary rounded-full animate-bounce delay-150"></div>
                       </div>
                     </div>
                   </div>
@@ -170,7 +171,7 @@ const BillChat = ({ billText }: BillChatProps) => {
                 onClick={handleSendMessage}
                 disabled={isLoading || !inputMessage.trim()}
                 size="icon"
-                className="h-[60px]"
+                className="h-[60px] bg-brand-primary hover:bg-brand-primary/90"
               >
                 <Send className="h-5 w-5" />
               </Button>
