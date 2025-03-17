@@ -4,8 +4,6 @@ import BillCard from "@/components/BillCard";
 import Pagination from "@/components/Pagination";
 import { Button } from "@/components/ui/button";
 import { Bill } from "@/types";
-import DebugInfo from "@/components/DebugInfo";
-import { useSupabaseStatus } from "@/hooks/useSupabaseStatus";
 
 interface BillsListProps {
   isLoading: boolean;
@@ -31,22 +29,9 @@ const BillsList = ({
   onPageChange,
   fallbackBills
 }: BillsListProps) => {
-  const { dbStatus, storageStatus, availableBuckets } = useSupabaseStatus();
-  const currentPage = data?.currentPage || 1;
-  const query = "";
-
   if (isLoading) {
     return (
       <div className="space-y-4 mt-8">
-        <DebugInfo 
-          query={query}
-          currentPage={currentPage}
-          dbStatus={dbStatus}
-          storageStatus={storageStatus}
-          buckets={availableBuckets}
-          error={error}
-          data={data}
-        />
         {[1, 2, 3].map((i) => (
           <div 
             key={i} 
@@ -60,15 +45,6 @@ const BillsList = ({
   if (billsToShow && billsToShow.length > 0) {
     return (
       <>
-        <DebugInfo 
-          query={query}
-          currentPage={currentPage}
-          dbStatus={dbStatus}
-          storageStatus={storageStatus}
-          buckets={availableBuckets}
-          error={error}
-          data={data}
-        />
         <div className="space-y-4 mt-8">
           {billsToShow.map((bill, index) => (
             <BillCard 
@@ -93,15 +69,6 @@ const BillsList = ({
 
   return (
     <div className="flex flex-col gap-8">
-      <DebugInfo 
-        query={query}
-        currentPage={currentPage}
-        dbStatus={dbStatus}
-        storageStatus={storageStatus}
-        buckets={availableBuckets}
-        error={error}
-        data={data}
-      />
       <div className="text-center py-8">
         <h3 className="text-xl font-medium mb-2">No bills found from data source</h3>
         <p className="text-gray-500 mb-6">
