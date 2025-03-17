@@ -1,16 +1,16 @@
 
-import { useEffect, useState, useRef } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
-import { AlertCircle, Maximize, Minimize, FileText, ExternalLink, ChevronLeft, ChevronRight, FileSearch } from "lucide-react";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { AlertCircle, Maximize, FileText } from "lucide-react";
 import BillChat from "./BillChat";
-import * as pdfjsLib from 'pdfjs-dist';
-
-// Initialize PDF.js worker
-pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+import PdfViewer from "./pdf/PdfViewer";
+import ExtractedTextDisplay from "./pdf/ExtractedTextDisplay";
+import PdfFallbackDisplay from "./pdf/PdfFallbackDisplay";
+import TextContentDisplay from "./text/TextContentDisplay";
+import FullScreenDialog from "./FullScreenDialog";
+import { fetchBillText } from "@/services/billTextService";
 
 interface BillTextHashProps {
   textHash: string;
@@ -21,126 +21,21 @@ interface BillTextHashProps {
 const BillTextHash = ({ textHash, billId, externalUrl }: BillTextHashProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [textContent, setTextContent] = useState<string | null>(null);
-  const [showFullText, setShowFullText] = useState(true); // Default to showing full text
   const [error, setError] = useState<string | null>(null);
   const [isHtmlContent, setIsHtmlContent] = useState(false);
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [isPdfContent, setIsPdfContent] = useState(false);
   const [pdfBase64, setPdfBase64] = useState<string | null>(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(0);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [pdfDocument, setPdfDocument] = useState<any>(null);
-  const [isExtractingText, setIsExtractingText] = useState(false);
   const [extractedText, setExtractedText] = useState<string | null>(null);
   
   // Automatically fetch the bill text when the component mounts
   useEffect(() => {
-    fetchActualText();
+    if (billId) {
+      fetchActualText();
+    }
   }, [billId]);
   
-  // When PDF document changes or current page changes, render the new page
-  useEffect(() => {
-    if (pdfDocument && canvasRef.current) {
-      renderPage(currentPage);
-    }
-  }, [pdfDocument, currentPage, isFullScreen]);
-  
   if (!billId) return null;
-  
-  const renderPage = async (pageNumber: number) => {
-    if (!pdfDocument || !canvasRef.current) return;
-    
-    try {
-      const page = await pdfDocument.getPage(pageNumber);
-      const canvas = canvasRef.current;
-      const context = canvas.getContext('2d');
-      
-      if (!context) return;
-      
-      const viewport = page.getViewport({ scale: 1.5 });
-      canvas.height = viewport.height;
-      canvas.width = viewport.width;
-      
-      const renderContext = {
-        canvasContext: context,
-        viewport: viewport
-      };
-      
-      await page.render(renderContext).promise;
-    } catch (error) {
-      console.error("Error rendering PDF page:", error);
-      toast.error("Failed to render PDF page");
-    }
-  };
-  
-  const loadPdfFromBase64 = async (base64Data: string) => {
-    try {
-      // Remove the data URL prefix if present
-      const pdfData = base64Data.includes('base64,') 
-        ? atob(base64Data.split('base64,')[1])
-        : atob(base64Data);
-      
-      // Convert binary string to array buffer
-      const array = new Uint8Array(pdfData.length);
-      for (let i = 0; i < pdfData.length; i++) {
-        array[i] = pdfData.charCodeAt(i);
-      }
-      
-      // Load the PDF document
-      const loadingTask = pdfjsLib.getDocument({ data: array.buffer });
-      const pdf = await loadingTask.promise;
-      
-      setPdfDocument(pdf);
-      setTotalPages(pdf.numPages);
-      setCurrentPage(1);
-      
-      return pdf;
-    } catch (error) {
-      console.error("Error loading PDF:", error);
-      toast.error("Failed to load PDF document");
-      return null;
-    }
-  };
-  
-  // New function to extract text from PDF using OCR
-  const extractTextFromPdf = async () => {
-    if (!pdfBase64) {
-      toast.error("No PDF data available for text extraction");
-      return;
-    }
-    
-    setIsExtractingText(true);
-    toast.info("Extracting text from PDF...");
-    
-    try {
-      const { data, error } = await supabase.functions.invoke('pdf-to-text', {
-        body: { pdfBase64 }
-      });
-      
-      if (error) {
-        throw new Error(`Error invoking function: ${error.message}`);
-      }
-      
-      if (data.error) {
-        throw new Error(data.error);
-      }
-      
-      setExtractedText(data.text);
-      toast.success(`Text successfully extracted using ${data.method}`);
-      
-      // If we got good text, make it available for chat
-      if (data.text && data.text.length > 100) {
-        setTextContent(data.text);
-        setIsHtmlContent(false);
-      }
-    } catch (error) {
-      console.error("Error extracting text from PDF:", error);
-      toast.error(`Failed to extract text: ${error.message}`);
-    } finally {
-      setIsExtractingText(false);
-    }
-  };
   
   const fetchActualText = async () => {
     if (isLoading || textContent) return;
@@ -150,31 +45,18 @@ const BillTextHash = ({ textHash, billId, externalUrl }: BillTextHashProps) => {
     toast.info("Fetching bill text from Legiscan...");
     
     try {
-      const { data, error } = await supabase.functions.invoke('fetch-bill-text', {
-        body: { billId }
-      });
-      
-      if (error) {
-        throw new Error(`Error invoking function: ${error.message}`);
-      }
-      
-      if (data.error) {
-        const userMessage = data.userMessage || data.error;
-        setError(userMessage);
-        throw new Error(userMessage);
-      }
+      const result = await fetchBillText(billId);
       
       // Check if content is PDF
-      if (data.isPdf || data.mimeType === 'application/pdf') {
+      if (result.isPdf) {
         setIsPdfContent(true);
         
-        if (data.base64) {
-          setPdfBase64(data.base64);
-          await loadPdfFromBase64(data.base64);
+        if (result.base64) {
+          setPdfBase64(result.base64);
           toast.success("PDF document loaded successfully");
         } else {
           // If no base64 data, display the fallback message
-          setTextContent(data.text);
+          setTextContent(result.text);
           setIsHtmlContent(true);
         }
         
@@ -183,65 +65,36 @@ const BillTextHash = ({ textHash, billId, externalUrl }: BillTextHashProps) => {
       }
       
       // Check if content is HTML by looking for HTML tags
-      const isHtml = data.text.includes('<html') || 
-                     data.text.includes('<meta') || 
-                     data.text.includes('<style') || 
-                     data.text.includes('<body');
+      const isHtml = result.text.includes('<html') || 
+                     result.text.includes('<meta') || 
+                     result.text.includes('<style') || 
+                     result.text.includes('<body');
       
       setIsHtmlContent(isHtml);
-      setTextContent(data.text);
+      setTextContent(result.text);
       toast.success("Bill text fetched successfully");
     } catch (error) {
       console.error("Error fetching bill text:", error);
       const errorMessage = error instanceof Error ? error.message : String(error);
-      toast.error(`Failed to fetch bill text: ${errorMessage}`);
       setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
   };
-  
-  // Function to toggle full text display
-  const toggleFullText = () => {
-    setShowFullText(prev => !prev);
+
+  // Handle text extraction from PDF
+  const handleTextExtraction = (text: string) => {
+    setExtractedText(text);
+    // Make text available for chat if it's meaningful
+    if (text && text.length > 100) {
+      setTextContent(text);
+      setIsHtmlContent(false);
+    }
   };
 
-  // Function to toggle full screen mode
+  // Toggle full screen mode
   const toggleFullScreen = () => {
     setIsFullScreen(prev => !prev);
-  };
-  
-  // Navigation functions for PDF
-  const goToPreviousPage = () => {
-    if (currentPage > 1) {
-      setCurrentPage(prev => prev - 1);
-    }
-  };
-  
-  const goToNextPage = () => {
-    if (currentPage < totalPages) {
-      setCurrentPage(prev => prev + 1);
-    }
-  };
-  
-  // Truncate text for preview if needed
-  const getDisplayText = () => {
-    if (!textContent) return "";
-    
-    if (showFullText || textContent.length <= 500) {
-      return textContent;
-    }
-    
-    return textContent.substring(0, 500) + "...";
-  };
-
-  // Function to handle external URL opening
-  const openExternalUrl = () => {
-    if (externalUrl) {
-      window.open(externalUrl, '_blank', 'noopener,noreferrer');
-    } else {
-      toast.error("No external URL available for this bill");
-    }
   };
   
   return (
@@ -261,15 +114,7 @@ const BillTextHash = ({ textHash, billId, externalUrl }: BillTextHashProps) => {
             onClick={toggleFullScreen}
             className="flex items-center gap-1"
           >
-            {isFullScreen ? (
-              <>
-                <Minimize className="h-4 w-4" /> Exit Full Screen
-              </>
-            ) : (
-              <>
-                <Maximize className="h-4 w-4" /> Full Screen
-              </>
-            )}
+            <Maximize className="h-4 w-4" /> Full Screen
           </Button>
         )}
       </div>
@@ -304,254 +149,47 @@ const BillTextHash = ({ textHash, billId, externalUrl }: BillTextHashProps) => {
       {/* PDF Content Special Handling */}
       {isPdfContent && pdfBase64 && !isFullScreen && (
         <div className="mt-4 border rounded-md p-4">
-          <div className="flex justify-between items-center mb-2">
-            <div className="flex items-center gap-1">
-              <FileText className="h-5 w-5 text-blue-500" />
-              <span className="font-medium">PDF Document</span>
-            </div>
-            <div className="flex items-center">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={goToPreviousPage}
-                disabled={currentPage <= 1}
-                className="mr-2"
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <span className="text-sm mx-2">
-                Page {currentPage} of {totalPages}
-              </span>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={goToNextPage}
-                disabled={currentPage >= totalPages}
-                className="ml-2"
-              >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
+          <div className="flex items-center gap-1 mb-2">
+            <FileText className="h-5 w-5 text-blue-500" />
+            <span className="font-medium">PDF Document</span>
           </div>
           
-          <div className="flex justify-center bg-gray-100 p-2 rounded">
-            <canvas ref={canvasRef} className="max-w-full" />
-          </div>
-          
-          <div className="mt-4 flex justify-between items-center">
-            {/* OCR Extract Text Button */}
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={extractTextFromPdf}
-              disabled={isExtractingText || !pdfBase64}
-              className="flex items-center gap-2"
-            >
-              <FileSearch className="h-4 w-4" />
-              {isExtractingText ? "Extracting Text..." : "Extract Text from PDF"}
-            </Button>
-            
-            {externalUrl && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={openExternalUrl}
-                className="flex items-center gap-2"
-              >
-                <ExternalLink className="h-4 w-4" />
-                View Original PDF
-              </Button>
-            )}
-          </div>
+          <PdfViewer 
+            pdfBase64={pdfBase64} 
+            externalUrl={externalUrl} 
+            onTextExtracted={handleTextExtraction} 
+          />
           
           {/* Display extracted text if available */}
-          {extractedText && (
-            <div className="mt-4 p-4 bg-gray-50 border rounded-md">
-              <h4 className="text-sm font-medium mb-2">Extracted Text:</h4>
-              <div className="whitespace-pre-wrap text-sm font-mono overflow-auto max-h-[300px]">
-                {extractedText}
-              </div>
-            </div>
-          )}
+          {extractedText && <ExtractedTextDisplay text={extractedText} />}
         </div>
       )}
       
       {/* PDF Fallback Message */}
       {isPdfContent && !pdfBase64 && textContent && !isFullScreen && (
         <div className="mt-4">
-          <div className="bg-amber-50 border border-amber-200 rounded-md p-4">
-            <div className="flex items-start">
-              <FileText className="h-5 w-5 text-amber-600 mr-3 mt-1" />
-              <div>
-                <div dangerouslySetInnerHTML={{ __html: textContent }} className="text-sm text-amber-800 whitespace-pre-line" />
-                
-                {externalUrl && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={openExternalUrl}
-                    className="mt-4 bg-white border-amber-300 text-amber-800 hover:bg-amber-100 flex items-center gap-2"
-                  >
-                    <ExternalLink className="h-4 w-4" />
-                    View External Content
-                  </Button>
-                )}
-              </div>
-            </div>
-          </div>
+          <PdfFallbackDisplay content={textContent} externalUrl={externalUrl} />
         </div>
       )}
       
       {/* Regular Content Display */}
       {textContent && !isPdfContent && !isFullScreen && (
-        <div className="mt-4">
-          {isHtmlContent ? (
-            <div className="bg-gray-50 p-4 rounded-md text-sm overflow-auto max-h-[600px] border">
-              <div dangerouslySetInnerHTML={{ __html: getDisplayText() }} />
-            </div>
-          ) : (
-            <div className="whitespace-pre-wrap bg-gray-50 p-4 rounded-md text-sm font-mono overflow-auto max-h-[600px] border">
-              {getDisplayText()}
-            </div>
-          )}
-          
-          {textContent.length > 500 && !showFullText && (
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="mt-2" 
-              onClick={toggleFullText}
-            >
-              Show Full Text
-            </Button>
-          )}
-        </div>
+        <TextContentDisplay content={textContent} isHtml={isHtmlContent} />
       )}
 
       {/* Full Screen Dialog */}
-      <Dialog open={isFullScreen} onOpenChange={setIsFullScreen}>
-        <DialogContent className="max-w-5xl w-[90vw] max-h-[90vh] p-6">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold">Bill Text</h2>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={() => setIsFullScreen(false)}
-              className="flex items-center gap-1"
-            >
-              <Minimize className="h-4 w-4" /> Exit Full Screen
-            </Button>
-          </div>
-
-          {/* PDF Content in Full Screen */}
-          {isPdfContent && pdfBase64 ? (
-            <div className="h-[75vh] flex flex-col">
-              <div className="flex justify-between items-center mb-2">
-                <div className="flex items-center gap-1">
-                  <FileText className="h-5 w-5 text-blue-500" />
-                  <span className="font-medium">PDF Document</span>
-                </div>
-                <div className="flex items-center">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={goToPreviousPage}
-                    disabled={currentPage <= 1}
-                    className="mr-2"
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                  </Button>
-                  <span className="text-sm mx-2">
-                    Page {currentPage} of {totalPages}
-                  </span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={goToNextPage}
-                    disabled={currentPage >= totalPages}
-                    className="ml-2"
-                  >
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-              
-              <div className="flex-1 overflow-auto flex justify-center bg-gray-100 p-4 rounded">
-                <canvas ref={canvasRef} className="max-h-full" />
-              </div>
-              
-              <div className="mt-4 flex justify-between items-center">
-                {/* OCR Extract Text Button */}
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={extractTextFromPdf}
-                  disabled={isExtractingText || !pdfBase64}
-                  className="flex items-center gap-2"
-                >
-                  <FileSearch className="h-4 w-4" />
-                  {isExtractingText ? "Extracting Text..." : "Extract Text from PDF"}
-                </Button>
-                
-                {externalUrl && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={openExternalUrl}
-                    className="flex items-center gap-2"
-                  >
-                    <ExternalLink className="h-4 w-4" />
-                    View Original PDF
-                  </Button>
-                )}
-              </div>
-              
-              {/* Display extracted text if available */}
-              {extractedText && (
-                <div className="mt-4 p-4 bg-gray-50 border rounded-md overflow-auto max-h-[300px]">
-                  <h4 className="text-sm font-medium mb-2">Extracted Text:</h4>
-                  <div className="whitespace-pre-wrap text-sm font-mono">
-                    {extractedText}
-                  </div>
-                </div>
-              )}
-            </div>
-          ) : isPdfContent && textContent ? (
-            /* PDF Fallback Content in Full Screen */
-            <div className="bg-amber-50 border border-amber-200 rounded-md p-4 h-[75vh] overflow-auto">
-              <div className="flex items-start">
-                <FileText className="h-5 w-5 text-amber-600 mr-3 mt-1 flex-shrink-0" />
-                <div>
-                  <div dangerouslySetInnerHTML={{ __html: textContent }} className="text-sm text-amber-800 whitespace-pre-line" />
-                  
-                  {externalUrl && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={openExternalUrl}
-                      className="mt-6 bg-white border-amber-300 text-amber-800 hover:bg-amber-100 flex items-center gap-2"
-                    >
-                      <ExternalLink className="h-4 w-4" />
-                      View External Content
-                    </Button>
-                  )}
-                </div>
-              </div>
-            </div>
-          ) : (
-            /* Regular Content in Full Screen */
-            isHtmlContent ? (
-              <div className="bg-gray-50 p-4 rounded-md text-sm overflow-auto h-[75vh] border">
-                <div dangerouslySetInnerHTML={{ __html: textContent || "" }} />
-              </div>
-            ) : (
-              <div className="whitespace-pre-wrap bg-gray-50 p-4 rounded-md text-sm font-mono overflow-auto h-[75vh] border">
-                {textContent}
-              </div>
-            )
-          )}
-        </DialogContent>
-      </Dialog>
+      <FullScreenDialog 
+        isOpen={isFullScreen}
+        onClose={() => setIsFullScreen(false)}
+        title="Bill Text"
+        isPdfContent={isPdfContent}
+        pdfBase64={pdfBase64}
+        textContent={textContent}
+        extractedText={extractedText}
+        isHtmlContent={isHtmlContent}
+        externalUrl={externalUrl}
+        onTextExtracted={handleTextExtraction}
+      />
 
       {/* Chat component - disabled for PDF content unless text has been extracted */}
       {(textContent && !isPdfContent) || (extractedText && extractedText.length > 100) ? (
