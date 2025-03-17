@@ -1,9 +1,9 @@
 
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Spinner } from "@/components/ui/spinner";
+import { Button } from "@/components/ui/button";
 
 interface BillTextHashProps {
   textHash: string;
@@ -15,10 +15,15 @@ const BillTextHash = ({ textHash, billId }: BillTextHashProps) => {
   const [textContent, setTextContent] = useState<string | null>(null);
   const [showFullText, setShowFullText] = useState(false);
   
-  if (!textHash) return null;
+  // Automatically fetch the bill text when the component mounts
+  useEffect(() => {
+    fetchActualText();
+  }, [billId]);
+  
+  if (!textHash && !billId) return null;
   
   const fetchActualText = async () => {
-    if (isLoading) return;
+    if (isLoading || textContent) return;
     
     setIsLoading(true);
     toast.info("Fetching bill text from Legiscan...");
@@ -66,26 +71,21 @@ const BillTextHash = ({ textHash, billId }: BillTextHashProps) => {
     <div className="space-y-2">
       <div className="flex items-center justify-between">
         <h3 className="font-semibold">Bill Text</h3>
-        {!textContent && (
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={fetchActualText}
-            disabled={isLoading}
-          >
-            {isLoading ? <Spinner className="mr-2 h-4 w-4" /> : null}
-            Fetch Actual Text
-          </Button>
+        {!textContent && isLoading && (
+          <div className="flex items-center">
+            <Spinner className="mr-2 h-4 w-4" />
+            <span className="text-sm text-gray-500">Loading bill text...</span>
+          </div>
         )}
       </div>
       
-      {!textContent && (
+      {!textContent && !isLoading && (
         <div>
           <p className="text-sm text-gray-700 font-mono bg-gray-50 p-2 rounded border">
-            {textHash}
+            {textHash || "Loading bill text..."}
           </p>
           <p className="text-xs text-gray-500 mt-1">
-            This is the MD5 hash of the bill's text content. Use the button above to fetch and display the actual text.
+            Attempting to fetch the actual bill text...
           </p>
         </div>
       )}
