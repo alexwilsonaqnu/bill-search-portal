@@ -7,6 +7,7 @@ import Navbar from "@/components/Navbar";
 import BillDetailToolbar from "./BillDetailToolbar";
 import BillOverview from "./BillOverview";
 import BillComparisonContainer from "./BillComparisonContainer";
+import BillSponsors from "@/components/bill/BillSponsors";
 
 interface BillDetailViewProps {
   bill: Bill;
@@ -27,7 +28,12 @@ const BillDetailView = ({ bill }: BillDetailViewProps) => {
           </Link>
         </div>
         
-        <h1 className="text-3xl md:text-4xl font-bold mb-8">{bill.title}</h1>
+        <h1 className="text-3xl md:text-4xl font-bold mb-3">{bill.title}</h1>
+        
+        {/* Add bill sponsors below the title */}
+        <div className="mb-8">
+          <BillSponsors bill={bill} />
+        </div>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <div className="md:col-span-1">
