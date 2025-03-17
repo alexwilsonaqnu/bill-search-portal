@@ -108,21 +108,14 @@
     font-weight: bold;
   }
   
-  /* Logo styles with gradients */
+  /* Logo styles with gradient */
   .logo-text {
     @apply font-bold;
   }
   
-  .logo-bill {
-    background: linear-gradient(90deg, #35B7CD 0%, #67DBEE 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    color: transparent;
-  }
-  
-  .logo-inois {
-    background: linear-gradient(90deg, #8CC63F 0%, #B0E86A 100%);
+  /* Single gradient for the entire Billinois logo */
+  .logo-bill, .logo-inois {
+    background: linear-gradient(90deg, #35B7CD 0%, #67DBEE 40%, #8CC63F 60%, #B0E86A 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
