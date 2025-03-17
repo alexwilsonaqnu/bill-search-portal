@@ -1,16 +1,14 @@
 
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Spinner } from "@/components/ui/spinner";
-import { Button } from "@/components/ui/button";
-import { AlertCircle, Maximize, FileText } from "lucide-react";
 import BillChat from "./BillChat";
-import PdfViewer from "./pdf/PdfViewer";
-import ExtractedTextDisplay from "./pdf/ExtractedTextDisplay";
-import PdfFallbackDisplay from "./pdf/PdfFallbackDisplay";
 import TextContentDisplay from "./text/TextContentDisplay";
 import FullScreenDialog from "./FullScreenDialog";
 import { fetchBillText } from "@/services/billTextService";
+import BillTextHeader from "./BillTextHeader";
+import BillTextLoading from "./BillTextLoading";
+import BillTextError from "./BillTextError";
+import PdfContentDisplay from "./pdf/PdfContentDisplay";
 
 interface BillTextHashProps {
   textHash: string;
@@ -99,77 +97,32 @@ const BillTextHash = ({ textHash, billId, externalUrl }: BillTextHashProps) => {
   
   return (
     <div className="space-y-2 relative">
-      <div className="flex items-center justify-between">
-        <h3 className="font-semibold">Bill Text</h3>
-        {!textContent && isLoading && (
-          <div className="flex items-center">
-            <Spinner className="mr-2 h-4 w-4" />
-            <span className="text-sm text-gray-500">Loading bill text...</span>
-          </div>
-        )}
-        {textContent && (
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={toggleFullScreen}
-            className="flex items-center gap-1"
-          >
-            <Maximize className="h-4 w-4" /> Full Screen
-          </Button>
-        )}
-      </div>
+      <BillTextHeader 
+        hasTextContent={!!textContent}
+        toggleFullScreen={toggleFullScreen}
+        isLoading={isLoading}
+      />
       
-      {error && (
-        <div className="bg-red-50 border border-red-200 rounded-md p-4 mt-2">
-          <div className="flex items-start">
-            <AlertCircle className="h-5 w-5 text-red-500 mr-2 mt-0.5" />
-            <div>
-              <p className="text-sm text-red-700">{error}</p>
-              <p className="text-xs text-red-600 mt-1">
-                The Legiscan API subscription may have expired. Please contact the administrator.
-              </p>
-            </div>
-          </div>
-        </div>
+      {!textContent && isLoading && (
+        <BillTextLoading isLoading={isLoading} onFetchText={fetchActualText} />
       )}
+      
+      <BillTextError error={error} />
       
       {!textContent && !isLoading && !error && (
-        <div>
-          <Button
-            onClick={fetchActualText}
-            disabled={isLoading}
-            size="sm"
-            className="mt-2"
-          >
-            {isLoading ? "Loading..." : "Load Bill Text"}
-          </Button>
-        </div>
+        <BillTextLoading isLoading={isLoading} onFetchText={fetchActualText} />
       )}
       
-      {/* PDF Content Special Handling */}
-      {isPdfContent && pdfBase64 && !isFullScreen && (
-        <div className="mt-4 border rounded-md p-4">
-          <div className="flex items-center gap-1 mb-2">
-            <FileText className="h-5 w-5 text-blue-500" />
-            <span className="font-medium">PDF Document</span>
-          </div>
-          
-          <PdfViewer 
-            pdfBase64={pdfBase64} 
-            externalUrl={externalUrl} 
-            onTextExtracted={handleTextExtraction} 
-          />
-          
-          {/* Display extracted text if available */}
-          {extractedText && <ExtractedTextDisplay text={extractedText} />}
-        </div>
-      )}
-      
-      {/* PDF Fallback Message */}
-      {isPdfContent && !pdfBase64 && textContent && !isFullScreen && (
-        <div className="mt-4">
-          <PdfFallbackDisplay content={textContent} externalUrl={externalUrl} />
-        </div>
+      {/* PDF Content Display */}
+      {isPdfContent && (
+        <PdfContentDisplay 
+          pdfBase64={pdfBase64} 
+          textContent={textContent}
+          externalUrl={externalUrl}
+          extractedText={extractedText}
+          onTextExtracted={handleTextExtraction}
+          isFullScreen={isFullScreen}
+        />
       )}
       
       {/* Regular Content Display */}
