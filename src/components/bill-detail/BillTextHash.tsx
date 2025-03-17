@@ -16,6 +16,7 @@ const BillTextHash = ({ textHash, billId }: BillTextHashProps) => {
   const [textContent, setTextContent] = useState<string | null>(null);
   const [showFullText, setShowFullText] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isHtmlContent, setIsHtmlContent] = useState(false);
   
   // Automatically fetch the bill text when the component mounts
   useEffect(() => {
@@ -46,6 +47,13 @@ const BillTextHash = ({ textHash, billId }: BillTextHashProps) => {
         throw new Error(userMessage);
       }
       
+      // Check if content is HTML by looking for HTML tags
+      const isHtml = data.text.includes('<html') || 
+                     data.text.includes('<meta') || 
+                     data.text.includes('<style') || 
+                     data.text.includes('<body');
+      
+      setIsHtmlContent(isHtml);
       setTextContent(data.text);
       toast.success("Bill text fetched successfully");
     } catch (error) {
@@ -115,9 +123,15 @@ const BillTextHash = ({ textHash, billId }: BillTextHashProps) => {
       
       {textContent && (
         <div className="mt-4">
-          <div className="whitespace-pre-wrap bg-gray-50 p-4 rounded-md text-sm font-mono overflow-auto max-h-[400px] border">
-            {getDisplayText()}
-          </div>
+          {isHtmlContent ? (
+            <div className="bg-gray-50 p-4 rounded-md text-sm overflow-auto max-h-[400px] border">
+              <div dangerouslySetInnerHTML={{ __html: getDisplayText() }} />
+            </div>
+          ) : (
+            <div className="whitespace-pre-wrap bg-gray-50 p-4 rounded-md text-sm font-mono overflow-auto max-h-[400px] border">
+              {getDisplayText()}
+            </div>
+          )}
           
           {textContent.length > 500 && (
             <Button 
