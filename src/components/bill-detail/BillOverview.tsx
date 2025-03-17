@@ -108,14 +108,6 @@ const BillOverview = ({ bill }: BillOverviewProps) => {
           ))}
         </div>
       )}
-      
-      {/* Raw JSON Data */}
-      <Card className="border rounded-lg p-4">
-        <h3 className="font-semibold mb-4">Raw JSON Data</h3>
-        <div className="bg-gray-50 p-4 rounded-md overflow-x-auto">
-          <pre className="text-xs text-gray-800">{JSON.stringify(bill.data, null, 2)}</pre>
-        </div>
-      </Card>
     </div>
   );
 };
