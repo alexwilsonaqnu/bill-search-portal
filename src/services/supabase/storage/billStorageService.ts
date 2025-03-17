@@ -1,7 +1,7 @@
 
 import { Bill } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
-import { BILL_STORAGE_BUCKET, BILL_STORAGE_PATH, ALTERNATIVE_PATHS, MAX_BILLS_TO_PROCESS } from "../storageConfig";
+import { BILL_STORAGE_BUCKET, BILL_STORAGE_PATH, ALTERNATIVE_PATHS } from "../storageConfig";
 import { listFilesInBucket, countFilesInBucket } from "./bucketOperations";
 import { processBillFiles, processStorageFile } from "./billProcessor";
 import { toast } from "sonner";
@@ -9,7 +9,7 @@ import { toast } from "sonner";
 /**
  * Fetches bill files from storage with optional pagination
  */
-export async function fetchBillsFromStorage(page = 1, pageSize = MAX_BILLS_TO_PROCESS): Promise<Bill[]> {
+export async function fetchBillsFromStorage(page = 1, pageSize = 100): Promise<Bill[]> {
   console.log(`Trying to fetch bills from bucket: ${BILL_STORAGE_BUCKET}, page: ${page}, pageSize: ${pageSize}`);
   
   // First try the main configured path
@@ -53,8 +53,8 @@ export async function fetchBillsFromStorage(page = 1, pageSize = MAX_BILLS_TO_PR
       const jsonFiles = files.filter(file => file.name.endsWith('.json'));
       if (jsonFiles.length > 0) {
         console.log(`Found ${jsonFiles.length} JSON files in alternative path: ${alternatePath}`);
-        toast.info(`Loading ${Math.min(jsonFiles.length, MAX_BILLS_TO_PROCESS)} bills from alternate path`);
-        return processBillFiles(BILL_STORAGE_BUCKET, alternatePath, jsonFiles.slice(0, MAX_BILLS_TO_PROCESS));
+        toast.info(`Loading ${Math.min(jsonFiles.length, 100)} bills from alternate path`);
+        return processBillFiles(BILL_STORAGE_BUCKET, alternatePath, jsonFiles.slice(0, 100));
       }
     }
   }
@@ -85,7 +85,7 @@ async function supabaseListWithPagination(bucketName: string, folderPath: string
 /**
  * Fetches a specific bill by ID from storage
  */
-export async function fetchBillByIdFromStorage(id: string): Promise<Bill | null> {
+export async function fetchBillByIdFromStorage(id: string, specialPath?: string): Promise<Bill | null> {
   // Try different possible file extensions/formats
   const possibleFileNames = [
     `${id}.json`,
@@ -93,9 +93,11 @@ export async function fetchBillByIdFromStorage(id: string): Promise<Bill | null>
     `${id.toLowerCase()}.json`
   ];
   
-  // First try the main path
+  // First try the main path or the special path if provided
+  const initialPath = specialPath ? specialPath : BILL_STORAGE_PATH;
+  
   for (const fileName of possibleFileNames) {
-    const filePath = `${BILL_STORAGE_PATH}/${fileName}`;
+    const filePath = `${initialPath}/${fileName}`;
     const bill = await processStorageFile(BILL_STORAGE_BUCKET, filePath, fileName);
     if (bill) {
       console.log(`Found bill ${id} in storage at ${filePath}`);
@@ -103,14 +105,17 @@ export async function fetchBillByIdFromStorage(id: string): Promise<Bill | null>
     }
   }
   
-  // If not found in the main path, try alternative paths
-  for (const alternatePath of ALTERNATIVE_PATHS) {
-    for (const fileName of possibleFileNames) {
-      const filePath = alternatePath ? `${alternatePath}/${fileName}` : fileName;
-      const bill = await processStorageFile(BILL_STORAGE_BUCKET, filePath, fileName);
-      if (bill) {
-        console.log(`Found bill ${id} in storage at ${filePath}`);
-        return bill;
+  // If no special path was provided, continue with alternative paths
+  if (!specialPath) {
+    // If not found in the main path, try alternative paths
+    for (const alternatePath of ALTERNATIVE_PATHS) {
+      for (const fileName of possibleFileNames) {
+        const filePath = alternatePath ? `${alternatePath}/${fileName}` : fileName;
+        const bill = await processStorageFile(BILL_STORAGE_BUCKET, filePath, fileName);
+        if (bill) {
+          console.log(`Found bill ${id} in storage at ${filePath}`);
+          return bill;
+        }
       }
     }
   }

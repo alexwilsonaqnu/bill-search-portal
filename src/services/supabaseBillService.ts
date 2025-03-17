@@ -59,7 +59,7 @@ export async function fetchBillByIdFromSupabase(id: string): Promise<Bill | null
     // If it's a numeric ID, try common prefixes
     if (isNumericId) {
       console.log(`Trying to find numeric ID ${id} with common prefixes...`);
-      const prefixes = ['HB', 'SB', 'HR', 'SR'];
+      const prefixes = ['HB', 'SB', 'HR', 'SR', 'HJR', 'SJR', 'HCR', 'SCR'];
       
       for (const prefix of prefixes) {
         const prefixedId = `${prefix}${id}`;
@@ -87,7 +87,7 @@ export async function fetchBillByIdFromSupabase(id: string): Promise<Bill | null
     
     // If it's a numeric ID, try common prefixes for storage as well
     if (isNumericId) {
-      const prefixes = ['HB', 'SB', 'HR', 'SR'];
+      const prefixes = ['HB', 'SB', 'HR', 'SR', 'HJR', 'SJR', 'HCR', 'SCR'];
       for (const prefix of prefixes) {
         const prefixedId = `${prefix}${id}`;
         console.log(`Trying storage with prefix: ${prefixedId}`);
@@ -101,7 +101,43 @@ export async function fetchBillByIdFromSupabase(id: string): Promise<Bill | null
       }
     }
     
+    // Special case for numeric IDs - also try without prefixes 
+    // in alternative locations
+    if (isNumericId) {
+      console.log(`Trying to find numeric ID ${id} in alternative storage paths...`);
+      const specialPaths = ["resolutions", "memorials", "numeric"];
+      
+      for (const path of specialPaths) {
+        console.log(`Trying special path: ${path}`);
+        const specialBill = await fetchBillByIdFromStorage(id, path);
+        if (specialBill) {
+          console.log(`Found bill ${id} in special path: ${path}`);
+          return specialBill;
+        }
+      }
+    }
+    
     console.warn(`Bill ${id} not found in any Supabase storage bucket`);
+    
+    // For debugging - log all available bills that match this pattern
+    try {
+      console.log(`DEBUG: Searching for any bill containing ${id}...`);
+      const allBills = await fetchBillsFromSupabase();
+      const matchingBills = allBills.filter(b => 
+        b.id.includes(id) || 
+        (b.id.replace(/[^0-9]/g, '') === id)
+      );
+      
+      if (matchingBills.length > 0) {
+        console.log(`Found ${matchingBills.length} similar bills:`, 
+          matchingBills.map(b => `ID: ${b.id}, Title: ${b.title}`));
+      } else {
+        console.log(`No bills found containing ID ${id}`);
+      }
+    } catch (e) {
+      console.error(`Error in debug search:`, e);
+    }
+    
     throw new Error(`Bill ${id} not found in Supabase`);
   } catch (error) {
     console.error(`Error fetching bill ${id}:`, error);

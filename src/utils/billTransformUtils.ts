@@ -39,8 +39,8 @@ export function normalizeBillId(id: string | number): string {
   
   // Check if it's a numeric ID (possibly a memorial resolution)
   if (/^\d+$/.test(stringId)) {
-    // For purely numeric IDs, check if it's a known memorial resolution format
-    // This is specific to the app's needs - adjust as necessary
+    // For purely numeric IDs, preserve the numeric format
+    // This is important for lookup consistency
     return stringId;
   }
   
