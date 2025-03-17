@@ -68,45 +68,41 @@ const BillDataExtractor = ({ bill }: BillDataExtractorProps) => {
   const billData = bill.data?.bill || bill.data;
   const textHash = billData?.text_hash || "";
   
-  // Find the correct Legiscan Bill ID
-  // Look for:
-  // 1. Deep in nested structure: bill.data.bill.bill_id
-  // 2. Directly in bill.data: bill.data.bill_id
-  // 3. Check if there's a doc_id in texts array (common for PDF documents)
-  // 4. Finally, fall back to the bill.id (which is likely to be a string)
-  const getLegiscanBillId = () => {
-    if (bill.data?.bill?.bill_id) {
-      console.log("Found bill_id in nested structure:", bill.data.bill.bill_id);
-      return bill.data.bill.bill_id.toString();
+  // Find the correct Legiscan Bill ID and Document ID
+  const getBillIdentifiers = () => {
+    // Check for nested data structure
+    const data = bill.data?.bill || bill.data || {};
+    
+    // First try to get the bill_id
+    const billId = data.bill_id ? data.bill_id.toString() : bill.id;
+    
+    // Get document ID from texts array if available
+    let docId = null;
+    if (data.texts && Array.isArray(data.texts) && data.texts.length > 0) {
+      docId = data.texts[0].doc_id;
+      console.log(`Found document ID in texts array: ${docId}`);
     }
     
-    if (billData?.bill_id) {
-      console.log("Found bill_id in direct data:", billData.bill_id);
-      return billData.bill_id.toString();
-    }
+    // Extract other important bill identifiers
+    const stateId = data.state_id || data.state;
+    const sessionId = data.session_id || data.session;
     
-    if (billData?.texts?.[0]?.doc_id) {
-      console.log("Found doc_id in texts array:", billData.texts[0].doc_id);
-      return billData.texts[0].doc_id.toString();
-    }
-    
-    // Look for any field that might contain the real bill ID
-    for (const key of Object.keys(billData || {})) {
-      if (key.includes('id') && typeof billData[key] === 'number') {
-        console.log(`Found potential ID in field ${key}:`, billData[key]);
-        return billData[key].toString();
-      }
-    }
-    
-    console.log("Falling back to bill.id:", bill.id);
-    return bill.id.toString();
+    return {
+      legiscanBillId: billId,
+      documentId: docId,
+      stateId,
+      sessionId
+    };
   };
   
-  const legiscanBillId = getLegiscanBillId();
+  const { legiscanBillId, documentId, stateId, sessionId } = getBillIdentifiers();
   
   console.log("Extracted data:", {
     billId: bill.id,
     legiscanBillId,
+    documentId,
+    stateId,
+    sessionId,
     textHash,
     hasTextContent: !!getTextContent(),
     rawData: JSON.stringify(bill.data).slice(0, 200) + "..." // Log a snippet of raw data for debugging
@@ -124,7 +120,8 @@ const BillDataExtractor = ({ bill }: BillDataExtractorProps) => {
     hasTextContent, 
     textFormat, 
     textHash, 
-    legiscanBillId 
+    legiscanBillId,
+    documentId 
   };
 };
 

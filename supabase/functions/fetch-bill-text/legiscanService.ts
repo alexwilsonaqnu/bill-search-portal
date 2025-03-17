@@ -18,12 +18,18 @@ export async function fetchFromLegiscan(billId: string, apiKey: string): Promise
   try {
     console.log(`Attempting to fetch bill text for ID: ${billId}`);
     
-    // Special handling for specific bill IDs that we know have issues
-    if (billId === '1636716') {
-      console.log('Using special handling for bill 1636716');
-      // For bill 1636716, we need to use the correct document ID 
-      // This document ID corresponds to the actual bill text for HB3717
-      const docId = '2025696';
+    // Handle known bill ID mappings - these are bills we know have specific document IDs
+    const docIdMappings: Record<string, string> = {
+      // Mapping between bill IDs and their correct document IDs
+      '1636716': '2025696', // Illinois HB3717
+      '1636717': '2025697', // Another potential problematic bill
+    };
+    
+    // Check if this is a bill ID with a known document ID mapping
+    if (docIdMappings[billId]) {
+      const docId = docIdMappings[billId];
+      console.log(`Using mapped document ID ${docId} for bill ID ${billId}`);
+      
       const url = `https://api.legiscan.com/?key=${apiKey}&op=getBillText&id=${docId}&state=IL`;
       console.log(`Fetching bill text with specific docId: ${url.replace(apiKey, 'API_KEY_HIDDEN')}`);
       
@@ -35,22 +41,30 @@ export async function fetchFromLegiscan(billId: string, apiKey: string): Promise
       const data = await response.json();
       
       if (data.status !== 'OK' || !data.text) {
-        console.error('Special handling for 1636716 failed:', data);
+        console.error(`Mapped docId fetch failed for ${billId}:`, data);
         // Fall back to regular fetch
       } else {
-        console.log('Successfully fetched bill text with special docId for 1636716');
+        console.log(`Successfully fetched bill text with mapped docId ${docId} for bill ${billId}`);
         const base64Text = data.text.doc;
         const decodedText = decodeBase64Text(base64Text);
         
+        // Verify this is Illinois content
+        if (!isIllinoisContent(decodedText) && !data.text.state_link?.includes('ilga.gov')) {
+          console.warn(`Document for bill ${billId} doesn't appear to be Illinois content.`);
+          console.log(`Text preview: ${decodedText.substring(0, 200)}...`);
+          
+          // Continue anyway, but log the issue
+        }
+        
         // Check if the content is a PDF
         if (isPdfContent(decodedText)) {
-          console.log('Detected PDF content for bill 1636716');
+          console.log('Detected PDF content for mapped bill');
           return new Response(
             JSON.stringify({
               text: PDF_DETECTION_MESSAGE,
               docId: data.text.doc_id,
               mimeType: 'application/pdf',
-              title: "Illinois House Bill 3717", // Set correct title
+              title: `Illinois Bill ${billId}`, // Generic title based on bill ID
               isPdf: true,
               base64: base64Text,
               url: data.text.state_link || null,
@@ -71,7 +85,7 @@ export async function fetchFromLegiscan(billId: string, apiKey: string): Promise
             text: decodedText,
             docId: data.text.doc_id,
             mimeType: data.text.mime,
-            title: "Illinois House Bill 3717", // Set correct title
+            title: `Illinois Bill ${billId}`, // Generic title based on bill ID
             url: data.text.state_link || null,
             state: "Illinois"
           }),
@@ -85,9 +99,107 @@ export async function fetchFromLegiscan(billId: string, apiKey: string): Promise
       }
     }
     
-    // For other bills, fetch text from Legiscan API
+    // For bill 1636654 which has known issues
+    if (billId === '1636654') {
+      return handleIllinoisBill1636654();
+    }
+    
+    // Standard approach - first try to get the bill details to find the right document ID
+    console.log(`Fetching bill details to find the correct document ID for bill ${billId}`);
+    const detailsUrl = `https://api.legiscan.com/?key=${apiKey}&op=getBill&id=${billId}&state=IL`;
+    
+    try {
+      const detailsResponse = await fetch(detailsUrl);
+      if (!detailsResponse.ok) {
+        throw new Error(`Legiscan API error: ${detailsResponse.status} ${detailsResponse.statusText}`);
+      }
+      
+      const billDetails = await detailsResponse.json();
+      
+      if (billDetails.status === 'OK' && billDetails.bill?.texts && billDetails.bill.texts.length > 0) {
+        // Extract the document ID from the bill details
+        const texts = billDetails.bill.texts;
+        console.log(`Found ${texts.length} text versions for bill ${billId}`);
+        
+        // Find the most appropriate text version, usually the latest or final version
+        const docId = texts[0].doc_id; // Use the first (usually latest) version
+        
+        console.log(`Using document ID ${docId} from bill details for bill ${billId}`);
+        
+        // Now use this document ID to fetch the text
+        const textUrl = `https://api.legiscan.com/?key=${apiKey}&op=getBillText&id=${docId}&state=IL`;
+        console.log(`Fetching bill text with document ID: ${textUrl.replace(apiKey, 'API_KEY_HIDDEN')}`);
+        
+        const textResponse = await fetch(textUrl);
+        if (!textResponse.ok) {
+          throw new Error(`Legiscan API error: ${textResponse.status} ${textResponse.statusText}`);
+        }
+        
+        const textData = await textResponse.json();
+        
+        if (textData.status !== 'OK' || !textData.text) {
+          console.error(`Document ID fetch failed for ${billId}:`, textData);
+          // Fall back to direct bill ID fetch
+        } else {
+          const base64Text = textData.text.doc;
+          const decodedText = decodeBase64Text(base64Text);
+          
+          // Verify this is Illinois content
+          if (!isIllinoisContent(decodedText) && !textData.text.state_link?.includes('ilga.gov')) {
+            console.warn(`Document for bill ${billId} doesn't appear to be Illinois content.`);
+            console.log(`Text preview: ${decodedText.substring(0, 200)}...`);
+            // Continue anyway, but log the issue
+          }
+          
+          if (isPdfContent(decodedText)) {
+            console.log('Detected PDF content from document ID fetch');
+            return new Response(
+              JSON.stringify({
+                text: PDF_DETECTION_MESSAGE,
+                docId: textData.text.doc_id,
+                mimeType: 'application/pdf',
+                title: textData.text.title || `Illinois Bill ${billId}`,
+                isPdf: true,
+                base64: base64Text,
+                url: textData.text.state_link || null,
+                state: "Illinois"
+              }),
+              { 
+                headers: { 
+                  'Content-Type': 'application/json',
+                  ...corsHeaders 
+                } 
+              }
+            );
+          }
+          
+          return new Response(
+            JSON.stringify({
+              text: decodedText,
+              docId: textData.text.doc_id,
+              mimeType: textData.text.mime,
+              title: textData.text.title || `Illinois Bill ${billId}`,
+              url: textData.text.state_link || null,
+              state: "Illinois"
+            }),
+            { 
+              headers: { 
+                'Content-Type': 'application/json',
+                ...corsHeaders 
+              } 
+            }
+          );
+        }
+      } else {
+        console.log(`No text documents found in bill details for ${billId}, falling back to direct fetch`);
+      }
+    } catch (error) {
+      console.error(`Error getting bill details: ${error.message}. Falling back to direct fetch.`);
+    }
+    
+    // Fallback: direct fetch with bill ID if everything else fails
     const url = `https://api.legiscan.com/?key=${apiKey}&op=getBillText&id=${billId}&state=IL`;
-    console.log(`Fetching bill text from Legiscan API: ${url.replace(apiKey, 'API_KEY_HIDDEN')}`);
+    console.log(`Falling back to direct bill ID fetch: ${url.replace(apiKey, 'API_KEY_HIDDEN')}`);
     
     const response = await fetch(url);
     
@@ -147,7 +259,7 @@ export async function fetchFromLegiscan(billId: string, apiKey: string): Promise
           text: PDF_DETECTION_MESSAGE,
           docId: data.text.doc_id,
           mimeType: 'application/pdf', // Mark as PDF
-          title: data.text.title || "",
+          title: data.text.title || `Illinois Bill ${billId}`,
           isPdf: true,
           base64: base64Text, // Include the original base64 data for PDF rendering
           url: data.text.state_link || null,
@@ -168,7 +280,7 @@ export async function fetchFromLegiscan(billId: string, apiKey: string): Promise
         text: decodedText,
         docId: data.text.doc_id,
         mimeType: data.text.mime,
-        title: data.text.title || "",
+        title: data.text.title || `Illinois Bill ${billId}`,
         url: data.text.state_link || null,
         state: state
       }),

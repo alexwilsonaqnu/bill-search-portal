@@ -38,7 +38,7 @@ serve(async (req) => {
       return handleIllinoisBill1636654();
     }
 
-    // For all other bills, fetch from Legiscan API
+    // For all other bills, fetch from Legiscan API with improved handling
     return await fetchFromLegiscan(billId, LEGISCAN_API_KEY);
     
   } catch (error) {
