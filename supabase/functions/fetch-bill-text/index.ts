@@ -32,6 +32,24 @@ serve(async (req) => {
       );
     }
 
+    // Check if API key is available
+    if (!LEGISCAN_API_KEY) {
+      console.error('Legiscan API key is not configured');
+      return new Response(
+        JSON.stringify({ 
+          error: 'Legiscan API key is not configured',
+          userMessage: 'The Legiscan API key is missing. Please contact the administrator.'
+        }),
+        { 
+          status: 500, 
+          headers: { 
+            'Content-Type': 'application/json',
+            ...corsHeaders 
+          } 
+        }
+      );
+    }
+
     console.log(`Fetching text for bill ID: ${billId}`);
     
     // Fetch bill text from Legiscan API
@@ -44,11 +62,33 @@ serve(async (req) => {
 
     const data = await response.json();
     
-    // Check if we got a valid response
+    // Check for API key or account issues
+    if (data.status === 'ERROR' && data.alert) {
+      console.error('Legiscan API subscription error:', data.alert.message);
+      return new Response(
+        JSON.stringify({ 
+          error: 'Legiscan API subscription issue',
+          userMessage: 'The Legiscan API subscription has expired or is invalid. Please contact the administrator.',
+          details: data.alert
+        }),
+        { 
+          status: 403, 
+          headers: { 
+            'Content-Type': 'application/json',
+            ...corsHeaders 
+          } 
+        }
+      );
+    }
+    
+    // Check if we got a valid response with text content
     if (data.status !== 'OK' || !data.text) {
       console.error('Legiscan API response error:', data);
       return new Response(
-        JSON.stringify({ error: 'Failed to fetch bill text', details: data }),
+        JSON.stringify({ 
+          error: 'Failed to fetch bill text', 
+          details: data 
+        }),
         { 
           status: 500, 
           headers: { 
@@ -85,7 +125,10 @@ serve(async (req) => {
     console.error('Error in fetch-bill-text function:', error);
     
     return new Response(
-      JSON.stringify({ error: error.message || 'Unknown error occurred' }),
+      JSON.stringify({ 
+        error: error.message || 'Unknown error occurred',
+        userMessage: 'Failed to fetch the bill text. Please try again later.'
+      }),
       { 
         status: 500, 
         headers: { 

@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
+import { AlertCircle } from "lucide-react";
 
 interface BillTextHashProps {
   textHash: string;
@@ -14,6 +15,7 @@ const BillTextHash = ({ textHash, billId }: BillTextHashProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [textContent, setTextContent] = useState<string | null>(null);
   const [showFullText, setShowFullText] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   
   // Automatically fetch the bill text when the component mounts
   useEffect(() => {
@@ -26,6 +28,7 @@ const BillTextHash = ({ textHash, billId }: BillTextHashProps) => {
     if (isLoading || textContent) return;
     
     setIsLoading(true);
+    setError(null);
     toast.info("Fetching bill text from Legiscan...");
     
     try {
@@ -38,14 +41,18 @@ const BillTextHash = ({ textHash, billId }: BillTextHashProps) => {
       }
       
       if (data.error) {
-        throw new Error(`API error: ${data.error}`);
+        const userMessage = data.userMessage || data.error;
+        setError(userMessage);
+        throw new Error(userMessage);
       }
       
       setTextContent(data.text);
       toast.success("Bill text fetched successfully");
     } catch (error) {
       console.error("Error fetching bill text:", error);
-      toast.error(`Failed to fetch bill text: ${error instanceof Error ? error.message : String(error)}`);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      toast.error(`Failed to fetch bill text: ${errorMessage}`);
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -79,7 +86,21 @@ const BillTextHash = ({ textHash, billId }: BillTextHashProps) => {
         )}
       </div>
       
-      {!textContent && !isLoading && (
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-md p-4 mt-2">
+          <div className="flex items-start">
+            <AlertCircle className="h-5 w-5 text-red-500 mr-2 mt-0.5" />
+            <div>
+              <p className="text-sm text-red-700">{error}</p>
+              <p className="text-xs text-red-600 mt-1">
+                The Legiscan API subscription may have expired. Please contact the administrator.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {!textContent && !isLoading && !error && (
         <div>
           <Button
             onClick={fetchActualText}
