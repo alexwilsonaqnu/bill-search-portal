@@ -9,6 +9,7 @@ import BillOverview from "./BillOverview";
 import BillComparisonContainer from "./BillComparisonContainer";
 import BillSponsors from "@/components/bill/BillSponsors";
 import BillTextUploader from "./BillTextUploader";
+import BillNotificationSignup from "./BillNotificationSignup";
 
 interface BillDetailViewProps {
   bill: Bill;
@@ -50,6 +51,9 @@ const BillDetailView = ({ bill }: BillDetailViewProps) => {
               setSelectedTool={setSelectedTool} 
               showUploadOption={true}
             />
+            
+            {/* Add the notification signup component */}
+            <BillNotificationSignup bill={bill} />
           </div>
           
           <div className="md:col-span-2">

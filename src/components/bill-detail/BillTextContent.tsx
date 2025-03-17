@@ -15,7 +15,7 @@ const BillTextContent = ({ textContent, textFormat }: BillTextContentProps) => {
         {textFormat === 'html' ? (
           <div 
             dangerouslySetInnerHTML={{ __html: textContent }} 
-            className="bg-white p-4 rounded-md overflow-auto max-h-[800px]"
+            className="bg-white p-4 rounded-md overflow-auto max-h-[800px] bill-text-content"
           />
         ) : (
           <pre className="whitespace-pre-wrap bg-gray-50 p-4 rounded text-sm font-mono overflow-auto max-h-[800px]">
