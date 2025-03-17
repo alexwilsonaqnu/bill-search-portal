@@ -23,6 +23,21 @@ const Index = () => {
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
+  // Log detailed information about available data for debugging
+  console.log("Index page - Data status:", {
+    isLoading,
+    hasError: !!error,
+    billsCount: data?.bills?.length || 0,
+    totalBills: data?.totalItems || 0,
+    dbStatus,
+    storageStatus,
+    availableBuckets,
+  });
+
+  if (error) {
+    console.error("Error fetching bills:", error);
+  }
+
   const handleSearch = (newQuery: string) => {
     setSearchParams({ q: newQuery, page: "1" });
   };

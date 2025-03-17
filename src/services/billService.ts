@@ -17,6 +17,11 @@ export async function fetchBills(
     console.log(`Fetching bills with query: "${query}", page: ${page}, pageSize: ${pageSize}`);
     const bills = await fetchBillsFromSupabase();
     
+    console.log(`Raw bills data fetched:`, {
+      count: bills?.length || 0,
+      hasData: !!bills && bills.length > 0
+    });
+    
     if (!bills || bills.length === 0) {
       // No bills found, let the user know
       toast.warning("No bills found in the database");
@@ -26,7 +31,15 @@ export async function fetchBills(
     console.log(`Found ${bills.length} total bills, processing results...`);
     
     // Process the bills from Supabase
-    return processResults(bills, query, page, pageSize);
+    const results = processResults(bills, query, page, pageSize);
+    console.log(`Processed results:`, {
+      totalItems: results.totalItems,
+      totalPages: results.totalPages,
+      currentPage: results.currentPage,
+      billsCount: results.bills.length
+    });
+    
+    return results;
   } catch (error) {
     console.error("Error in fetchBills:", error);
     toast.error("Failed to fetch bills. Please try again later.");
