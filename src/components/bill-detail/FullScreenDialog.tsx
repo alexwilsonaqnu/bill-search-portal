@@ -69,8 +69,11 @@ const FullScreenDialog = ({
         ) : (
           /* Regular Content in Full Screen */
           isHtmlContent ? (
-            <div className="bg-gray-50 p-4 rounded-md text-sm overflow-auto h-[75vh] border">
-              <div dangerouslySetInnerHTML={{ __html: textContent || "" }} />
+            <div className="bg-white p-4 rounded-md overflow-auto h-[75vh] border shadow-sm">
+              <div 
+                dangerouslySetInnerHTML={{ __html: textContent || "" }}
+                className="prose max-w-none"
+              />
             </div>
           ) : (
             <div className="whitespace-pre-wrap bg-gray-50 p-4 rounded-md text-sm font-mono overflow-auto h-[75vh] border">

@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import BillChat from "./BillChat";
@@ -26,12 +25,10 @@ const BillTextHash = ({ textHash, billId, externalUrl }: BillTextHashProps) => {
   const [pdfBase64, setPdfBase64] = useState<string | null>(null);
   const [extractedText, setExtractedText] = useState<string | null>(null);
   
-  // Log the billId to help with debugging
   useEffect(() => {
     console.log(`BillTextHash component using billId: ${billId} and textHash: ${textHash}`);
   }, [billId, textHash]);
   
-  // Automatically fetch the bill text when the component mounts
   useEffect(() => {
     if (billId) {
       fetchActualText();
@@ -52,7 +49,6 @@ const BillTextHash = ({ textHash, billId, externalUrl }: BillTextHashProps) => {
       const result = await fetchBillText(billId);
       console.log(`Received response for bill ${billId}:`, result);
       
-      // Check if content is PDF
       if (result.isPdf) {
         setIsPdfContent(true);
         
@@ -60,7 +56,6 @@ const BillTextHash = ({ textHash, billId, externalUrl }: BillTextHashProps) => {
           setPdfBase64(result.base64);
           toast.success("PDF document loaded successfully");
         } else {
-          // If no base64 data, display the fallback message
           setTextContent(result.text);
           setIsHtmlContent(true);
         }
@@ -69,8 +64,8 @@ const BillTextHash = ({ textHash, billId, externalUrl }: BillTextHashProps) => {
         return;
       }
       
-      // Check if content is HTML by looking for HTML tags
       const isHtml = result.text.includes('<html') || 
+                     result.text.includes('<table') || 
                      result.text.includes('<meta') || 
                      result.text.includes('<style') || 
                      result.text.includes('<body');
@@ -87,17 +82,14 @@ const BillTextHash = ({ textHash, billId, externalUrl }: BillTextHashProps) => {
     }
   };
 
-  // Handle text extraction from PDF
   const handleTextExtraction = (text: string) => {
     setExtractedText(text);
-    // Make text available for chat if it's meaningful
     if (text && text.length > 100) {
       setTextContent(text);
       setIsHtmlContent(false);
     }
   };
 
-  // Toggle full screen mode
   const toggleFullScreen = () => {
     setIsFullScreen(prev => !prev);
   };
@@ -120,7 +112,6 @@ const BillTextHash = ({ textHash, billId, externalUrl }: BillTextHashProps) => {
         <BillTextLoading isLoading={isLoading} onFetchText={fetchActualText} />
       )}
       
-      {/* PDF Content Display */}
       {isPdfContent && (
         <PdfContentDisplay 
           pdfBase64={pdfBase64} 
@@ -132,12 +123,10 @@ const BillTextHash = ({ textHash, billId, externalUrl }: BillTextHashProps) => {
         />
       )}
       
-      {/* Regular Content Display */}
       {textContent && !isPdfContent && !isFullScreen && (
         <TextContentDisplay content={textContent} isHtml={isHtmlContent} />
       )}
 
-      {/* Full Screen Dialog */}
       <FullScreenDialog 
         isOpen={isFullScreen}
         onClose={() => setIsFullScreen(false)}
@@ -151,7 +140,6 @@ const BillTextHash = ({ textHash, billId, externalUrl }: BillTextHashProps) => {
         onTextExtracted={handleTextExtraction}
       />
 
-      {/* Chat component - disabled for PDF content unless text has been extracted */}
       {(textContent && !isPdfContent) || (extractedText && extractedText.length > 100) ? (
         <BillChat billText={extractedText || textContent || ""} />
       ) : null}

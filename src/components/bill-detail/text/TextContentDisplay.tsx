@@ -1,6 +1,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 
 interface TextContentDisplayProps {
   content: string;
@@ -29,8 +30,11 @@ const TextContentDisplay = ({ content, isHtml }: TextContentDisplayProps) => {
   return (
     <div className="mt-4">
       {isHtml ? (
-        <div className="bg-gray-50 p-4 rounded-md text-sm overflow-auto max-h-[600px] border">
-          <div dangerouslySetInnerHTML={{ __html: getDisplayText() }} />
+        <div className="bg-white p-4 rounded-md overflow-auto max-h-[600px] border shadow-sm">
+          <div 
+            dangerouslySetInnerHTML={{ __html: getDisplayText() }} 
+            className="prose max-w-none"
+          />
         </div>
       ) : (
         <div className="whitespace-pre-wrap bg-gray-50 p-4 rounded-md text-sm font-mono overflow-auto max-h-[600px] border">
