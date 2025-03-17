@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -108,18 +109,17 @@
     font-weight: bold;
   }
   
-  /* Logo styles with gradient */
+  /* Logo text styles */
   .logo-text {
     @apply font-bold;
   }
   
-  /* Single gradient for the entire Billinois logo */
-  .logo-bill, .logo-inois {
-    background: linear-gradient(90deg, #35B7CD 0%, #67DBEE 40%, #8CC63F 60%, #B0E86A 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    color: transparent;
+  .logo-bill {
+    color: #35B7CD;
+  }
+  
+  .logo-inois {
+    color: #8CC63F;
   }
 }
 
