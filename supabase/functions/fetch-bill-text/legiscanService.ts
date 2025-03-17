@@ -17,7 +17,10 @@ export async function fetchFromLegiscan(billId: string, apiKey: string): Promise
   
   try {
     // For other bills, fetch text from Legiscan API
-    const url = `https://api.legiscan.com/?key=${apiKey}&op=getBillText&id=${billId}`;
+    // Updated URL to include state=IL parameter to fetch only Illinois bills
+    const url = `https://api.legiscan.com/?key=${apiKey}&op=getBillText&id=${billId}&state=IL`;
+    console.log(`Fetching bill text from Legiscan API: ${url.replace(apiKey, 'API_KEY_HIDDEN')}`);
+    
     const response = await fetch(url);
     
     if (!response.ok) {
