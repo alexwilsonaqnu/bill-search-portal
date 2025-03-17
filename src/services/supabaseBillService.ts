@@ -1,4 +1,3 @@
-
 import { Bill } from "@/types";
 import { toast } from "sonner";
 import { fetchBillsFromDatabase, fetchBillByIdFromDatabase } from "./supabase/dbService";
@@ -37,6 +36,7 @@ export async function fetchBillsFromSupabase() {
 
 /**
  * Fetches a specific bill by ID from Supabase
+ * Enhanced to better handle numeric IDs and debugging
  */
 export async function fetchBillByIdFromSupabase(id: string): Promise<Bill | null> {
   try {
@@ -68,6 +68,7 @@ export async function fetchBillByIdFromSupabase(id: string): Promise<Bill | null
         if (prefixedBill) {
           console.log(`Found bill with ID ${prefixedId} in database`);
           // Make sure the returned bill has the requested ID format
+          // Keep the original ID to maintain link consistency
           prefixedBill.id = id;
           return prefixedBill;
         }
@@ -105,7 +106,7 @@ export async function fetchBillByIdFromSupabase(id: string): Promise<Bill | null
     // in alternative locations
     if (isNumericId) {
       console.log(`Trying to find numeric ID ${id} in alternative storage paths...`);
-      const specialPaths = ["resolutions", "memorials", "numeric"];
+      const specialPaths = ["resolutions", "memorials", "numeric", "bills", "bill"];
       
       for (const path of specialPaths) {
         console.log(`Trying special path: ${path}`);
@@ -114,6 +115,14 @@ export async function fetchBillByIdFromSupabase(id: string): Promise<Bill | null
           console.log(`Found bill ${id} in special path: ${path}`);
           return specialBill;
         }
+      }
+      
+      // Look for it as a root file (no folder)
+      console.log(`Trying numeric ID ${id} as root file (no folder)`);
+      const rootBill = await fetchBillByIdFromStorage(id, "");
+      if (rootBill) {
+        console.log(`Found bill ${id} as root file`);
+        return rootBill;
       }
     }
     
@@ -125,12 +134,21 @@ export async function fetchBillByIdFromSupabase(id: string): Promise<Bill | null
       const allBills = await fetchBillsFromSupabase();
       const matchingBills = allBills.filter(b => 
         b.id.includes(id) || 
-        (b.id.replace(/[^0-9]/g, '') === id)
+        (b.id.replace(/[^0-9]/g, '') === id) ||
+        (b.data && JSON.stringify(b.data).includes(`"bill_id":"${id}"`))
       );
       
       if (matchingBills.length > 0) {
         console.log(`Found ${matchingBills.length} similar bills:`, 
           matchingBills.map(b => `ID: ${b.id}, Title: ${b.title}`));
+          
+        // If exactly one match is found, return it with the requested ID
+        if (matchingBills.length === 1) {
+          console.log(`Returning the single matching bill with the requested ID ${id}`);
+          const bill = matchingBills[0];
+          bill.id = id; // Ensure it has the requested ID
+          return bill;
+        }
       } else {
         console.log(`No bills found containing ID ${id}`);
       }

@@ -84,6 +84,7 @@ async function supabaseListWithPagination(bucketName: string, folderPath: string
 
 /**
  * Fetches a specific bill by ID from storage
+ * Enhanced to properly handle numeric IDs
  */
 export async function fetchBillByIdFromStorage(id: string, specialPath?: string): Promise<Bill | null> {
   // Try different possible file extensions/formats
@@ -92,6 +93,26 @@ export async function fetchBillByIdFromStorage(id: string, specialPath?: string)
     `${id.toUpperCase()}.json`,
     `${id.toLowerCase()}.json`
   ];
+  
+  // For numeric IDs, also try them as is without a path prefix
+  const isNumeric = /^\d+$/.test(id);
+  if (isNumeric) {
+    console.log(`Looking for numeric ID ${id}, will try direct file name match`);
+    // Try to fetch directly by the numeric ID
+    try {
+      const { data, error } = await supabase.storage
+        .from(BILL_STORAGE_BUCKET)
+        .download(`${id}.json`);
+        
+      if (!error && data) {
+        console.log(`Found numeric bill ${id} as direct file`);
+        const bill = await processStorageFile(BILL_STORAGE_BUCKET, `${id}.json`, `${id}.json`);
+        if (bill) return bill;
+      }
+    } catch (e) {
+      console.log(`No direct match for numeric ID ${id}`);
+    }
+  }
   
   // First try the main path or the special path if provided
   const initialPath = specialPath ? specialPath : BILL_STORAGE_PATH;
@@ -116,6 +137,30 @@ export async function fetchBillByIdFromStorage(id: string, specialPath?: string)
           console.log(`Found bill ${id} in storage at ${filePath}`);
           return bill;
         }
+      }
+    }
+    
+    // For numeric IDs, also try searching for any bill that contains this ID in the content
+    if (isNumeric) {
+      console.log(`Numeric ID ${id} not found in standard locations, will look for it in bill content`);
+      try {
+        // Get all bills from storage
+        const allBills = await fetchBillsFromStorage();
+        // Look for any bill that might have this numeric ID in its data
+        const matchingBill = allBills.find(bill => {
+          // Check if data contains this numeric ID
+          const stringifiedData = JSON.stringify(bill.data);
+          return stringifiedData.includes(`"bill_id":"${id}"`) || 
+                 stringifiedData.includes(`"bill_id":${id}`) ||
+                 bill.id === id;
+        });
+        
+        if (matchingBill) {
+          console.log(`Found bill with numeric ID ${id} in bill content`);
+          return matchingBill;
+        }
+      } catch (error) {
+        console.error(`Error searching bills for numeric ID ${id}:`, error);
       }
     }
   }

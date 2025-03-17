@@ -51,6 +51,7 @@ export function normalizeBillId(id: string | number): string {
 
 /**
  * Transforms a bill from Supabase Storage format to the application's Bill format
+ * Ensuring all available data is preserved and displayed
  */
 export function transformStorageBill(fileName: string, fileContent: any): Bill {
   // Extract ID from filename (assuming format like "HB1234.json")
@@ -72,32 +73,84 @@ export function transformStorageBill(fileName: string, fileContent: any): Bill {
     const billId = billObject.bill_id || id;
     const idString = billId.toString();
     
+    // Extract sections from the bill content
+    const sections = [];
+    
+    // Basic bill info section
+    sections.push({
+      id: "basic-info",
+      title: "Basic Information",
+      content: JSON.stringify(
+        {
+          bill_id: billObject.bill_id,
+          title: billObject.title,
+          description: billObject.description,
+          status: billObject.status,
+          status_date: billObject.status_date
+        }, 
+        null, 
+        2
+      )
+    });
+    
+    // Add sponsors section if available
+    if (billObject.sponsors || billObject.sponsor) {
+      sections.push({
+        id: "sponsors",
+        title: "Sponsors",
+        content: JSON.stringify(
+          billObject.sponsors || { primary: billObject.sponsor },
+          null,
+          2
+        )
+      });
+    }
+    
+    // Add full data section
+    sections.push({
+      id: "full-data",
+      title: "All Available Data",
+      content: JSON.stringify(parsedContent, null, 2)
+    });
+    
+    // Construct versions from texts or add a version with all sections
+    const versions = Array.isArray(billObject.texts) 
+      ? billObject.texts.map((text: any) => ({
+          id: text.doc_id || `text-${Math.random().toString(36).substring(2, 9)}`,
+          name: text.type || "Bill Text",
+          status: "",
+          date: text.date || "",
+          sections: [{
+            id: "s1",
+            title: "Content",
+            content: text.state_link || text.content || JSON.stringify(text, null, 2)
+          }]
+        })) 
+      : [{
+          id: "v1",
+          name: "Bill Details",
+          status: "",
+          date: billObject.status_date || "",
+          sections: sections
+        }];
+    
+    // Construct changes from history or add placeholders
+    const changes = billObject.history 
+      ? billObject.history.map((item: any, index: number) => ({
+          id: `c${index}`,
+          description: item.action || "",
+          details: item.date || ""
+        })) 
+      : [];
+    
     return {
       id: idString,
       title: billObject.title || `Bill ${id}`,
-      description: billObject.description || "",
-      status: billObject.status_date ? `Last updated: ${billObject.status_date}` : "",
+      description: billObject.description || (typeof billObject.summary === 'string' ? billObject.summary : ""),
+      status: billObject.status || billObject.status_date ? `Last updated: ${billObject.status_date}` : "",
       lastUpdated: billObject.status_date || "",
-      versions: Array.isArray(billObject.texts) 
-        ? billObject.texts.map((text: any) => ({
-            id: text.doc_id || "",
-            name: text.type || "",
-            status: "",
-            date: text.date || "",
-            sections: [{
-              id: "s1",
-              title: "Content",
-              content: text.state_link || ""
-            }]
-          })) 
-        : [],
-      changes: billObject.history 
-        ? billObject.history.map((item: any, index: number) => ({
-            id: `c${index}`,
-            description: item.action || "",
-            details: item.date || ""
-          })) 
-        : [],
+      versions: versions,
+      changes: changes,
       // Include the full data object for additional properties
       data: parsedContent
     };
