@@ -16,8 +16,8 @@ const HeaderSection = ({ query, onSearch }: HeaderSectionProps) => {
       </div>
       
       <h1 className="text-5xl md:text-7xl font-bold mb-8">
-        <span className="text-[#35B7CD]">Bill</span>
-        <span className="text-[#8CC63F]">inois</span>
+        <span className="logo-bill">Bill</span>
+        <span className="logo-inois">inois</span>
       </h1>
       
       <div className="mx-auto max-w-xl">

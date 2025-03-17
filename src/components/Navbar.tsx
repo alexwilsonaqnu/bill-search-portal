@@ -10,8 +10,8 @@ const Navbar = () => {
           className="inline-block transition-transform duration-300 hover:scale-105"
         >
           <h1 className="text-4xl font-bold">
-            <span className="text-[#35B7CD]">Bill</span>
-            <span className="text-[#8CC63F]">inois</span>
+            <span className="logo-bill">Bill</span>
+            <span className="logo-inois">inois</span>
           </h1>
         </Link>
       </div>

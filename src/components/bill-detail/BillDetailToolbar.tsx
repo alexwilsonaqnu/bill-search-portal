@@ -18,8 +18,8 @@ const BillDetailToolbar = ({
   return (
     <Card className="bg-white rounded-lg border shadow-sm p-6">
       <h3 className="text-lg font-semibold mb-4">
-        <span className="text-[#35B7CD]">Bill</span>
-        <span className="text-[#8CC63F]">inois</span>
+        <span className="logo-bill">Bill</span>
+        <span className="logo-inois">inois</span>
         <span className="text-gray-700"> Choose Tool</span>
       </h3>
       
