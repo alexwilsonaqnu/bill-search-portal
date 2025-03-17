@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { FileSearch } from "lucide-react";
 import { toast } from "sonner";
+import { extractTextFromPdf } from "@/services/billTextService";
 
 interface PdfTextExtractorProps {
   pdfDocument: any;
@@ -14,7 +15,7 @@ interface PdfTextExtractorProps {
 const PdfTextExtractor = ({ pdfDocument, pdfBase64, onTextExtracted }: PdfTextExtractorProps) => {
   const [isExtractingText, setIsExtractingText] = useState(false);
   
-  const extractTextFromPdf = async () => {
+  const extractTextFromPdfDocument = async () => {
     if (!pdfDocument) {
       toast.error("No PDF document loaded");
       return;
@@ -58,6 +59,8 @@ const PdfTextExtractor = ({ pdfDocument, pdfBase64, onTextExtracted }: PdfTextEx
         .replace(/\n+/g, '\n\n')
         .trim();
       
+      console.log(`Extracted text of length: ${extractedText.length}`);
+      
       if (extractedText && extractedText.length > 0) {
         toast.success("Text successfully extracted from PDF");
         
@@ -66,6 +69,7 @@ const PdfTextExtractor = ({ pdfDocument, pdfBase64, onTextExtracted }: PdfTextEx
         
         return extractedText;
       } else {
+        console.log("Direct PDF extraction produced no meaningful text, trying server-side extraction");
         // If direct extraction failed, fall back to server-side extraction
         return await extractTextViaApi();
       }
@@ -83,30 +87,18 @@ const PdfTextExtractor = ({ pdfDocument, pdfBase64, onTextExtracted }: PdfTextEx
   // Fallback method using the server-side text extraction API
   const extractTextViaApi = async () => {
     try {
-      const { data, error } = await fetch('/api/functions/v1/pdf-to-text', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ pdfBase64 }),
-      }).then(res => res.json());
+      console.log("Calling extractTextFromPdf server function");
+      const result = await extractTextFromPdf(pdfBase64);
       
-      if (error) {
-        throw new Error(`Error invoking function: ${error.message}`);
-      }
-      
-      if (data?.error) {
-        throw new Error(data.error);
-      }
-      
-      toast.success(`Text extracted using server-side ${data.method}`);
+      console.log(`Server extraction successful, got text of length: ${result.text.length}`);
+      toast.success(`Text extracted using server-side ${result.method}`);
       
       // If we got text, pass it to the parent component
-      if (data.text && data.text.length > 0) {
-        onTextExtracted(data.text);
+      if (result.text && result.text.length > 0) {
+        onTextExtracted(result.text);
       }
       
-      return data.text;
+      return result.text;
     } catch (error) {
       console.error("Error with server-side text extraction:", error);
       toast.error(`Failed to extract text: ${error instanceof Error ? error.message : String(error)}`);
@@ -118,7 +110,7 @@ const PdfTextExtractor = ({ pdfDocument, pdfBase64, onTextExtracted }: PdfTextEx
     <Button
       variant="secondary"
       size="sm"
-      onClick={extractTextFromPdf}
+      onClick={extractTextFromPdfDocument}
       disabled={isExtractingText}
       className="flex items-center gap-2"
     >

@@ -18,6 +18,71 @@ export async function fetchFromLegiscan(billId: string, apiKey: string): Promise
   try {
     console.log(`Attempting to fetch bill text for ID: ${billId}`);
     
+    // Special handling for specific bill IDs that we know have issues
+    if (billId === '1636716') {
+      console.log('Using special handling for bill 1636716');
+      // For bill 1636716, we need to use a specific doc_id
+      const url = `https://api.legiscan.com/?key=${apiKey}&op=getBillText&id=1987297&state=IL`;
+      console.log(`Fetching bill text with specific doc_id: ${url.replace(apiKey, 'API_KEY_HIDDEN')}`);
+      
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`Legiscan API error: ${response.status} ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      
+      if (data.status !== 'OK' || !data.text) {
+        console.error('Special handling for 1636716 failed:', data);
+        // Fall back to regular fetch
+      } else {
+        console.log('Successfully fetched bill text with special doc_id for 1636716');
+        const base64Text = data.text.doc;
+        const decodedText = decodeBase64Text(base64Text);
+        
+        // Check if the content is a PDF
+        if (isPdfContent(decodedText)) {
+          console.log('Detected PDF content for bill 1636716');
+          return new Response(
+            JSON.stringify({
+              text: PDF_DETECTION_MESSAGE,
+              docId: data.text.doc_id,
+              mimeType: 'application/pdf',
+              title: data.text.title || "Illinois Bill 1636716",
+              isPdf: true,
+              base64: base64Text,
+              url: data.text.state_link || null,
+              state: "Illinois"
+            }),
+            { 
+              headers: { 
+                'Content-Type': 'application/json',
+                ...corsHeaders 
+              } 
+            }
+          );
+        }
+        
+        // Return regular text if not PDF
+        return new Response(
+          JSON.stringify({
+            text: decodedText,
+            docId: data.text.doc_id,
+            mimeType: data.text.mime,
+            title: data.text.title || "Illinois Bill 1636716",
+            url: data.text.state_link || null,
+            state: "Illinois"
+          }),
+          { 
+            headers: { 
+              'Content-Type': 'application/json',
+              ...corsHeaders 
+            } 
+          }
+        );
+      }
+    }
+    
     // For other bills, fetch text from Legiscan API
     const url = `https://api.legiscan.com/?key=${apiKey}&op=getBillText&id=${billId}&state=IL`;
     console.log(`Fetching bill text from Legiscan API: ${url.replace(apiKey, 'API_KEY_HIDDEN')}`);

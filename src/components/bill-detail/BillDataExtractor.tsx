@@ -68,15 +68,49 @@ const BillDataExtractor = ({ bill }: BillDataExtractorProps) => {
   const billData = bill.data?.bill || bill.data;
   const textHash = billData?.text_hash || "";
   
-  // Get the Legiscan Bill ID if available
-  // First check in nested bill structure, then in direct fields
-  const legiscanBillId = 
-    billData?.bill_id || 
-    billData?.doc_id || 
-    bill.data?.bill?.bill_id || 
-    bill.id;
+  // Find the correct Legiscan Bill ID
+  // Look for:
+  // 1. Deep in nested structure: bill.data.bill.bill_id
+  // 2. Directly in bill.data: bill.data.bill_id
+  // 3. Check if there's a doc_id in texts array (common for PDF documents)
+  // 4. Finally, fall back to the bill.id (which is likely to be a string)
+  const getLegiscanBillId = () => {
+    if (bill.data?.bill?.bill_id) {
+      console.log("Found bill_id in nested structure:", bill.data.bill.bill_id);
+      return bill.data.bill.bill_id.toString();
+    }
+    
+    if (billData?.bill_id) {
+      console.log("Found bill_id in direct data:", billData.bill_id);
+      return billData.bill_id.toString();
+    }
+    
+    if (billData?.texts?.[0]?.doc_id) {
+      console.log("Found doc_id in texts array:", billData.texts[0].doc_id);
+      return billData.texts[0].doc_id.toString();
+    }
+    
+    // Look for any field that might contain the real bill ID
+    for (const key of Object.keys(billData || {})) {
+      if (key.includes('id') && typeof billData[key] === 'number') {
+        console.log(`Found potential ID in field ${key}:`, billData[key]);
+        return billData[key].toString();
+      }
+    }
+    
+    console.log("Falling back to bill.id:", bill.id);
+    return bill.id.toString();
+  };
   
-  console.log("Extracted Legiscan Bill ID:", legiscanBillId, "from bill with ID:", bill.id);
+  const legiscanBillId = getLegiscanBillId();
+  
+  console.log("Extracted data:", {
+    billId: bill.id,
+    legiscanBillId,
+    textHash,
+    hasTextContent: !!getTextContent(),
+    rawData: JSON.stringify(bill.data).slice(0, 200) + "..." // Log a snippet of raw data for debugging
+  });
   
   // Extract and return all bill data
   const ilgaUrl = getIlgaUrl();

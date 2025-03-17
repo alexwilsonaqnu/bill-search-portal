@@ -23,6 +23,16 @@ const BillFetchWrapper = () => {
     return <BillDetailError id={normalizedId || id || ""} />;
   }
 
+  // Log bill data for debugging - very important to see what's in the data
+  console.log("Bill data in BillFetchWrapper:", {
+    id: bill.id,
+    dataKeys: bill.data ? Object.keys(bill.data) : [],
+    // Check if bill.data.bill exists (nested structure)
+    nestedBill: bill.data?.bill ? true : false,
+    billId: bill.data?.bill?.bill_id || bill.data?.bill_id,
+    docId: bill.data?.bill?.texts?.[0]?.doc_id || bill.data?.texts?.[0]?.doc_id
+  });
+
   return <BillDetailView bill={bill} />;
 };
 
