@@ -1,6 +1,6 @@
 
 import { Button } from "@/components/ui/button";
-import { FileText, ExternalLink } from "lucide-react";
+import { FileText, ExternalLink, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 
 interface PdfFallbackDisplayProps {
@@ -17,11 +17,24 @@ const PdfFallbackDisplay = ({ content, externalUrl }: PdfFallbackDisplayProps) =
     }
   };
   
+  // Check if this is likely from another state
+  const isNotIllinoisBill = externalUrl && (
+    !externalUrl.includes("ilga.gov") || 
+    externalUrl.includes("legis.wisconsin.gov")
+  );
+  
   return (
-    <div className="bg-amber-50 border border-amber-200 rounded-md p-4">
+    <div className={`border rounded-md p-4 ${isNotIllinoisBill ? "bg-amber-50 border-amber-200" : "bg-amber-50 border-amber-200"}`}>
       <div className="flex items-start">
         <FileText className="h-5 w-5 text-amber-600 mr-3 mt-1 flex-shrink-0" />
         <div>
+          {isNotIllinoisBill && (
+            <div className="mb-3 flex items-center gap-2 text-amber-800">
+              <AlertTriangle className="h-5 w-5 text-amber-700" />
+              <p className="font-medium">This appears to be a non-Illinois bill</p>
+            </div>
+          )}
+          
           <div dangerouslySetInnerHTML={{ __html: content }} className="text-sm text-amber-800 whitespace-pre-line" />
           
           {externalUrl && (
