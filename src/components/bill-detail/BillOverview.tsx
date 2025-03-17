@@ -121,6 +121,9 @@ const BillOverview = ({ bill }: BillOverviewProps) => {
     textHash
   });
   
+  // Get the Legiscan Bill ID if available
+  const legiscanBillId = bill.data?.bill_id || bill.data?.doc_id || bill.id;
+  
   return (
     <div className="space-y-6">
       <Card className="bg-white rounded-lg border shadow-sm p-6">
@@ -135,7 +138,7 @@ const BillOverview = ({ bill }: BillOverviewProps) => {
             fetchExternalContent={fetchExternalContent}
           />
           
-          <BillTextHash textHash={textHash} />
+          <BillTextHash textHash={textHash} billId={legiscanBillId} />
           
           <BillHistoryView changes={bill.changes} />
         </div>
