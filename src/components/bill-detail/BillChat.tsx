@@ -87,6 +87,59 @@ const BillChat = ({ billText }: BillChatProps) => {
     }
   };
 
+  // Format message content to handle lists and structured text
+  const formatMessageContent = (content: string) => {
+    if (!content) return "";
+
+    // Convert markdown-style bullet points into HTML lists
+    const hasBullets = content.includes("- ") || content.includes("* ");
+    
+    if (hasBullets) {
+      // Split by new lines
+      const lines = content.split("\n");
+      let inList = false;
+      let formattedContent = "";
+      
+      lines.forEach(line => {
+        const trimmedLine = line.trim();
+        // Check if this line is a bullet point
+        if (trimmedLine.startsWith("- ") || trimmedLine.startsWith("* ")) {
+          // Start a list if not already in one
+          if (!inList) {
+            formattedContent += "<ul class='list-disc pl-5 my-2'>";
+            inList = true;
+          }
+          // Add list item
+          formattedContent += `<li>${trimmedLine.substring(2)}</li>`;
+        } else {
+          // End list if we were in one
+          if (inList) {
+            formattedContent += "</ul>";
+            inList = false;
+          }
+          // Add regular paragraph
+          if (trimmedLine) {
+            formattedContent += `<p class='mb-2'>${trimmedLine}</p>`;
+          } else {
+            formattedContent += "<br />";
+          }
+        }
+      });
+      
+      // Close list if still open
+      if (inList) {
+        formattedContent += "</ul>";
+      }
+      
+      return formattedContent;
+    }
+    
+    // Add paragraph spacing to non-list content
+    return content.split("\n").map(line => 
+      line.trim() ? `<p class='mb-2'>${line}</p>` : "<br />"
+    ).join("");
+  };
+
   if (!billText) return null;
 
   return (
@@ -137,7 +190,14 @@ const BillChat = ({ billText }: BillChatProps) => {
                           : 'bg-gray-100 text-gray-800'
                       }`}
                     >
-                      {msg.content}
+                      {msg.role === 'assistant' ? (
+                        <div 
+                          dangerouslySetInnerHTML={{ __html: formatMessageContent(msg.content) }}
+                          className="chat-message-content"
+                        />
+                      ) : (
+                        msg.content
+                      )}
                     </div>
                   </div>
                 ))}
