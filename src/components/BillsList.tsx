@@ -4,7 +4,7 @@ import BillCard from "@/components/BillCard";
 import Pagination from "@/components/Pagination";
 import { Button } from "@/components/ui/button";
 import { Bill } from "@/types";
-import { BucketCheck, Database, Upload } from "lucide-react";
+import { CheckSquare, Database, Upload } from "lucide-react";
 
 interface BillsListProps {
   isLoading: boolean;
@@ -76,7 +76,7 @@ const BillsList = ({
           {error ? (
             <Database className="h-16 w-16 text-red-500" />
           ) : (
-            <BucketCheck className="h-16 w-16 text-amber-500" />
+            <CheckSquare className="h-16 w-16 text-amber-500" />
           )}
         </div>
         
