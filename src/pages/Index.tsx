@@ -11,9 +11,6 @@ import { useSupabaseStatus } from "@/hooks/useSupabaseStatus";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle, Database, HardDrive } from "lucide-react";
 
-// Define the storage bucket name constant
-const BILL_STORAGE_BUCKET = "bills";
-
 const Index = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const query = searchParams.get("q") || "";
