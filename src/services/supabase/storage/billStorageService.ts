@@ -12,20 +12,8 @@ import { toast } from "sonner";
 export async function fetchBillsFromStorage(page = 1, pageSize = 100): Promise<Bill[]> {
   console.log(`Trying to fetch bills from bucket: ${BILL_STORAGE_BUCKET}, page: ${page}, pageSize: ${pageSize}`);
   
-  // Debug: First check if the bucket exists
-  const { data: buckets } = await supabase.storage.listBuckets();
-  const bucketExists = buckets?.some(b => b.name === BILL_STORAGE_BUCKET);
-  
-  if (!bucketExists) {
-    console.error(`Storage bucket "${BILL_STORAGE_BUCKET}" does not exist!`);
-    toast.error(`Storage bucket "${BILL_STORAGE_BUCKET}" not found`);
-    return [];
-  }
-  
   let allBills: Bill[] = [];
   const pathsToSearch = [BILL_STORAGE_PATH, ...ALTERNATIVE_PATHS];
-  
-  console.log(`Will search the following paths:`, pathsToSearch);
   
   // Try each path and combine results
   for (const path of pathsToSearch) {
@@ -68,10 +56,6 @@ export async function fetchBillsFromStorage(page = 1, pageSize = 100): Promise<B
             toast.info(`Loading ${filesToProcess.length} bills from ${path || 'root directory'}`);
             const pathBills = await processBillFiles(BILL_STORAGE_BUCKET, path, filesToProcess);
             
-            if (pathBills.length === 0) {
-              console.warn(`No valid bills could be processed from ${path} - possible parse errors`);
-            }
-            
             // Add bills from this path to the combined results, avoiding duplicates
             const existingIds = new Set(allBills.map(bill => bill.id));
             for (const bill of pathBills) {
@@ -83,32 +67,15 @@ export async function fetchBillsFromStorage(page = 1, pageSize = 100): Promise<B
             
             console.log(`Added ${pathBills.length} unique bills from ${path}, total: ${allBills.length}`);
           }
-        } else {
-          console.log(`No JSON files found in path: ${path}`);
         }
-      } else {
-        console.log(`No files found in path: ${path} or response data is empty`);
       }
-    } else {
-      console.log(`No files found in path: ${path} (count = ${totalCount})`);
     }
   }
   
   if (allBills.length === 0) {
-    console.warn("No bills could be processed from any storage path");
-    
-    // As a last resort, check if we can list any files from the root of the bucket
-    const { data: rootFiles } = await supabase.storage.from(BILL_STORAGE_BUCKET).list('', { limit: 10 });
-    if (rootFiles && rootFiles.length > 0) {
-      console.log(`Found ${rootFiles.length} files in root of bucket - sample: ${rootFiles.map(f => f.name).join(', ')}`);
-      toast.info(`Found files in bucket root, but couldn't load bills. Check file format.`);
-    } else {
-      console.error(`Bucket appears to be empty or inaccessible`);
-      toast.error(`No files found in storage bucket "${BILL_STORAGE_BUCKET}"`);
-    }
+    console.log("No bills could be processed from any storage path");
   } else {
     console.log(`Successfully processed a total of ${allBills.length} bills from all paths`);
-    toast.success(`Loaded ${allBills.length} bills from storage`);
   }
   
   // Apply simple pagination to the combined results
