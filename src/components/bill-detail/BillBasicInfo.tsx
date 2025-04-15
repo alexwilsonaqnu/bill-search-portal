@@ -12,7 +12,7 @@ const BillBasicInfo = ({ bill }: BillBasicInfoProps) => {
       {/* Title and Description */}
       <div>
         <h3 className="font-semibold mb-2 text-lg">Title</h3>
-        <p className="mb-4 text-gray-700">{"Jerry Wu"}</p>
+        <p className="mb-4 text-gray-700">{bill.title}</p>
         
         {bill.description && (
           <>
