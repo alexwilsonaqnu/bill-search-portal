@@ -51,11 +51,15 @@ export async function fetchBillByIdFromSupabase(id: string): Promise<Bill | null
     }
     
     // First try to fetch from the database table with exact ID
-    let databaseBill = await fetchBillByIdFromDatabase(id);
-    
-    if (databaseBill) {
-      console.log(`Found bill ${id} in database table`);
-      return databaseBill;
+    let databaseBill = null;
+    try {
+      databaseBill = await fetchBillByIdFromDatabase(id);
+      if (databaseBill) {
+        console.log(`Found bill ${id} in database table`);
+        return databaseBill;
+      }
+    } catch (error) {
+      console.log(`Bill ${id} not found in database table:`, error);
     }
     
     // If it's a numeric ID, try common prefixes
@@ -66,12 +70,16 @@ export async function fetchBillByIdFromSupabase(id: string): Promise<Bill | null
       for (const prefix of prefixes) {
         const prefixedId = `${prefix}${id}`;
         console.log(`Trying with prefix: ${prefixedId}`);
-        const prefixedBill = await fetchBillByIdFromDatabase(prefixedId);
-        if (prefixedBill) {
-          console.log(`Found bill with ID ${prefixedId} in database`);
-          // Make sure the returned bill has the requested ID format
-          prefixedBill.id = id;
-          return prefixedBill;
+        try {
+          const prefixedBill = await fetchBillByIdFromDatabase(prefixedId);
+          if (prefixedBill) {
+            console.log(`Found bill with ID ${prefixedId} in database`);
+            // Make sure the returned bill has the requested ID format
+            prefixedBill.id = id;
+            return prefixedBill;
+          }
+        } catch (error) {
+          console.log(`Bill not found with prefixed ID: ${prefixedId}`);
         }
       }
     }
@@ -80,11 +88,15 @@ export async function fetchBillByIdFromSupabase(id: string): Promise<Bill | null
     console.log(`Bill ${id} not found in table, trying storage buckets...`);
     
     // Try directly with the given ID
-    let storageBill = await fetchBillByIdFromStorage(id);
-    
-    if (storageBill) {
-      console.log(`Found bill ${id} in storage`);
-      return storageBill;
+    let storageBill = null;
+    try {
+      storageBill = await fetchBillByIdFromStorage(id);
+      if (storageBill) {
+        console.log(`Found bill ${id} in storage`);
+        return storageBill;
+      }
+    } catch (error) {
+      console.log(`Bill not found in storage with exact ID: ${id}`);
     }
     
     // If it's a numeric ID, try common prefixes for storage as well
@@ -93,56 +105,68 @@ export async function fetchBillByIdFromSupabase(id: string): Promise<Bill | null
       for (const prefix of prefixes) {
         const prefixedId = `${prefix}${id}`;
         console.log(`Trying storage with prefix: ${prefixedId}`);
-        const prefixedBill = await fetchBillByIdFromStorage(prefixedId);
-        if (prefixedBill) {
-          console.log(`Found bill with ID ${prefixedId} in storage`);
-          // Make sure the returned bill has the requested ID format
-          prefixedBill.id = id;
-          return prefixedBill;
+        try {
+          const prefixedBill = await fetchBillByIdFromStorage(prefixedId);
+          if (prefixedBill) {
+            console.log(`Found bill with ID ${prefixedId} in storage`);
+            // Make sure the returned bill has the requested ID format
+            prefixedBill.id = id;
+            return prefixedBill;
+          }
+        } catch (error) {
+          console.log(`Bill not found in storage with prefixed ID: ${prefixedId}`);
         }
       }
     }
     
-    // Special case for numeric IDs - also try without prefixes 
-    // in alternative locations
+    // Special case for numeric IDs - also try without prefixes in alternative locations
     if (isNumericId) {
       console.log(`Trying to find numeric ID ${id} in alternative storage paths...`);
       const specialPaths = ["resolutions", "memorials", "numeric", "bills", "bill"];
       
       for (const path of specialPaths) {
         console.log(`Trying special path: ${path}`);
-        const specialBill = await fetchBillByIdFromStorage(id, path);
-        if (specialBill) {
-          console.log(`Found bill ${id} in special path: ${path}`);
-          return specialBill;
+        try {
+          const specialBill = await fetchBillByIdFromStorage(id, path);
+          if (specialBill) {
+            console.log(`Found bill ${id} in special path: ${path}`);
+            return specialBill;
+          }
+        } catch (error) {
+          console.log(`Bill not found in special path: ${path}`);
         }
       }
       
       // Look for it as a root file (no folder)
       console.log(`Trying numeric ID ${id} as root file (no folder)`);
-      const rootBill = await fetchBillByIdFromStorage(id, "");
-      if (rootBill) {
-        console.log(`Found bill ${id} as root file`);
-        return rootBill;
+      try {
+        const rootBill = await fetchBillByIdFromStorage(id, "");
+        if (rootBill) {
+          console.log(`Found bill ${id} as root file`);
+          return rootBill;
+        }
+      } catch (error) {
+        console.log(`Bill not found as root file: ${id}`);
       }
     }
     
     console.warn(`Bill ${id} not found in any Supabase storage bucket`);
     
-    // For debugging - log all available bills that match this pattern
+    // For debugging - try to find any bill that matches this pattern in a larger set
     try {
-      console.log(`DEBUG: Searching for any bill containing ${id}...`);
-      const result = await fetchBillsFromSupabase();
+      console.log(`DEBUG: Searching broadly for any bill containing ${id}...`);
+      const result = await fetchBillsFromSupabase(1, 50);  // Get a larger batch
       const allBills = result.bills;
       const matchingBills = allBills.filter(b => 
         b.id.includes(id) || 
         (b.id.replace(/[^0-9]/g, '') === id) ||
-        (b.data && JSON.stringify(b.data).includes(`"bill_id":"${id}"`))
+        (b.data && JSON.stringify(b.data).includes(`"bill_id":"${id}"`)) ||
+        (b.data && JSON.stringify(b.data).includes(`"bill_id":${id}`))
       );
       
       if (matchingBills.length > 0) {
         console.log(`Found ${matchingBills.length} similar bills:`, 
-          matchingBills.map(b => `ID: ${b.id}, Title: ${b.title}`));
+          matchingBills.map(b => `ID: ${b.id}, Title: ${b.title?.substring(0, 30) || 'No title'}`));
           
         // If exactly one match is found, return it with the requested ID
         if (matchingBills.length === 1) {
@@ -152,7 +176,7 @@ export async function fetchBillByIdFromSupabase(id: string): Promise<Bill | null
           return bill;
         }
       } else {
-        console.log(`No bills found containing ID ${id}`);
+        console.log(`No bills found containing ID ${id} in broader search`);
       }
     } catch (e) {
       console.error(`Error in debug search:`, e);

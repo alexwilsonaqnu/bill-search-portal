@@ -13,7 +13,7 @@ interface BillFooterProps {
 const BillFooter = ({ bill }: BillFooterProps) => {
   const tags = getTags(bill);
   
-  // For numeric-only IDs, preserve the exact format for consistent linking
+  // Always use the bill's exact ID for linking to ensure consistency
   const billId = bill.id;
   
   // Log for debugging

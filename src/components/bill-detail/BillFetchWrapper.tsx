@@ -12,11 +12,25 @@ const BillFetchWrapper = () => {
   // Enhanced logging to help debug ID-related issues
   const isNumericId = id && /^\d+$/.test(id);
   if (isNumericId) {
-    console.log(`URL contains a numeric ID: ${id}. Will try multiple formats.`);
+    console.log(`URL contains a numeric ID: ${id}. This might be a memorial resolution.`);
   }
   
   // Pass the ID directly to the hook
   const { bill, isLoading, isError } = useBillData({ id });
+
+  // Enhanced logging for debugging bill ID issues
+  if (!isLoading) {
+    if (bill) {
+      console.log("Bill data loaded successfully:", {
+        urlId: id,
+        billId: bill.id,
+        title: bill.title?.substring(0, 30) + "...",
+        hasData: !!bill.data
+      });
+    } else {
+      console.warn(`Bill not found with ID: ${id}`);
+    }
+  }
 
   if (isLoading) {
     return <BillDetailLoading />;
@@ -25,15 +39,6 @@ const BillFetchWrapper = () => {
   if (isError || !bill) {
     return <BillDetailError id={id || ""} />;
   }
-
-  // Enhanced logging for debugging bill ID issues
-  console.log("Bill data in BillFetchWrapper:", {
-    id: bill.id,
-    requestedId: id,
-    dataKeys: bill.data ? Object.keys(bill.data) : [],
-    nestedBill: bill.data?.bill ? true : false,
-    billId: bill.data?.bill?.bill_id || bill.data?.bill_id
-  });
 
   return <BillDetailView bill={bill} />;
 };

@@ -1,4 +1,3 @@
-
 import { Bill, SearchResults } from "@/types";
 import { toast } from "sonner";
 import { processResults } from "@/utils/billProcessingUtils";
@@ -80,60 +79,90 @@ export async function fetchBillById(id: string): Promise<Bill | null> {
     
     console.log(`Fetching bill with original ID: ${id}`);
     
+    // Normalize ID format to improve matching
+    let normalizedId = id.trim();
+    
     // Check if we're dealing with a numeric ID (likely a memorial resolution)
-    const isNumericId = /^\d+$/.test(id);
+    const isNumericId = /^\d+$/.test(normalizedId);
+    
     if (isNumericId) {
-      console.log(`ID ${id} appears to be numeric, will try multiple formats`);
+      console.log(`ID ${normalizedId} is numeric, will try all possible formats`);
       
-      // For purely numeric IDs, try first with common prefixes
-      const prefixedIds = ['HR', 'SR', 'HB', 'SB'].map(prefix => `${prefix}${id}`);
-      
-      // First try the original numeric ID
+      // Try with the original numeric ID first
       try {
-        console.log(`Trying original numeric ID: ${id}`);
-        const bill = await fetchBillByIdFromSupabase(id);
+        console.log(`Trying with original numeric ID: ${normalizedId}`);
+        const bill = await fetchBillByIdFromSupabase(normalizedId);
         if (bill) {
-          console.log(`Found bill with numeric ID: ${id}`);
+          console.log(`Found bill with numeric ID: ${normalizedId}`);
           return bill;
         }
       } catch (error) {
-        console.warn(`Bill not found with numeric ID: ${id}`);
+        console.log(`No bill found with exact numeric ID: ${normalizedId}`);
       }
       
-      // Try each prefix if original ID failed
-      for (const prefixedId of prefixedIds) {
+      // Try with common bill prefixes
+      const prefixes = ['HR', 'SR', 'HB', 'SB', 'HJR', 'SJR', 'HCR', 'SCR'];
+      for (const prefix of prefixes) {
+        const prefixedId = `${prefix}${normalizedId}`;
         try {
-          console.log(`Trying prefixed ID: ${prefixedId}`);
+          console.log(`Trying with prefixed ID: ${prefixedId}`);
           const bill = await fetchBillByIdFromSupabase(prefixedId);
           if (bill) {
             console.log(`Found bill with prefixed ID: ${prefixedId}`);
-            // Preserve the requested ID for consistency in the UI
-            bill.id = id;
+            // Keep the original ID for UI consistency
+            bill.id = normalizedId;
             return bill;
           }
         } catch (error) {
-          console.warn(`Bill not found with ID: ${prefixedId}`);
+          console.log(`No bill found with ID: ${prefixedId}`);
         }
       }
       
-      console.warn(`No bill found for numeric ID ${id} with any prefix`);
-      toast.error(`Bill ${id} not found in any data source`);
-      return null;
-    }
-    
-    // For non-numeric IDs, try direct lookup
-    try {
-      const bill = await fetchBillByIdFromSupabase(id);
-      if (bill) {
-        console.log(`Found bill with exact ID match: ${bill.id}`);
-        return bill;
+      // Try to find any bill containing this numeric ID in its content
+      console.log(`Trying to find bill containing ID ${normalizedId} in content`);
+      try {
+        const { bills } = await fetchBills("", 1, 100);  // Get a larger batch of bills
+        
+        const matchingBill = bills.find(bill => {
+          return bill.id.includes(normalizedId) || 
+                 JSON.stringify(bill.data || {}).includes(`"bill_id":"${normalizedId}"`) ||
+                 JSON.stringify(bill.data || {}).includes(`"bill_id":${normalizedId}`);
+        });
+        
+        if (matchingBill) {
+          console.log(`Found bill containing ID ${normalizedId} in content: ${matchingBill.id}`);
+          // Keep the original ID for UI consistency
+          matchingBill.id = normalizedId;
+          return matchingBill;
+        }
+      } catch (error) {
+        console.error(`Error searching for bill with ID ${normalizedId} in content:`, error);
       }
-    } catch (error) {
-      console.error(`Error in fetchBillById ${id}:`, error);
-      toast.error(`Error fetching bill ${id}`);
-      throw error;
+    } else {
+      // For non-numeric IDs, try variations
+      const variations = [
+        normalizedId,
+        normalizedId.toUpperCase(),
+        normalizedId.toLowerCase()
+      ];
+      
+      for (const variant of variations) {
+        try {
+          console.log(`Trying with ID variant: ${variant}`);
+          const bill = await fetchBillByIdFromSupabase(variant);
+          if (bill) {
+            console.log(`Found bill with ID variant: ${variant}`);
+            bill.id = normalizedId; // Keep the original ID for UI consistency
+            return bill;
+          }
+        } catch (error) {
+          console.log(`No bill found with ID variant: ${variant}`);
+        }
+      }
     }
     
+    console.warn(`Bill ${normalizedId} not found with any approach`);
+    toast.error(`Bill ${normalizedId} not found in any data source`);
     return null;
   } catch (error) {
     console.error(`Error in fetchBillById ${id}:`, error);
