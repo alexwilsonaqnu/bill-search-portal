@@ -50,7 +50,7 @@ export const useSupabaseStatus = () => {
           // Count files in the main bucket path
           const mainPathCount = await countFilesInBucket(BILL_STORAGE_BUCKET, BILL_STORAGE_PATH);
           
-          // Check all paths for files
+          // Check path for files
           let fullStorageStatus = `Storage connected, buckets: ${bucketNames.join(', ')}\n`;
           fullStorageStatus += `\n⭐ MAIN BUCKET: ${BILL_STORAGE_BUCKET}\n`;
           
@@ -70,16 +70,6 @@ export const useSupabaseStatus = () => {
             }
           } else {
             fullStorageStatus += `  📂 ${BILL_STORAGE_PATH}: No files found\n`;
-            
-            // Check alternative paths
-            for (const path of ALTERNATIVE_PATHS) {
-              const count = await countFilesInBucket(BILL_STORAGE_BUCKET, path);
-              if (count > 0) {
-                fullStorageStatus += `  📂 ${path}: ${count} files found\n`;
-              } else {
-                fullStorageStatus += `  📂 ${path}: No files found\n`;
-              }
-            }
           }
           
           setStorageStatus(fullStorageStatus);

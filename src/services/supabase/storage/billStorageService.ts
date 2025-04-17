@@ -1,3 +1,4 @@
+
 import { Bill } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
 import { BILL_STORAGE_BUCKET, BILL_STORAGE_PATH, ALTERNATIVE_PATHS, MAX_BILLS_TO_PROCESS } from "../storageConfig";
@@ -13,7 +14,9 @@ export async function fetchBillsFromStorage(page = 1, pageSize = 10): Promise<{ 
   
   let allBills: Bill[] = [];
   let totalFiles = 0;
-  const pathsToSearch = [BILL_STORAGE_PATH, ...ALTERNATIVE_PATHS];
+  
+  // Only use the main path and avoid looping through alternative paths
+  const pathsToSearch = [BILL_STORAGE_PATH];
   
   // Try each path and combine results
   for (const path of pathsToSearch) {
@@ -106,7 +109,7 @@ async function supabaseListWithPagination(bucketName: string, folderPath: string
 
 /**
  * Fetches a specific bill by ID from storage
- * Enhanced to search across multiple paths
+ * Simplified to only search in the main path
  */
 export async function fetchBillByIdFromStorage(id: string, specialPath?: string): Promise<Bill | null> {
   // Try different possible file extensions/formats
@@ -136,8 +139,8 @@ export async function fetchBillByIdFromStorage(id: string, specialPath?: string)
     }
   }
   
-  // First try the special path if provided, otherwise try all paths
-  const pathsToSearch = specialPath ? [specialPath] : [BILL_STORAGE_PATH, ...ALTERNATIVE_PATHS];
+  // First try the special path if provided, otherwise use the main path
+  const pathsToSearch = specialPath ? [specialPath] : [BILL_STORAGE_PATH];
   
   for (const path of pathsToSearch) {
     for (const fileName of possibleFileNames) {
