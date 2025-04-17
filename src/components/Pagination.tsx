@@ -83,7 +83,7 @@ const Pagination = ({ currentPage, totalPages, onPageChange }: PaginationProps) 
           max={totalPages}
           value={jumpToPage}
           onChange={(e) => setJumpToPage(e.target.value)}
-          placeholder="Page number"
+          placeholder="Page"
           className="w-24 h-8 text-sm"
         />
         <Button 
