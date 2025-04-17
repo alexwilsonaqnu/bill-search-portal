@@ -1,4 +1,3 @@
-
 import { Bill } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
 import { BILL_STORAGE_BUCKET, BILL_STORAGE_PATH, ALTERNATIVE_PATHS, MAX_BILLS_TO_PROCESS } from "../storageConfig";
@@ -10,7 +9,7 @@ import { toast } from "sonner";
  * Fetches bill files from storage with pagination
  */
 export async function fetchBillsFromStorage(page = 1, pageSize = 10): Promise<{ storageBills: Bill[], totalCount: number }> {
-  console.log(`Trying to fetch bills from bucket: ${BILL_STORAGE_BUCKET}, page: ${page}, pageSize: ${pageSize}`);
+  console.log(`Trying to fetch bills from bucket: ${BILL_STORAGE_BUCKET}, path: ${BILL_STORAGE_PATH}, page: ${page}, pageSize: ${pageSize}`);
   
   let allBills: Bill[] = [];
   let totalFiles = 0;

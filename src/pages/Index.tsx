@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -21,10 +20,9 @@ const Index = () => {
     queryKey: ["bills", query, currentPage],
     queryFn: () => fetchBills(query, currentPage),
     staleTime: 5 * 60 * 1000, // 5 minutes
-    placeholderData: keepPrevious => keepPrevious,  // Fixed: use proper function syntax
+    placeholderData: (previousData) => previousData,
   });
 
-  // Log detailed information about available data for debugging
   console.log("Index page - Data status:", {
     isLoading,
     hasError: !!error,
