@@ -7,7 +7,7 @@ import { fetchBillsFromStorage, fetchBillByIdFromStorage } from "./supabase/stor
 /**
  * Fetches bills from Supabase with pagination support
  */
-export async function fetchBillsFromSupabase(page = 1, pageSize = 10) {
+export async function fetchBillsFromSupabase(page = 1, pageSize = 10): Promise<{ bills: Bill[], totalCount: number }> {
   try {
     console.log(`Fetching bills from Supabase... Page: ${page}, PageSize: ${pageSize}`);
     
@@ -133,7 +133,8 @@ export async function fetchBillByIdFromSupabase(id: string): Promise<Bill | null
     // For debugging - log all available bills that match this pattern
     try {
       console.log(`DEBUG: Searching for any bill containing ${id}...`);
-      const allBills = await fetchBillsFromSupabase();
+      const result = await fetchBillsFromSupabase();
+      const allBills = result.bills;
       const matchingBills = allBills.filter(b => 
         b.id.includes(id) || 
         (b.id.replace(/[^0-9]/g, '') === id) ||

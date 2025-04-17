@@ -19,7 +19,7 @@ export async function fetchBills(
     // Check if we have a search query - if so, we'll need to fetch all and filter
     if (query) {
       console.log(`Search query detected, fetching all bills to filter by: "${query}"`);
-      const bills = await fetchBillsFromSupabase();
+      const { bills, totalCount } = await fetchBillsFromSupabase();
       
       console.log(`Raw bills data fetched:`, {
         count: bills?.length || 0,

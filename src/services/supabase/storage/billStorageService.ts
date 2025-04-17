@@ -158,7 +158,9 @@ export async function fetchBillByIdFromStorage(id: string, specialPath?: string)
     console.log(`Numeric ID ${id} not found in standard locations, will look for it in bill content`);
     try {
       // Get all bills from storage
-      const allBills = await fetchBillsFromStorage();
+      const result = await fetchBillsFromStorage();
+      const allBills = result.storageBills;
+      
       // Look for any bill that might have this numeric ID in its data
       const matchingBill = allBills.find(bill => {
         // Check if data contains this numeric ID
