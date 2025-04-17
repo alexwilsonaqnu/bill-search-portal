@@ -1,7 +1,10 @@
+
 import { Bill } from "@/types";
 import { toast } from "sonner";
 import { fetchBillsFromDatabase, fetchBillByIdFromDatabase } from "./supabase/dbService";
 import { fetchBillsFromStorage, fetchBillByIdFromStorage } from "./supabase/storageService";
+import { supabase } from "@/integrations/supabase/client";
+import { transformSupabaseBill } from "@/utils/billTransformUtils";
 
 /**
  * Fetches bills from Supabase with pagination support
