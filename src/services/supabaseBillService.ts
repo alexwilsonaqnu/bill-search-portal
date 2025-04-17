@@ -43,23 +43,61 @@ export async function fetchBillsFromSupabase(page = 1, pageSize = 10): Promise<{
  */
 export async function fetchBillByIdFromSupabase(id: string): Promise<Bill | null> {
   try {
-    const { data, error } = await supabase
-      .from('bills')
-      .select('*')
-      .eq('id', id)
-      .single();
+    console.log(`Attempting to fetch bill with ID: ${id}`);
     
-    if (error) {
-      console.error(`Error fetching bill ${id}:`, error);
-      return null;
+    // Step 1: First try fetching from the database table
+    const dbBill = await fetchBillByIdFromDatabase(id);
+    if (dbBill) {
+      console.log(`Found bill ${id} in database table`);
+      return dbBill;
     }
     
-    if (!data) {
-      console.log(`No bill found with ID: ${id}`);
-      return null;
+    // Step 2: If not in database, try fetching from storage
+    console.log(`Bill ${id} not found in database table, trying storage...`);
+    const storageBill = await fetchBillByIdFromStorage(id);
+    if (storageBill) {
+      console.log(`Found bill ${id} in storage`);
+      return storageBill;
     }
     
-    return transformSupabaseBill(data);
+    // Try as a fallback with direct query if the id is numeric (for memorial resolutions)
+    const isNumeric = /^\d+$/.test(id);
+    if (isNumeric) {
+      console.log(`Trying direct database query for numeric ID: ${id}`);
+      try {
+        const { data, error } = await supabase
+          .from('bills')
+          .select('*')
+          .eq('id', id)
+          .single();
+        
+        if (data && !error) {
+          console.log(`Found bill with numeric ID ${id} in database via direct query`);
+          return transformSupabaseBill(data);
+        }
+      } catch (e) {
+        console.log(`Direct query attempt failed for numeric ID ${id}`);
+      }
+      
+      // As a last resort, try to fetch all bills and find by ID
+      console.log(`Last resort: Fetching all bills to find numeric ID ${id}`);
+      try {
+        const { bills } = await fetchBillsFromSupabase(1, 50);
+        const foundBill = bills.find(b => b.id === id || 
+                                     b.id.toString() === id || 
+                                     (b.data && b.data.bill_id === id));
+        
+        if (foundBill) {
+          console.log(`Found bill ${id} in full bill collection`);
+          return foundBill;
+        }
+      } catch (e) {
+        console.error(`Failed to search all bills for ID ${id}:`, e);
+      }
+    }
+    
+    console.warn(`Bill ${id} not found in any location`);
+    return null;
   } catch (error) {
     console.error(`Error in fetchBillByIdFromSupabase ${id}:`, error);
     throw error;

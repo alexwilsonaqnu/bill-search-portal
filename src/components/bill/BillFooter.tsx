@@ -13,6 +13,20 @@ interface BillFooterProps {
 const BillFooter = ({ bill }: BillFooterProps) => {
   const tags = getTags(bill);
   
+  // Ensure we have a valid ID for the link
+  const billId = bill.id || '';
+  
+  // Add logging to help debug bill ID issues
+  const handleViewDetails = () => {
+    console.log(`Viewing bill details for ID: ${billId}`, {
+      billData: {
+        id: billId,
+        title: bill.title?.substring(0, 30) + "...",
+        hasData: !!bill.data
+      }
+    });
+  };
+  
   return (
     <div className="flex items-center justify-between flex-wrap gap-y-2">
       <div className="flex flex-wrap gap-2">
@@ -23,7 +37,7 @@ const BillFooter = ({ bill }: BillFooterProps) => {
         ))}
       </div>
       
-      <Link to={`/bill/${bill.id}`} className="inline-block">
+      <Link to={`/bill/${billId}`} className="inline-block" onClick={handleViewDetails}>
         <Button size="sm" variant="ghost" className="text-xs">
           View Details
         </Button>
