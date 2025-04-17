@@ -47,7 +47,7 @@ export async function fetchBillByIdFromSupabase(id: string): Promise<Bill | null
     // Check if we're dealing with a numeric ID (likely a memorial resolution)
     const isNumericId = /^\d+$/.test(id);
     if (isNumericId) {
-      console.log(`ID ${id} appears to be a memorial resolution or numeric ID`);
+      console.log(`ID ${id} appears to be a numeric ID (possibly memorial resolution)`);
     }
     
     // First try to fetch from the database table with exact ID
@@ -61,7 +61,7 @@ export async function fetchBillByIdFromSupabase(id: string): Promise<Bill | null
     // If it's a numeric ID, try common prefixes
     if (isNumericId) {
       console.log(`Trying to find numeric ID ${id} with common prefixes...`);
-      const prefixes = ['HB', 'SB', 'HR', 'SR', 'HJR', 'SJR', 'HCR', 'SCR'];
+      const prefixes = ['HR', 'SR', 'HB', 'SB', 'HJR', 'SJR', 'HCR', 'SCR'];
       
       for (const prefix of prefixes) {
         const prefixedId = `${prefix}${id}`;
@@ -70,7 +70,6 @@ export async function fetchBillByIdFromSupabase(id: string): Promise<Bill | null
         if (prefixedBill) {
           console.log(`Found bill with ID ${prefixedId} in database`);
           // Make sure the returned bill has the requested ID format
-          // Keep the original ID to maintain link consistency
           prefixedBill.id = id;
           return prefixedBill;
         }
@@ -90,7 +89,7 @@ export async function fetchBillByIdFromSupabase(id: string): Promise<Bill | null
     
     // If it's a numeric ID, try common prefixes for storage as well
     if (isNumericId) {
-      const prefixes = ['HB', 'SB', 'HR', 'SR', 'HJR', 'SJR', 'HCR', 'SCR'];
+      const prefixes = ['HR', 'SR', 'HB', 'SB', 'HJR', 'SJR', 'HCR', 'SCR'];
       for (const prefix of prefixes) {
         const prefixedId = `${prefix}${id}`;
         console.log(`Trying storage with prefix: ${prefixedId}`);

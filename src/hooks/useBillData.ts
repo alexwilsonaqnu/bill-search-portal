@@ -19,8 +19,13 @@ interface UseBillDataResult {
  * Custom hook to fetch bill data by ID
  */
 export function useBillData({ id }: UseBillDataProps): UseBillDataResult {
-  // Don't normalize the ID here, pass it as-is to the service
   console.log(`useBillData hook received ID: ${id}`);
+  
+  // Determine if it's a numeric ID for better logging
+  const isNumericId = id && /^\d+$/.test(id);
+  if (isNumericId) {
+    console.log(`Numeric bill ID detected: ${id}`);
+  }
   
   const { 
     data: bill, 

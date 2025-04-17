@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { Bill } from "@/types";
 import { getTags } from "@/utils/billCardUtils";
-import { normalizeBillId } from "@/utils/billTransformUtils";
 
 interface BillFooterProps {
   bill: Bill;
@@ -14,9 +13,11 @@ interface BillFooterProps {
 const BillFooter = ({ bill }: BillFooterProps) => {
   const tags = getTags(bill);
   
-  // Get the original bill ID without normalization for the link
-  // This ensures we're using the exact ID as stored in the database
+  // For numeric-only IDs, preserve the exact format for consistent linking
   const billId = bill.id;
+  
+  // Log for debugging
+  console.log(`BillFooter: Linking to bill ID: ${billId}`);
   
   return (
     <div className="flex items-center justify-between flex-wrap gap-y-2">

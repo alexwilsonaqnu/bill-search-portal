@@ -9,8 +9,13 @@ const BillFetchWrapper = () => {
   const { id } = useParams<{ id: string }>();
   console.log(`Fetching bill with ID from URL: ${id}`);
   
-  // Pass the ID directly without normalizing it first
-  // The normalization will happen inside the hook if needed
+  // Enhanced logging to help debug ID-related issues
+  const isNumericId = id && /^\d+$/.test(id);
+  if (isNumericId) {
+    console.log(`URL contains a numeric ID: ${id}. Will try multiple formats.`);
+  }
+  
+  // Pass the ID directly to the hook
   const { bill, isLoading, isError } = useBillData({ id });
 
   if (isLoading) {

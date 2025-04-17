@@ -80,51 +80,60 @@ export async function fetchBillById(id: string): Promise<Bill | null> {
     
     console.log(`Fetching bill with original ID: ${id}`);
     
-    // Try to fetch directly with the original ID first
-    try {
-      const bill = await fetchBillByIdFromSupabase(id);
-      if (bill) {
-        console.log(`Found bill in Supabase with exact ID match: ${bill.id}`);
-        return bill;
-      }
-    } catch (error) {
-      console.warn(`Could not find bill with exact ID: ${id}. Will try alternative approaches.`);
-      // Continue to other approaches
-    }
-    
-    // If original ID didn't work, try with different ID formats
-    // Try without any normalization first
-    const alternativeFormats = [
-      id,
-      id.toUpperCase(),
-      id.toLowerCase(),
-      // For numeric only IDs, try with common prefixes
-      ...(/^\d+$/.test(id) ? ['HB', 'SB', 'HR', 'SR'].map(prefix => `${prefix}${id}`) : [])
-    ];
-    
-    console.log(`Trying alternative ID formats: ${alternativeFormats.join(', ')}`);
-    
-    // Try each alternative format
-    for (const format of alternativeFormats) {
-      if (format === id) continue; // Skip if it's the original ID (already tried)
+    // Check if we're dealing with a numeric ID (likely a memorial resolution)
+    const isNumericId = /^\d+$/.test(id);
+    if (isNumericId) {
+      console.log(`ID ${id} appears to be numeric, will try multiple formats`);
       
+      // For purely numeric IDs, try first with common prefixes
+      const prefixedIds = ['HR', 'SR', 'HB', 'SB'].map(prefix => `${prefix}${id}`);
+      
+      // First try the original numeric ID
       try {
-        const bill = await fetchBillByIdFromSupabase(format);
+        console.log(`Trying original numeric ID: ${id}`);
+        const bill = await fetchBillByIdFromSupabase(id);
         if (bill) {
-          console.log(`Found bill using alternative format: ${format}`);
-          // Make sure the returned bill shows the ID that was requested
-          bill.id = id;
+          console.log(`Found bill with numeric ID: ${id}`);
           return bill;
         }
       } catch (error) {
-        console.warn(`No match found for ID format: ${format}`);
-        // Continue to the next format
+        console.warn(`Bill not found with numeric ID: ${id}`);
       }
+      
+      // Try each prefix if original ID failed
+      for (const prefixedId of prefixedIds) {
+        try {
+          console.log(`Trying prefixed ID: ${prefixedId}`);
+          const bill = await fetchBillByIdFromSupabase(prefixedId);
+          if (bill) {
+            console.log(`Found bill with prefixed ID: ${prefixedId}`);
+            // Preserve the requested ID for consistency in the UI
+            bill.id = id;
+            return bill;
+          }
+        } catch (error) {
+          console.warn(`Bill not found with ID: ${prefixedId}`);
+        }
+      }
+      
+      console.warn(`No bill found for numeric ID ${id} with any prefix`);
+      toast.error(`Bill ${id} not found in any data source`);
+      return null;
     }
     
-    // Bill not found with any ID format
-    console.log(`No matching bill found for ID: ${id} or any alternative formats`);
-    toast.error(`Bill ${id} not found in any data source`);
+    // For non-numeric IDs, try direct lookup
+    try {
+      const bill = await fetchBillByIdFromSupabase(id);
+      if (bill) {
+        console.log(`Found bill with exact ID match: ${bill.id}`);
+        return bill;
+      }
+    } catch (error) {
+      console.error(`Error in fetchBillById ${id}:`, error);
+      toast.error(`Error fetching bill ${id}`);
+      throw error;
+    }
+    
     return null;
   } catch (error) {
     console.error(`Error in fetchBillById ${id}:`, error);
