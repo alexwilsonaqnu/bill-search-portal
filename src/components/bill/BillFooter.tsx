@@ -13,12 +13,6 @@ interface BillFooterProps {
 const BillFooter = ({ bill }: BillFooterProps) => {
   const tags = getTags(bill);
   
-  // Always use the bill's exact ID for linking to ensure consistency
-  const billId = bill.id;
-  
-  // Log for debugging
-  console.log(`BillFooter: Linking to bill ID: ${billId}`);
-  
   return (
     <div className="flex items-center justify-between flex-wrap gap-y-2">
       <div className="flex flex-wrap gap-2">
@@ -29,7 +23,7 @@ const BillFooter = ({ bill }: BillFooterProps) => {
         ))}
       </div>
       
-      <Link to={`/bill/${billId}`} className="inline-block">
+      <Link to={`/bill/${bill.id}`} className="inline-block">
         <Button size="sm" variant="ghost" className="text-xs">
           View Details
         </Button>

@@ -69,7 +69,7 @@ export async function fetchBills(
 }
 
 /**
- * Fetches a bill by ID from Supabase with enhanced ID handling
+ * Fetches a bill by ID from Supabase
  */
 export async function fetchBillById(id: string): Promise<Bill | null> {
   try {
@@ -77,95 +77,18 @@ export async function fetchBillById(id: string): Promise<Bill | null> {
       throw new Error("Bill ID is required");
     }
     
-    console.log(`Fetching bill with original ID: ${id}`);
+    console.log(`Fetching bill with ID: ${id}`);
+    const bill = await fetchBillByIdFromSupabase(id);
     
-    // Normalize ID format to improve matching
-    let normalizedId = id.trim();
-    
-    // Check if we're dealing with a numeric ID (likely a memorial resolution)
-    const isNumericId = /^\d+$/.test(normalizedId);
-    
-    if (isNumericId) {
-      console.log(`ID ${normalizedId} is numeric, will try all possible formats`);
-      
-      // Try with the original numeric ID first
-      try {
-        console.log(`Trying with original numeric ID: ${normalizedId}`);
-        const bill = await fetchBillByIdFromSupabase(normalizedId);
-        if (bill) {
-          console.log(`Found bill with numeric ID: ${normalizedId}`);
-          return bill;
-        }
-      } catch (error) {
-        console.log(`No bill found with exact numeric ID: ${normalizedId}`);
-      }
-      
-      // Try with common bill prefixes
-      const prefixes = ['HR', 'SR', 'HB', 'SB', 'HJR', 'SJR', 'HCR', 'SCR'];
-      for (const prefix of prefixes) {
-        const prefixedId = `${prefix}${normalizedId}`;
-        try {
-          console.log(`Trying with prefixed ID: ${prefixedId}`);
-          const bill = await fetchBillByIdFromSupabase(prefixedId);
-          if (bill) {
-            console.log(`Found bill with prefixed ID: ${prefixedId}`);
-            // Keep the original ID for UI consistency
-            bill.id = normalizedId;
-            return bill;
-          }
-        } catch (error) {
-          console.log(`No bill found with ID: ${prefixedId}`);
-        }
-      }
-      
-      // Try to find any bill containing this numeric ID in its content
-      console.log(`Trying to find bill containing ID ${normalizedId} in content`);
-      try {
-        const { bills } = await fetchBills("", 1, 100);  // Get a larger batch of bills
-        
-        const matchingBill = bills.find(bill => {
-          return bill.id.includes(normalizedId) || 
-                 JSON.stringify(bill.data || {}).includes(`"bill_id":"${normalizedId}"`) ||
-                 JSON.stringify(bill.data || {}).includes(`"bill_id":${normalizedId}`);
-        });
-        
-        if (matchingBill) {
-          console.log(`Found bill containing ID ${normalizedId} in content: ${matchingBill.id}`);
-          // Keep the original ID for UI consistency
-          matchingBill.id = normalizedId;
-          return matchingBill;
-        }
-      } catch (error) {
-        console.error(`Error searching for bill with ID ${normalizedId} in content:`, error);
-      }
-    } else {
-      // For non-numeric IDs, try variations
-      const variations = [
-        normalizedId,
-        normalizedId.toUpperCase(),
-        normalizedId.toLowerCase()
-      ];
-      
-      for (const variant of variations) {
-        try {
-          console.log(`Trying with ID variant: ${variant}`);
-          const bill = await fetchBillByIdFromSupabase(variant);
-          if (bill) {
-            console.log(`Found bill with ID variant: ${variant}`);
-            bill.id = normalizedId; // Keep the original ID for UI consistency
-            return bill;
-          }
-        } catch (error) {
-          console.log(`No bill found with ID variant: ${variant}`);
-        }
-      }
+    if (!bill) {
+      console.warn(`Bill ${id} not found`);
+      toast.error(`Bill ${id} not found`);
+      return null;
     }
     
-    console.warn(`Bill ${normalizedId} not found with any approach`);
-    toast.error(`Bill ${normalizedId} not found in any data source`);
-    return null;
+    return bill;
   } catch (error) {
-    console.error(`Error in fetchBillById ${id}:`, error);
+    console.error(`Error fetching bill ${id}:`, error);
     toast.error(`Error fetching bill ${id}`);
     throw error;
   }
