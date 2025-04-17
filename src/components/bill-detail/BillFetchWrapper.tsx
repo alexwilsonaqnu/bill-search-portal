@@ -4,34 +4,30 @@ import { useBillData } from "@/hooks/useBillData";
 import BillDetailView from "./BillDetailView";
 import BillDetailLoading from "./BillDetailLoading";
 import BillDetailError from "./BillDetailError";
-import { normalizeBillId } from "@/utils/billTransformUtils";
 
 const BillFetchWrapper = () => {
   const { id } = useParams<{ id: string }>();
-  // Normalize the ID from the URL to ensure consistent lookup
-  const normalizedId = id ? normalizeBillId(id) : "";
-  console.log(`Fetching bill with ID from URL: ${id}, normalized to: ${normalizedId}`);
+  console.log(`Fetching bill with ID from URL: ${id}`);
   
-  // Pass the normalized ID to the hook for fetching
-  const { bill, isLoading, isError } = useBillData({ id: normalizedId });
+  // Pass the ID directly without normalizing it first
+  // The normalization will happen inside the hook if needed
+  const { bill, isLoading, isError } = useBillData({ id });
 
   if (isLoading) {
     return <BillDetailLoading />;
   }
 
   if (isError || !bill) {
-    return <BillDetailError id={normalizedId || id || ""} />;
+    return <BillDetailError id={id || ""} />;
   }
 
   // Enhanced logging for debugging bill ID issues
   console.log("Bill data in BillFetchWrapper:", {
     id: bill.id,
+    requestedId: id,
     dataKeys: bill.data ? Object.keys(bill.data) : [],
-    // Check if bill.data.bill exists (nested structure)
     nestedBill: bill.data?.bill ? true : false,
-    billId: bill.data?.bill?.bill_id || bill.data?.bill_id,
-    docId: bill.data?.bill?.texts?.[0]?.doc_id || bill.data?.texts?.[0]?.doc_id,
-    requestedId: id
+    billId: bill.data?.bill?.bill_id || bill.data?.bill_id
   });
 
   return <BillDetailView bill={bill} />;

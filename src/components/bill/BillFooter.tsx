@@ -13,8 +13,10 @@ interface BillFooterProps {
 
 const BillFooter = ({ bill }: BillFooterProps) => {
   const tags = getTags(bill);
-  // Make sure we use the normalized ID for the link URL
-  const normalizedId = normalizeBillId(bill.id);
+  
+  // Get the original bill ID without normalization for the link
+  // This ensures we're using the exact ID as stored in the database
+  const billId = bill.id;
   
   return (
     <div className="flex items-center justify-between flex-wrap gap-y-2">
@@ -26,7 +28,7 @@ const BillFooter = ({ bill }: BillFooterProps) => {
         ))}
       </div>
       
-      <Link to={`/bill/${normalizedId}`} className="inline-block">
+      <Link to={`/bill/${billId}`} className="inline-block">
         <Button size="sm" variant="ghost" className="text-xs">
           View Details
         </Button>

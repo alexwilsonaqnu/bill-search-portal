@@ -2,7 +2,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Bill } from "@/types";
 import { fetchBillById } from "@/services/billService";
-import { normalizeBillId } from "@/utils/billTransformUtils";
 import { toast } from "sonner";
 
 interface UseBillDataProps {
@@ -20,9 +19,8 @@ interface UseBillDataResult {
  * Custom hook to fetch bill data by ID
  */
 export function useBillData({ id }: UseBillDataProps): UseBillDataResult {
-  // The ID should already be normalized by BillFetchWrapper, but normalize it again to be safe
-  const normalizedId = id ? normalizeBillId(id) : "";
-  console.log(`useBillData hook received ID: ${id}, normalized: ${normalizedId}`);
+  // Don't normalize the ID here, pass it as-is to the service
+  console.log(`useBillData hook received ID: ${id}`);
   
   const { 
     data: bill, 
@@ -30,9 +28,9 @@ export function useBillData({ id }: UseBillDataProps): UseBillDataResult {
     error, 
     isError 
   } = useQuery({
-    queryKey: ["bill", normalizedId],
-    queryFn: () => fetchBillById(normalizedId),
-    enabled: !!normalizedId,
+    queryKey: ["bill", id],
+    queryFn: () => fetchBillById(id || ""),
+    enabled: !!id,
     retry: 2,
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
@@ -40,9 +38,9 @@ export function useBillData({ id }: UseBillDataProps): UseBillDataResult {
       onSettled: (_data: any, err: any) => {
         if (err) {
           console.error("Bill fetch error:", err);
-          toast.error(`Failed to load bill ${normalizedId}: ${err.message}`);
+          toast.error(`Failed to load bill ${id}: ${err.message}`);
         } else {
-          console.log(`Successfully loaded bill: ${normalizedId}`);
+          console.log(`Successfully loaded bill: ${id}`);
         }
       }
     }

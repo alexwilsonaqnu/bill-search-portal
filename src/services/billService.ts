@@ -3,7 +3,6 @@ import { Bill, SearchResults } from "@/types";
 import { toast } from "sonner";
 import { processResults } from "@/utils/billProcessingUtils";
 import { fetchBillsFromSupabase, fetchBillByIdFromSupabase } from "@/services/supabaseBillService";
-import { normalizeBillId } from "@/utils/billTransformUtils";
 
 /**
  * Fetches bill data from Supabase with pagination support
@@ -71,31 +70,60 @@ export async function fetchBills(
 }
 
 /**
- * Fetches a bill by ID from Supabase
+ * Fetches a bill by ID from Supabase with enhanced ID handling
  */
 export async function fetchBillById(id: string): Promise<Bill | null> {
   try {
-    console.log(`Original bill ID requested: ${id}`);
+    if (!id) {
+      throw new Error("Bill ID is required");
+    }
     
-    // Normalize the ID for consistent lookup
-    const normalizedId = normalizeBillId(id);
-    console.log(`Normalized ID for lookup: ${normalizedId}`);
+    console.log(`Fetching bill with original ID: ${id}`);
     
-    // Try to fetch from Supabase
+    // Try to fetch directly with the original ID first
     try {
-      const bill = await fetchBillByIdFromSupabase(normalizedId);
+      const bill = await fetchBillByIdFromSupabase(id);
       if (bill) {
-        console.log(`Found bill in Supabase: ${bill.id}`);
+        console.log(`Found bill in Supabase with exact ID match: ${bill.id}`);
         return bill;
       }
     } catch (error) {
-      console.error(`Supabase fetch error: ${error}`);
-      toast.error(`Error fetching bill ${id}: ${error instanceof Error ? error.message : String(error)}`);
-      throw error;
+      console.warn(`Could not find bill with exact ID: ${id}. Will try alternative approaches.`);
+      // Continue to other approaches
     }
     
-    // Bill not found
-    console.log(`No matching bill found for ID: ${id}`);
+    // If original ID didn't work, try with different ID formats
+    // Try without any normalization first
+    const alternativeFormats = [
+      id,
+      id.toUpperCase(),
+      id.toLowerCase(),
+      // For numeric only IDs, try with common prefixes
+      ...(/^\d+$/.test(id) ? ['HB', 'SB', 'HR', 'SR'].map(prefix => `${prefix}${id}`) : [])
+    ];
+    
+    console.log(`Trying alternative ID formats: ${alternativeFormats.join(', ')}`);
+    
+    // Try each alternative format
+    for (const format of alternativeFormats) {
+      if (format === id) continue; // Skip if it's the original ID (already tried)
+      
+      try {
+        const bill = await fetchBillByIdFromSupabase(format);
+        if (bill) {
+          console.log(`Found bill using alternative format: ${format}`);
+          // Make sure the returned bill shows the ID that was requested
+          bill.id = id;
+          return bill;
+        }
+      } catch (error) {
+        console.warn(`No match found for ID format: ${format}`);
+        // Continue to the next format
+      }
+    }
+    
+    // Bill not found with any ID format
+    console.log(`No matching bill found for ID: ${id} or any alternative formats`);
     toast.error(`Bill ${id} not found in any data source`);
     return null;
   } catch (error) {
