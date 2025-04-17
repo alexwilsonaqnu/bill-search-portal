@@ -27,27 +27,44 @@ export function useBillData({ id }: UseBillDataProps): UseBillDataResult {
     console.log(`Numeric bill ID detected: ${id}`);
   }
   
+  // Try to find alternative ID in local cache
+  let lookupId = id;
+  try {
+    const cacheData = localStorage.getItem('billIdCache');
+    if (cacheData && id) {
+      const billCache = JSON.parse(cacheData);
+      
+      // If this ID is in the cache and has a different original ID, use that instead
+      if (billCache[id] && billCache[id].isAlternate) {
+        lookupId = billCache[id].id;
+        console.log(`Using original bill ID ${lookupId} from cache instead of ${id}`);
+      }
+    }
+  } catch (e) {
+    console.warn("Error checking bill cache:", e);
+  }
+  
   const { 
     data: bill, 
     isLoading, 
     error, 
     isError 
   } = useQuery({
-    queryKey: ["bill", id],
+    queryKey: ["bill", lookupId],
     queryFn: async () => {
-      if (!id) throw new Error("Bill ID is required");
-      console.log(`Fetching bill data for ID: ${id}`);
-      const result = await fetchBillById(id);
+      if (!lookupId) throw new Error("Bill ID is required");
+      console.log(`Fetching bill data for ID: ${lookupId}`);
+      const result = await fetchBillById(lookupId);
       
       if (!result) {
-        console.warn(`No bill found with ID: ${id}`);
+        console.warn(`No bill found with ID: ${lookupId}`);
         // Instead of throwing, return null so we can handle this in the UI
         return null;
       }
       
       return result;
     },
-    enabled: !!id,
+    enabled: !!lookupId,
     retry: 2,
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false
@@ -55,13 +72,13 @@ export function useBillData({ id }: UseBillDataProps): UseBillDataResult {
 
   // Additional logging when bill data changes
   if (bill && !isLoading) {
-    console.log(`Bill data for ${id}:`, {
+    console.log(`Bill data for ${lookupId}:`, {
       id: bill.id,
       title: bill.title?.substring(0, 30) + "...",
       dataPresent: !!bill.data
     });
   } else if (!bill && !isLoading && !isError) {
-    console.warn(`No bill data returned for ID: ${id}`);
+    console.warn(`No bill data returned for ID: ${lookupId}`);
   }
 
   return {

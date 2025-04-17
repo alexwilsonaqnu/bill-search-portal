@@ -25,6 +25,31 @@ const BillFooter = ({ bill }: BillFooterProps) => {
         hasData: !!bill.data
       }
     });
+    
+    // Store individual bill in localStorage for improved reliability
+    try {
+      localStorage.setItem(`bill_${billId}`, JSON.stringify(bill));
+      console.log(`Stored bill ${billId} in localStorage for backup retrieval`);
+      
+      // If this bill has a Legiscan bill_id that's different, store an ID mapping
+      const billData = bill.data?.bill || bill.data;
+      if (billData?.bill_id && billData.bill_id.toString() !== billId) {
+        const legiscanId = billData.bill_id.toString();
+        console.log(`Storing alternate ID mapping: ${legiscanId} -> ${billId}`);
+        
+        // Get or initialize the mappings object
+        const existingMappings = localStorage.getItem('billIdMappings') || '{}';
+        const mappings = JSON.parse(existingMappings);
+        
+        // Add the mapping both ways
+        mappings[legiscanId] = billId;
+        mappings[billId] = legiscanId;
+        
+        localStorage.setItem('billIdMappings', JSON.stringify(mappings));
+      }
+    } catch (e) {
+      console.warn("Failed to store bill in localStorage:", e);
+    }
   };
   
   return (

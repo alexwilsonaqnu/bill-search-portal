@@ -18,6 +18,10 @@ export async function fetchBillsFromSupabase(page = 1, pageSize = 10): Promise<{
     
     if (tableData && tableData.length > 0) {
       console.log(`Found ${tableData.length} bills in database table (page ${page}/${Math.ceil(totalCount/pageSize)})`);
+      
+      // Store bill IDs in local storage for easier lookup
+      storeBillIdsInLocalCache(tableData);
+      
       return { bills: tableData, totalCount };
     }
     
@@ -27,6 +31,9 @@ export async function fetchBillsFromSupabase(page = 1, pageSize = 10): Promise<{
     const { storageBills, totalCount: storageCount } = await fetchBillsFromStorage(page, pageSize);
     
     if (storageBills.length > 0) {
+      // Store bill IDs in local storage for easier lookup
+      storeBillIdsInLocalCache(storageBills);
+      
       toast.success(`Loaded ${storageBills.length} bills from Supabase storage`);
       return { bills: storageBills, totalCount: storageCount };
     }
@@ -39,11 +46,63 @@ export async function fetchBillsFromSupabase(page = 1, pageSize = 10): Promise<{
 }
 
 /**
+ * Helper function to store bill IDs in local storage for easier lookup
+ * This helps with the connection between list view and detail view
+ */
+function storeBillIdsInLocalCache(bills: Bill[]) {
+  try {
+    // Get existing bill IDs from local storage or initialize as empty object
+    const existingData = localStorage.getItem('billIdCache');
+    const billIdCache = existingData ? JSON.parse(existingData) : {};
+    
+    // Add each bill to the cache with normalized IDs
+    bills.forEach(bill => {
+      // Store with original ID as key
+      billIdCache[bill.id] = {
+        id: bill.id,
+        title: bill.title?.substring(0, 30) + "...",
+        altIds: []
+      };
+      
+      // Add alternate IDs if available in bill data
+      const billData = bill.data?.bill || bill.data;
+      if (billData?.bill_id) {
+        const legiscanId = billData.bill_id.toString();
+        if (legiscanId !== bill.id) {
+          billIdCache[bill.id].altIds.push(legiscanId);
+          // Also add as a key in the cache
+          billIdCache[legiscanId] = {
+            id: bill.id,  // Store the original ID
+            title: bill.title?.substring(0, 30) + "...",
+            isAlternate: true
+          };
+        }
+      }
+    });
+    
+    // Save back to local storage
+    localStorage.setItem('billIdCache', JSON.stringify(billIdCache));
+    console.log(`Stored ${bills.length} bill IDs in local cache for faster lookup`);
+  } catch (error) {
+    console.warn("Failed to store bill IDs in local storage:", error);
+    // Non-critical error, continue without storing
+  }
+}
+
+/**
  * Fetches a specific bill by ID from Supabase
  */
 export async function fetchBillByIdFromSupabase(id: string): Promise<Bill | null> {
   try {
     console.log(`Attempting to fetch bill with ID: ${id}`);
+    
+    // Check local cache first for faster lookup and alternate IDs
+    const billFromCache = checkBillCache(id);
+    if (billFromCache && billFromCache.originalId && billFromCache.originalId !== id) {
+      console.log(`Found alternate ID in cache. Original ID: ${billFromCache.originalId}`);
+      // Use the original ID from the cache instead
+      id = billFromCache.originalId;
+    }
     
     // Step 1: First try fetching from the database table
     const dbBill = await fetchBillByIdFromDatabase(id);
@@ -83,9 +142,12 @@ export async function fetchBillByIdFromSupabase(id: string): Promise<Bill | null
       console.log(`Last resort: Fetching all bills to find numeric ID ${id}`);
       try {
         const { bills } = await fetchBillsFromSupabase(1, 50);
-        const foundBill = bills.find(b => b.id === id || 
-                                     b.id.toString() === id || 
-                                     (b.data && b.data.bill_id === id));
+        const foundBill = bills.find(b => 
+          b.id === id || 
+          b.id.toString() === id || 
+          (b.data && b.data.bill_id === id) ||
+          (b.data && b.data.bill && b.data.bill.bill_id === id)
+        );
         
         if (foundBill) {
           console.log(`Found bill ${id} in full bill collection`);
@@ -101,5 +163,31 @@ export async function fetchBillByIdFromSupabase(id: string): Promise<Bill | null
   } catch (error) {
     console.error(`Error in fetchBillByIdFromSupabase ${id}:`, error);
     throw error;
+  }
+}
+
+/**
+ * Helper function to check the bill cache in local storage
+ */
+function checkBillCache(id: string): { originalId?: string } {
+  try {
+    const cacheData = localStorage.getItem('billIdCache');
+    if (!cacheData) return {};
+    
+    const billCache = JSON.parse(cacheData);
+    
+    // Direct lookup
+    if (billCache[id]) {
+      if (billCache[id].isAlternate) {
+        return { originalId: billCache[id].id };
+      }
+      return {};
+    }
+    
+    // No match found
+    return {};
+  } catch (error) {
+    console.warn("Error accessing bill cache:", error);
+    return {};
   }
 }
