@@ -7,12 +7,13 @@ import { processBillFiles, processStorageFile } from "./billProcessor";
 import { toast } from "sonner";
 
 /**
- * Fetches bill files from storage with optional pagination and combining results from multiple paths
+ * Fetches bill files from storage with pagination
  */
-export async function fetchBillsFromStorage(page = 1, pageSize = 100): Promise<Bill[]> {
+export async function fetchBillsFromStorage(page = 1, pageSize = 10): Promise<{ storageBills: Bill[], totalCount: number }> {
   console.log(`Trying to fetch bills from bucket: ${BILL_STORAGE_BUCKET}, page: ${page}, pageSize: ${pageSize}`);
   
   let allBills: Bill[] = [];
+  let totalFiles = 0;
   const pathsToSearch = [BILL_STORAGE_PATH, ...ALTERNATIVE_PATHS];
   
   // Try each path and combine results
@@ -23,16 +24,21 @@ export async function fetchBillsFromStorage(page = 1, pageSize = 100): Promise<B
     }
     
     console.log(`Checking path: ${BILL_STORAGE_BUCKET}/${path}`);
-    const totalCount = await countFilesInBucket(BILL_STORAGE_BUCKET, path);
+    const pathFileCount = await countFilesInBucket(BILL_STORAGE_BUCKET, path);
+    totalFiles += pathFileCount;
     
-    if (totalCount > 0) {
-      console.log(`Found ${totalCount} total files in path: ${path}`);
+    if (pathFileCount > 0) {
+      console.log(`Found ${pathFileCount} total files in path: ${path}`);
+      
+      // Calculate skip and limit values for pagination
+      const from = (page - 1) * pageSize;
+      const currentPageSize = Math.min(pageSize, MAX_BILLS_TO_PROCESS - allBills.length);
       
       const { data: pathFiles, error } = await supabaseListWithPagination(
         BILL_STORAGE_BUCKET, 
         path, 
-        Math.min(100, pageSize), // Limit to 100 per path for better performance
-        0 // Start from the beginning for each path
+        currentPageSize, 
+        from
       );
       
       if (error) {
@@ -49,8 +55,7 @@ export async function fetchBillsFromStorage(page = 1, pageSize = 100): Promise<B
           console.log(`Processing ${jsonFiles.length} JSON files from ${path}`);
           
           // Calculate how many more bills we can process
-          const remainingCapacity = MAX_BILLS_TO_PROCESS - allBills.length;
-          const filesToProcess = jsonFiles.slice(0, remainingCapacity);
+          const filesToProcess = jsonFiles;
           
           if (filesToProcess.length > 0) {
             toast.info(`Loading ${filesToProcess.length} bills from ${path || 'root directory'}`);
@@ -78,11 +83,7 @@ export async function fetchBillsFromStorage(page = 1, pageSize = 100): Promise<B
     console.log(`Successfully processed a total of ${allBills.length} bills from all paths`);
   }
   
-  // Apply simple pagination to the combined results
-  const startIndex = (page - 1) * pageSize;
-  const paginatedBills = allBills.slice(startIndex, startIndex + pageSize);
-  
-  return allBills; // Return all bills so they can be properly filtered and sorted
+  return { storageBills: allBills, totalCount: totalFiles };
 }
 
 /**

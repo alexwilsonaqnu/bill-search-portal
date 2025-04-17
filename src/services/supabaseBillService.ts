@@ -1,33 +1,35 @@
+
 import { Bill } from "@/types";
 import { toast } from "sonner";
 import { fetchBillsFromDatabase, fetchBillByIdFromDatabase } from "./supabase/dbService";
 import { fetchBillsFromStorage, fetchBillByIdFromStorage } from "./supabase/storageService";
 
 /**
- * Fetches all bills from Supabase
+ * Fetches bills from Supabase with pagination support
  */
-export async function fetchBillsFromSupabase() {
+export async function fetchBillsFromSupabase(page = 1, pageSize = 10) {
   try {
-    console.log("Fetching bills from Supabase...");
+    console.log(`Fetching bills from Supabase... Page: ${page}, PageSize: ${pageSize}`);
     
-    // First try to fetch from the database table
-    const tableData = await fetchBillsFromDatabase();
+    // First try to fetch from the database table with pagination
+    const { tableData, totalCount } = await fetchBillsFromDatabase(page, pageSize);
     
     if (tableData && tableData.length > 0) {
-      return tableData;
+      console.log(`Found ${tableData.length} bills in database table (page ${page}/${Math.ceil(totalCount/pageSize)})`);
+      return { bills: tableData, totalCount };
     }
     
     // If database table has no data, try fetching from storage
     console.log("No bills found in table, trying storage buckets...");
     
-    const storageBills = await fetchBillsFromStorage();
+    const { storageBills, totalCount: storageCount } = await fetchBillsFromStorage(page, pageSize);
     
     if (storageBills.length > 0) {
       toast.success(`Loaded ${storageBills.length} bills from Supabase storage`);
-      return storageBills;
+      return { bills: storageBills, totalCount: storageCount };
     }
     
-    return [];
+    return { bills: [], totalCount: 0 };
   } catch (error) {
     console.error("Error fetching bills:", error);
     throw error; // Let the caller handle the error instead of returning null
