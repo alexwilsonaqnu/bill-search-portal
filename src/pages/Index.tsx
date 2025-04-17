@@ -21,7 +21,7 @@ const Index = () => {
     queryKey: ["bills", query, currentPage],
     queryFn: () => fetchBills(query, currentPage),
     staleTime: 5 * 60 * 1000, // 5 minutes
-    placeholderData: "keepPrevious",  // Updated from keepPreviousData
+    placeholderData: keepPrevious => keepPrevious,  // Fixed: use proper function syntax
   });
 
   // Log detailed information about available data for debugging
