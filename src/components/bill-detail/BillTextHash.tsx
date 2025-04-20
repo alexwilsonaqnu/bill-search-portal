@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import BillChat from "./BillChat";
@@ -141,7 +142,7 @@ const BillTextHash = ({ textHash, billId, externalUrl }: BillTextHashProps) => {
       />
 
       {(textContent && !isPdfContent) || (extractedText && extractedText.length > 100) ? (
-        <BillChat billText={extractedText || textContent || ""} />
+        <BillChat content={extractedText || textContent || ""} />
       ) : null}
     </div>
   );
