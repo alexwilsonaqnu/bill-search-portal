@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect } from "react";
 import { MessageSquare, Send } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -211,4 +210,3 @@ const BillChat = ({ billText }: BillChatProps) => {
 };
 
 export default BillChat;
-
