@@ -21,7 +21,7 @@ const BillDetailView = ({ bill }: BillDetailViewProps) => {
     <div className="min-h-screen bg-gray-50 page-transition-wrapper">
       <Navbar />
       
-      <div className="max-w-6xl mx-auto pt-28 pb-20 px-6">
+      <div className="max-w-6xl mx-auto pt-28 pb-20 px-6 pr-[calc(var(--sidebar-width)+1.5rem)]">
         <div className="mb-8">
           <Link to="/" className="inline-flex items-center text-gray-600 hover:text-gray-900 transition-colors">
             <ChevronLeft className="h-4 w-4 mr-1" />
@@ -31,7 +31,6 @@ const BillDetailView = ({ bill }: BillDetailViewProps) => {
         
         <h1 className="text-3xl md:text-4xl font-bold mb-3">{bill.title}</h1>
         
-        {/* Add bill sponsors below the title */}
         <div className="mb-8">
           <BillSponsors bill={bill} />
         </div>
@@ -44,7 +43,6 @@ const BillDetailView = ({ bill }: BillDetailViewProps) => {
               setSelectedTool={setSelectedTool}
             />
             
-            {/* Add the notification signup component */}
             <BillNotificationSignup bill={bill} />
           </div>
           
@@ -62,3 +60,4 @@ const BillDetailView = ({ bill }: BillDetailViewProps) => {
 };
 
 export default BillDetailView;
+
