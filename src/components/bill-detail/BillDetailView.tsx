@@ -10,6 +10,7 @@ import BillComparisonContainer from "./BillComparisonContainer";
 import BillSponsors from "@/components/bill/BillSponsors";
 import BillNotificationSignup from "./BillNotificationSignup";
 import BillChat from "./BillChat";
+import ChatToggle from "./ChatToggle";
 import { SidebarProvider } from "@/components/ui/sidebar";
 
 interface BillDetailViewProps {
@@ -18,10 +19,11 @@ interface BillDetailViewProps {
 
 const BillDetailView = ({ bill }: BillDetailViewProps) => {
   const [selectedTool, setSelectedTool] = useState<"overview" | "comparison">("overview");
+  const [isChatOpen, setIsChatOpen] = useState(false);
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen bg-gray-50 page-transition-wrapper w-full">
+      <div className={`min-h-screen bg-gray-50 page-transition-wrapper w-full ${isChatOpen ? 'pl-[350px]' : ''} transition-[padding] duration-300`}>
         <Navbar />
         
         <div className="max-w-6xl mx-auto pt-28 pb-20 px-6">
@@ -57,9 +59,14 @@ const BillDetailView = ({ bill }: BillDetailViewProps) => {
               )}
             </div>
           </div>
-
-          <BillChat billText={bill.text} />
         </div>
+
+        <ChatToggle 
+          isOpen={isChatOpen} 
+          onClick={() => setIsChatOpen(!isChatOpen)} 
+        />
+
+        {isChatOpen && <BillChat content={bill.content} />}
       </div>
     </SidebarProvider>
   );

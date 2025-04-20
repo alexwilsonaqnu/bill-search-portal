@@ -17,10 +17,10 @@ interface Message {
 }
 
 interface BillChatProps {
-  billText: string | null;
+  content: string | null;
 }
 
-const BillChat = ({ billText }: BillChatProps) => {
+const BillChat = ({ content }: BillChatProps) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -31,7 +31,7 @@ const BillChat = ({ billText }: BillChatProps) => {
   }, [messages]);
 
   const handleSendMessage = async () => {
-    if (!inputMessage.trim() || !billText) return;
+    if (!inputMessage.trim() || !content) return;
     
     const userMessage: Message = { role: "user", content: inputMessage };
     setMessages(prev => [...prev, userMessage]);
@@ -52,7 +52,7 @@ const BillChat = ({ billText }: BillChatProps) => {
       const { data, error } = await supabase.functions.invoke('chat-with-bill', {
         body: { 
           messages: apiMessages,
-          billText: billText 
+          billText: content 
         }
       });
 
@@ -127,10 +127,10 @@ const BillChat = ({ billText }: BillChatProps) => {
     ).join("");
   };
 
-  if (!billText) return null;
+  if (!content) return null;
 
   return (
-    <Sidebar className="fixed right-0 top-0 border-l z-30 bg-background">
+    <Sidebar className="fixed left-0 top-0 border-r z-30 bg-background w-[350px]">
       <SidebarHeader className="border-b p-4">
         <div className="flex items-center gap-2">
           <MessageSquare className="h-5 w-5" />
