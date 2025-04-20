@@ -70,7 +70,7 @@ const BillChat = ({ content, billText, isOpen, onClose }: ChatProps & { isOpen: 
   if (!billContent || !isOpen) return null;
 
   return (
-    <div className="w-[350px] bg-white border rounded-lg shadow-lg flex flex-col h-[500px]">
+    <div className="w-[350px] bg-white border rounded-lg shadow-lg flex flex-col h-[600px]"> {/* Increased from h-[500px] to h-[600px] */}
       <ChatHeader onClose={onClose} />
       <ChatMessages 
         messages={messages}
