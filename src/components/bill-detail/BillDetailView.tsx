@@ -9,8 +9,6 @@ import BillOverview from "./BillOverview";
 import BillComparisonContainer from "./BillComparisonContainer";
 import BillSponsors from "@/components/bill/BillSponsors";
 import BillNotificationSignup from "./BillNotificationSignup";
-import BillChat from "./BillChat";
-import ChatToggle from "./ChatToggle";
 
 interface BillDetailViewProps {
   bill: Bill;
@@ -18,14 +16,6 @@ interface BillDetailViewProps {
 
 const BillDetailView = ({ bill }: BillDetailViewProps) => {
   const [selectedTool, setSelectedTool] = useState<"overview" | "comparison">("overview");
-  const [isChatOpen, setIsChatOpen] = useState(false);
-
-  // Get the bill text from either the text property or from versions if available
-  const billText = bill.text || (bill.versions?.[0]?.sections?.[0]?.content || "");
-
-  const toggleChat = () => {
-    setIsChatOpen(prev => !prev);
-  };
 
   return (
     <div className="min-h-screen bg-gray-50 page-transition-wrapper w-full">
@@ -65,23 +55,6 @@ const BillDetailView = ({ bill }: BillDetailViewProps) => {
           </div>
         </div>
       </div>
-
-      {/* Render Chat Toggle button */}
-      <ChatToggle 
-        isOpen={isChatOpen} 
-        onClick={toggleChat} 
-      />
-
-      {/* Render the chat component and properly pass isOpen state */}
-      {billText && (
-        <div className="fixed bottom-4 left-4 z-50">
-          <BillChat 
-            billText={billText} 
-            isOpen={isChatOpen} 
-            onClose={() => setIsChatOpen(false)}
-          />
-        </div>
-      )}
     </div>
   );
 };

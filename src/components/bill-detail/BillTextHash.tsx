@@ -1,7 +1,5 @@
-
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
-import BillChat from "./BillChat";
 import TextContentDisplay from "./text/TextContentDisplay";
 import FullScreenDialog from "./FullScreenDialog";
 import { fetchBillText } from "@/services/billTextService";
@@ -9,7 +7,6 @@ import BillTextHeader from "./BillTextHeader";
 import BillTextLoading from "./BillTextLoading";
 import BillTextError from "./BillTextError";
 import PdfContentDisplay from "./pdf/PdfContentDisplay";
-import ChatToggle from "./ChatToggle";
 
 interface BillTextHashProps {
   textHash: string;
@@ -26,11 +23,6 @@ const BillTextHash = ({ textHash, billId, externalUrl }: BillTextHashProps) => {
   const [isPdfContent, setIsPdfContent] = useState(false);
   const [pdfBase64, setPdfBase64] = useState<string | null>(null);
   const [extractedText, setExtractedText] = useState<string | null>(null);
-  const [isChatOpen, setIsChatOpen] = useState(false);
-  
-  useEffect(() => {
-    console.log(`BillTextHash component using billId: ${billId} and textHash: ${textHash}`);
-  }, [billId, textHash]);
   
   useEffect(() => {
     if (billId) {
@@ -97,13 +89,6 @@ const BillTextHash = ({ textHash, billId, externalUrl }: BillTextHashProps) => {
     setIsFullScreen(prev => !prev);
   };
 
-  const toggleChat = () => {
-    setIsChatOpen(prev => !prev);
-  };
-  
-  // Determine if we have content available for the chat
-  const hasContent = (textContent && !isPdfContent) || (extractedText && extractedText.length > 100);
-  
   return (
     <div className="space-y-2 relative">
       <BillTextHeader 
@@ -149,27 +134,6 @@ const BillTextHash = ({ textHash, billId, externalUrl }: BillTextHashProps) => {
         externalUrl={externalUrl}
         onTextExtracted={handleTextExtraction}
       />
-
-      {/* Only show chat toggle button when we have content */}
-      {hasContent && (
-        <div className="fixed bottom-6 left-6 z-40">
-          <ChatToggle 
-            isOpen={isChatOpen}
-            onClick={toggleChat}
-          />
-        </div>
-      )}
-      
-      {/* Render the chat component with correct positioning */}
-      {hasContent && (
-        <div className="fixed bottom-4 left-4 z-50">
-          <BillChat 
-            billText={extractedText || textContent || ""} 
-            isOpen={isChatOpen}
-            onClose={() => setIsChatOpen(false)}
-          />
-        </div>
-      )}
     </div>
   );
 };
