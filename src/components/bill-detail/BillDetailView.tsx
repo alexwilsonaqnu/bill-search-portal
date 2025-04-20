@@ -66,7 +66,7 @@ const BillDetailView = ({ bill }: BillDetailViewProps) => {
           onClick={() => setIsChatOpen(!isChatOpen)} 
         />
 
-        {isChatOpen && <BillChat content={bill.versions?.[0]?.sections?.[0]?.content || ""} />}
+        {isChatOpen && <BillChat content={bill.content} />}
       </div>
     </SidebarProvider>
   );
