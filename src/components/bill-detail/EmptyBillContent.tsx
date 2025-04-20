@@ -4,16 +4,26 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
 interface EmptyBillContentProps {
+  bill: Bill;
   ilgaUrl: string | null;
   isLoadingExternalContent: boolean;
   fetchExternalContent: () => Promise<void>;
 }
 
 const EmptyBillContent = ({ 
+  bill,
   ilgaUrl, 
   isLoadingExternalContent, 
   fetchExternalContent 
 }: EmptyBillContentProps) => {
+  // Completely remove the loading if any data suggests content exists
+  const showEmptyContent = !bill.data || 
+    (!bill.data.text_content && 
+     !bill.data.full_text && 
+     (!bill.data.texts || bill.data.texts.length === 0));
+
+  if (!showEmptyContent) return null;
+
   return (
     <Card className="bg-white rounded-lg border shadow-sm p-6">
       <div className="text-center py-8">

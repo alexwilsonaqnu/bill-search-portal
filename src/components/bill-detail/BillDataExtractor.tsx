@@ -1,4 +1,3 @@
-
 import { Bill } from "@/types";
 
 interface BillDataExtractorProps {
@@ -23,37 +22,36 @@ const BillDataExtractor = ({ bill }: BillDataExtractorProps) => {
     return urlMatch ? urlMatch[0] : null;
   };
   
-  // Check if bill has text content - look in multiple possible locations
+  // Updated text content detection to be more comprehensive
   const getTextContent = () => {
-    // Check for nested bill data structure
-    const billData = bill.data?.bill || bill.data;
+    const billData = bill.data?.bill || bill.data || {};
     
-    // Direct text_content field
-    if (billData?.text_content) return billData.text_content;
+    // Prioritize direct text_content and full_text fields
+    if (billData.text_content) return billData.text_content;
+    if (billData.full_text) return billData.full_text;
     
-    // Check in texts array
-    if (billData?.texts && Array.isArray(billData.texts)) {
-      const textWithContent = billData.texts.find(t => t.content);
+    // Check texts array more thoroughly
+    if (billData.texts && Array.isArray(billData.texts)) {
+      const textWithContent = billData.texts.find(t => 
+        t.content && t.content.trim().length > 50
+      );
       if (textWithContent) return textWithContent.content;
     }
     
-    // Check in text field
-    if (billData?.text) return billData.text;
-    
-    // Check in full_text field
-    if (billData?.full_text) return billData.full_text;
+    // Check for text field with significant content
+    if (billData.text && billData.text.trim().length > 50) {
+      return billData.text;
+    }
     
     return null;
   };
   
   // Determine text format (html or plain text)
   const getTextFormat = () => {
-    // Check for nested bill data structure
     const billData = bill.data?.bill || bill.data;
     
     if (billData?.text_format) return billData.text_format;
     
-    // Try to auto-detect format
     const billTextContent = getTextContent();
     if (billTextContent && typeof billTextContent === 'string') {
       if (billTextContent.trim().startsWith('<') && billTextContent.includes('</')) {
@@ -70,20 +68,15 @@ const BillDataExtractor = ({ bill }: BillDataExtractorProps) => {
   
   // Find the correct Legiscan Bill ID and Document ID
   const getBillIdentifiers = () => {
-    // Check for nested data structure
     const data = bill.data?.bill || bill.data || {};
     
-    // First try to get the bill_id
     const billId = data.bill_id ? data.bill_id.toString() : bill.id;
     
-    // Get document ID from texts array if available
     let docId = null;
     if (data.texts && Array.isArray(data.texts) && data.texts.length > 0) {
       docId = data.texts[0].doc_id;
-      console.log(`Found document ID in texts array: ${docId}`);
     }
     
-    // Extract other important bill identifiers
     const stateId = data.state_id || data.state;
     const sessionId = data.session_id || data.session;
     
