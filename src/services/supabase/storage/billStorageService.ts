@@ -30,7 +30,8 @@ export async function fetchBillsFromStorage(page = 1, pageSize = 10): Promise<{ 
   
   // Get total count for pagination
   try {
-    const { count } = await supabase
+    // Use list method to get files but we'll only use it for counting
+    const listResult = await supabase
       .storage
       .from(BILL_STORAGE_BUCKET)
       .list(BILL_STORAGE_PATH, {
@@ -39,7 +40,11 @@ export async function fetchBillsFromStorage(page = 1, pageSize = 10): Promise<{ 
         sortBy: { column: 'name', order: 'asc' }
       });
     
-    totalFiles = count || 0;
+    totalFiles = listResult.data ? listResult.data.length : 0;
+    
+    // For a more accurate count, we could get all files but this might be inefficient
+    // for large buckets, so we'll just use the length of the data array for now
+    console.log(`Estimated total files: ${totalFiles}`);
   } catch (error) {
     console.error("Error counting files:", error);
   }

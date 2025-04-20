@@ -48,6 +48,7 @@ const BillContentSection = ({ bill }: BillContentSectionProps) => {
       {/* No Content Notice */}
       {!hasTextContent && !externalContent && !bill.versions?.length && (
         <EmptyBillContent 
+          bill={bill}
           ilgaUrl={ilgaUrl}
           isLoadingExternalContent={isLoadingExternalContent}
           fetchExternalContent={fetchExternalContent}
