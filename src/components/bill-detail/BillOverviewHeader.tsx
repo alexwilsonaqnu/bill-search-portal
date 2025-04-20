@@ -32,9 +32,9 @@ const BillOverviewHeader = ({
   // Get content loader
   const { fetchExternalContent } = BillContentLoader({ 
     ilgaUrl, 
-    setExternalContent, 
     setIsLoadingExternalContent,
-    isLoadingExternalContent
+    isLoadingExternalContent,
+    setExternalContent
   });
   
   return (

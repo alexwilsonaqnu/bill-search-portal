@@ -3,12 +3,14 @@ interface BillContentLoaderProps {
   ilgaUrl: string | null;
   setIsLoadingExternalContent: (isLoading: boolean) => void;
   isLoadingExternalContent: boolean;
+  setExternalContent?: (content: string | null) => void;
 }
 
 const BillContentLoader = ({ 
   ilgaUrl, 
   setIsLoadingExternalContent,
-  isLoadingExternalContent
+  isLoadingExternalContent,
+  setExternalContent
 }: BillContentLoaderProps) => {
   
   // Function to fetch the content from ILGA website
@@ -26,6 +28,12 @@ const BillContentLoader = ({
       if (!response.ok) {
         console.error("Failed to fetch content:", response.statusText);
         throw new Error(`Failed to load content: ${response.statusText}`);
+      }
+      
+      // If setExternalContent is provided, use it to set the content
+      if (setExternalContent) {
+        const text = await response.text();
+        setExternalContent(text);
       }
     } catch (error) {
       console.error("Error fetching content:", error);
