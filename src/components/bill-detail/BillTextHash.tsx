@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import BillChat from "./BillChat";
@@ -100,6 +101,9 @@ const BillTextHash = ({ textHash, billId, externalUrl }: BillTextHashProps) => {
     setIsChatOpen(prev => !prev);
   };
   
+  // Determine if we have content available for the chat
+  const hasContent = (textContent && !isPdfContent) || (extractedText && extractedText.length > 100);
+  
   return (
     <div className="space-y-2 relative">
       <BillTextHeader 
@@ -146,7 +150,18 @@ const BillTextHash = ({ textHash, billId, externalUrl }: BillTextHashProps) => {
         onTextExtracted={handleTextExtraction}
       />
 
-      {(textContent && !isPdfContent) || (extractedText && extractedText.length > 100) ? (
+      {/* Only show chat toggle button when we have content */}
+      {hasContent && (
+        <div className="fixed bottom-6 left-6 z-40">
+          <ChatToggle 
+            isOpen={isChatOpen}
+            onClick={toggleChat}
+          />
+        </div>
+      )}
+      
+      {/* Render the chat component with correct positioning */}
+      {hasContent && (
         <div className="fixed bottom-4 left-4 z-50">
           <BillChat 
             billText={extractedText || textContent || ""} 
@@ -154,7 +169,7 @@ const BillTextHash = ({ textHash, billId, externalUrl }: BillTextHashProps) => {
             onClose={() => setIsChatOpen(false)}
           />
         </div>
-      ) : null}
+      )}
     </div>
   );
 };

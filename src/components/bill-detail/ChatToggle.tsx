@@ -12,7 +12,7 @@ const ChatToggle = ({ onClick, isOpen }: ChatToggleProps) => {
     <Button
       variant="outline"
       size="sm"
-      className="fixed bottom-6 left-6 z-40 bg-white shadow-md"
+      className="bg-white shadow-md"
       onClick={onClick}
     >
       <MessageSquare className="h-4 w-4 mr-2" />

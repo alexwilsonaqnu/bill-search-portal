@@ -1,3 +1,4 @@
+
 import { useState, useRef, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -65,9 +66,10 @@ const BillChat = ({ content, billText, isOpen, onClose }: ChatProps & { isOpen: 
     }
   };
 
-  if (!billContent) return null;
+  // Don't render anything if not open or no content
+  if (!billContent || !isOpen) return null;
 
-  return isOpen ? (
+  return (
     <div className="w-[350px] bg-white border rounded-lg shadow-lg flex flex-col h-[500px]">
       <ChatHeader onClose={onClose} />
       <ChatMessages 
@@ -84,7 +86,7 @@ const BillChat = ({ content, billText, isOpen, onClose }: ChatProps & { isOpen: 
         />
       </div>
     </div>
-  ) : null;
+  );
 };
 
 export default BillChat;
