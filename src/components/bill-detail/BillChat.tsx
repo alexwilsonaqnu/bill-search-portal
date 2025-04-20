@@ -1,3 +1,4 @@
+
 import { useState, useRef, useEffect } from "react";
 import { MessageSquare, Send } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -134,7 +135,7 @@ const BillChat = ({ content, billText }: BillChatProps) => {
   if (!billContent) return null;
 
   return (
-    <Sidebar className="fixed left-0 top-0 border-r z-30 bg-background w-[350px]">
+    <Sidebar className="fixed right-0 top-0 border-r z-30 bg-background w-[350px]">
       <SidebarHeader className="border-b p-4">
         <div className="flex items-center gap-2">
           <MessageSquare className="h-5 w-5" />
