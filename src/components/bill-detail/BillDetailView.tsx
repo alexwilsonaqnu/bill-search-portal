@@ -9,6 +9,8 @@ import BillOverview from "./BillOverview";
 import BillComparisonContainer from "./BillComparisonContainer";
 import BillSponsors from "@/components/bill/BillSponsors";
 import BillNotificationSignup from "./BillNotificationSignup";
+import BillChat from "./BillChat";
+import ChatToggle from "./ChatToggle";
 
 interface BillDetailViewProps {
   bill: Bill;
@@ -16,6 +18,11 @@ interface BillDetailViewProps {
 
 const BillDetailView = ({ bill }: BillDetailViewProps) => {
   const [selectedTool, setSelectedTool] = useState<"overview" | "comparison">("overview");
+  const [isChatOpen, setIsChatOpen] = useState(false);
+
+  const toggleChat = () => setIsChatOpen(prev => !prev);
+  
+  const content = bill.data?.text_content || bill.data?.full_text || "";
 
   return (
     <div className="min-h-screen bg-gray-50 page-transition-wrapper w-full">
@@ -55,8 +62,22 @@ const BillDetailView = ({ bill }: BillDetailViewProps) => {
           </div>
         </div>
       </div>
+
+      <div className="fixed bottom-4 right-4">
+        <ChatToggle onClick={toggleChat} isOpen={isChatOpen} />
+      </div>
+
+      {isChatOpen && (
+        <BillChat 
+          content={content} 
+          billText={bill.data?.texts?.[0]?.text_content || ""} 
+          isOpen={isChatOpen} 
+          onClose={() => setIsChatOpen(false)} 
+        />
+      )}
     </div>
   );
 };
 
 export default BillDetailView;
+
