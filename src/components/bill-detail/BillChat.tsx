@@ -3,18 +3,13 @@ import { useState, useRef, useEffect } from "react";
 import { MessageSquare } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarHeader,
-  SidebarFooter,
-} from "@/components/ui/sidebar";
 import { Message, ChatProps } from "./chat/types";
 import ChatMessage from "./chat/ChatMessage";
 import LoadingIndicator from "./chat/LoadingIndicator";
 import ChatInput from "./chat/ChatInput";
+import { Sheet, SheetContent, SheetHeader } from "@/components/ui/sheet";
 
-const BillChat = ({ content, billText }: ChatProps) => {
+const BillChat = ({ content, billText, isOpen, onClose }: ChatProps & { isOpen: boolean; onClose: () => void }) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -76,42 +71,45 @@ const BillChat = ({ content, billText }: ChatProps) => {
   if (!billContent) return null;
 
   return (
-    <Sidebar className="fixed right-0 top-0 border-l z-30 bg-background w-[350px]">
-      <SidebarHeader className="border-b p-4">
-        <div className="flex items-center gap-2">
-          <MessageSquare className="h-5 w-5" />
-          <h3 className="font-semibold">Chat with the Bill</h3>
+    <Sheet open={isOpen} onOpenChange={onClose}>
+      <SheetContent className="w-[350px] sm:max-w-md border-l">
+        <SheetHeader className="border-b p-4">
+          <div className="flex items-center gap-2">
+            <MessageSquare className="h-5 w-5" />
+            <h3 className="font-semibold">Chat with the Bill</h3>
+          </div>
+        </SheetHeader>
+
+        <div className="flex flex-col h-full">
+          <div className="flex-1 overflow-y-auto p-4">
+            {messages.length === 0 ? (
+              <div className="text-center text-gray-500 mt-10">
+                <MessageSquare className="h-10 w-10 mx-auto mb-3 opacity-50 text-brand-primary" />
+                <p>Ask questions about this bill and get AI-powered answers.</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {messages.map((msg, index) => (
+                  <ChatMessage key={index} message={msg} />
+                ))}
+                {isLoading && <LoadingIndicator />}
+                <div ref={messagesEndRef} />
+              </div>
+            )}
+          </div>
+
+          <div className="border-t p-4">
+            <ChatInput
+              inputMessage={inputMessage}
+              setInputMessage={setInputMessage}
+              handleSendMessage={handleSendMessage}
+              isLoading={isLoading}
+            />
+          </div>
         </div>
-      </SidebarHeader>
-
-      <SidebarContent className="flex-1 overflow-y-auto p-4">
-        {messages.length === 0 ? (
-          <div className="text-center text-gray-500 mt-10">
-            <MessageSquare className="h-10 w-10 mx-auto mb-3 opacity-50 text-brand-primary" />
-            <p>Ask questions about this bill and get AI-powered answers.</p>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {messages.map((msg, index) => (
-              <ChatMessage key={index} message={msg} />
-            ))}
-            {isLoading && <LoadingIndicator />}
-            <div ref={messagesEndRef} />
-          </div>
-        )}
-      </SidebarContent>
-
-      <SidebarFooter className="border-t p-4">
-        <ChatInput
-          inputMessage={inputMessage}
-          setInputMessage={setInputMessage}
-          handleSendMessage={handleSendMessage}
-          isLoading={isLoading}
-        />
-      </SidebarFooter>
-    </Sidebar>
+      </SheetContent>
+    </Sheet>
   );
 };
 
 export default BillChat;
-

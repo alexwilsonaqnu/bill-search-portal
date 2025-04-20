@@ -8,4 +8,3 @@ export interface ChatProps {
   content?: string | null;
   billText?: string | null;
 }
-
