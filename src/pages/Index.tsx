@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -21,21 +22,16 @@ const Index = () => {
     queryFn: () => fetchBills(query, currentPage),
     staleTime: 5 * 60 * 1000, // 5 minutes
     placeholderData: (previousData) => previousData,
+    enabled: !!query, // Only fetch when there's a search query
   });
 
-  console.log("Index page - Data status:", {
+  console.log("Index page - Search status:", {
+    query,
     isLoading,
     hasError: !!error,
-    billsCount: data?.bills?.length || 0,
-    totalBills: data?.totalItems || 0,
-    dbStatus,
-    storageStatus,
-    availableBuckets,
+    resultsCount: data?.bills?.length || 0,
+    totalResults: data?.totalItems || 0,
   });
-
-  if (error) {
-    console.error("Error fetching bills:", error);
-  }
 
   const handleSearch = (newQuery: string) => {
     setSearchParams({ q: newQuery, page: "1" });
@@ -47,7 +43,7 @@ const Index = () => {
   };
 
   const handleRetry = () => {
-    toast.info("Retrying bill fetch...");
+    toast.info("Retrying search...");
     refetch();
   };
 
@@ -61,9 +57,15 @@ const Index = () => {
           onSearch={handleSearch} 
         />
         
-        {!isLoading && data?.bills && data.bills.length > 0 && (
-          <div className="mb-4 text-sm text-gray-500 italic">
-            Bills are sorted by most recent updates first
+        {!query && !isLoading && (
+          <div className="text-center text-gray-500 mt-8">
+            Enter a search term to find bills
+          </div>
+        )}
+
+        {query && !isLoading && data?.bills && data.bills.length > 0 && (
+          <div className="mb-4 text-sm text-gray-500">
+            Found {data.totalItems} results for "{query}"
           </div>
         )}
 
