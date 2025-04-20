@@ -1,6 +1,8 @@
+
 import { Bill, SearchResults } from "@/types";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchBillByIdFromSupabase } from "./supabaseBillService";
 
 /**
  * Fetches bills using LegiScan search API
