@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { Bill } from "@/types";
 import BillTextContent from "./BillTextContent";
+import ExternalContent from "./ExternalContent";
 import BillVersions from "./BillVersions";
 import EmptyBillContent from "./EmptyBillContent";
 import BillDataExtractor from "./BillDataExtractor";
@@ -13,6 +14,7 @@ interface BillContentSectionProps {
 
 const BillContentSection = ({ bill }: BillContentSectionProps) => {
   const [isLoadingExternalContent, setIsLoadingExternalContent] = useState(false);
+  const [externalContent, setExternalContent] = useState<string | null>(null);
   
   // Extract bill data
   const { 
@@ -25,6 +27,7 @@ const BillContentSection = ({ bill }: BillContentSectionProps) => {
   // Get content loader
   const { fetchExternalContent } = BillContentLoader({ 
     ilgaUrl, 
+    setExternalContent, 
     setIsLoadingExternalContent,
     isLoadingExternalContent
   });
@@ -36,10 +39,14 @@ const BillContentSection = ({ bill }: BillContentSectionProps) => {
         <BillTextContent textContent={billTextContent} textFormat={textFormat} />
       )}
       
+      {externalContent && !hasTextContent && (
+        <ExternalContent content={externalContent} />
+      )}
+      
       <BillVersions versions={bill.versions || []} />
       
       {/* No Content Notice */}
-      {!hasTextContent && !bill.versions?.length && (
+      {!hasTextContent && !externalContent && !bill.versions?.length && (
         <EmptyBillContent 
           bill={bill}
           ilgaUrl={ilgaUrl}
