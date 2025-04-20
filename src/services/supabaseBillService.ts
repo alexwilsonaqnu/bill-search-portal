@@ -34,7 +34,6 @@ export async function fetchBillsFromSupabase(page = 1, pageSize = 10): Promise<{
       // Store bill IDs in local storage for easier lookup
       storeBillIdsInLocalCache(storageBills);
       
-      toast.success(`Loaded ${storageBills.length} bills from Supabase storage`);
       return { bills: storageBills, totalCount: storageCount };
     }
     
@@ -104,14 +103,14 @@ export async function fetchBillByIdFromSupabase(id: string): Promise<Bill | null
       id = billFromCache.originalId;
     }
     
-    // Step 1: First try fetching from the database table
+    // Step 1: First try fetching from the database table - this is direct and efficient
     const dbBill = await fetchBillByIdFromDatabase(id);
     if (dbBill) {
       console.log(`Found bill ${id} in database table`);
       return dbBill;
     }
     
-    // Step 2: If not in database, try fetching from storage
+    // Step 2: If not in database, try fetching from storage DIRECTLY
     console.log(`Bill ${id} not found in database table, trying storage...`);
     const storageBill = await fetchBillByIdFromStorage(id);
     if (storageBill) {
@@ -136,25 +135,6 @@ export async function fetchBillByIdFromSupabase(id: string): Promise<Bill | null
         }
       } catch (e) {
         console.log(`Direct query attempt failed for numeric ID ${id}`);
-      }
-      
-      // As a last resort, try to fetch all bills and find by ID
-      console.log(`Last resort: Fetching all bills to find numeric ID ${id}`);
-      try {
-        const { bills } = await fetchBillsFromSupabase(1, 50);
-        const foundBill = bills.find(b => 
-          b.id === id || 
-          b.id.toString() === id || 
-          (b.data && b.data.bill_id === id) ||
-          (b.data && b.data.bill && b.data.bill.bill_id === id)
-        );
-        
-        if (foundBill) {
-          console.log(`Found bill ${id} in full bill collection`);
-          return foundBill;
-        }
-      } catch (e) {
-        console.error(`Failed to search all bills for ID ${id}:`, e);
       }
     }
     

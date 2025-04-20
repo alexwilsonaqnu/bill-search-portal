@@ -49,11 +49,12 @@ export async function fetchBillById(id: string): Promise<Bill | null> {
     }
     
     console.log(`Fetching bill with ID: ${id}`);
+    // Direct fetch of single bill - no unnecessary bulk loading
     const bill = await fetchBillByIdFromSupabase(id);
     
     if (!bill) {
       console.warn(`Bill ${id} not found`);
-      toast.error(`Bill ${id} not found`);
+      // Don't show toast error for not found bills as it can be confusing
       return null;
     }
     
