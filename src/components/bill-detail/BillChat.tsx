@@ -1,3 +1,4 @@
+
 import { useState, useRef, useEffect } from "react";
 import { MessageSquare, Send } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,21 +18,25 @@ interface Message {
 }
 
 interface BillChatProps {
-  content: string | null;
+  content?: string | null;
+  billText?: string | null;
 }
 
-const BillChat = ({ content }: BillChatProps) => {
+const BillChat = ({ content, billText }: BillChatProps) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  
+  // Use either content or billText prop, whichever is available
+  const billContent = content || billText || "";
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
   const handleSendMessage = async () => {
-    if (!inputMessage.trim() || !content) return;
+    if (!inputMessage.trim() || !billContent) return;
     
     const userMessage: Message = { role: "user", content: inputMessage };
     setMessages(prev => [...prev, userMessage]);
@@ -52,7 +57,7 @@ const BillChat = ({ content }: BillChatProps) => {
       const { data, error } = await supabase.functions.invoke('chat-with-bill', {
         body: { 
           messages: apiMessages,
-          billText: content 
+          billText: billContent 
         }
       });
 
@@ -127,7 +132,7 @@ const BillChat = ({ content }: BillChatProps) => {
     ).join("");
   };
 
-  if (!content) return null;
+  if (!billContent) return null;
 
   return (
     <Sidebar className="fixed left-0 top-0 border-r z-30 bg-background w-[350px]">
