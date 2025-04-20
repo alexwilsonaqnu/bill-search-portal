@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import BillChat from "./BillChat";
@@ -24,6 +25,7 @@ const BillTextHash = ({ textHash, billId, externalUrl }: BillTextHashProps) => {
   const [isPdfContent, setIsPdfContent] = useState(false);
   const [pdfBase64, setPdfBase64] = useState<string | null>(null);
   const [extractedText, setExtractedText] = useState<string | null>(null);
+  const [isChatOpen, setIsChatOpen] = useState(false);
   
   useEffect(() => {
     console.log(`BillTextHash component using billId: ${billId} and textHash: ${textHash}`);
@@ -141,7 +143,11 @@ const BillTextHash = ({ textHash, billId, externalUrl }: BillTextHashProps) => {
       />
 
       {(textContent && !isPdfContent) || (extractedText && extractedText.length > 100) ? (
-        <BillChat billText={extractedText || textContent || ""} />
+        <BillChat 
+          billText={extractedText || textContent || ""} 
+          isOpen={isChatOpen}
+          onClose={() => setIsChatOpen(false)}
+        />
       ) : null}
     </div>
   );
