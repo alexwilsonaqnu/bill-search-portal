@@ -17,6 +17,23 @@ interface BillDetailViewProps {
 const BillDetailView = ({ bill }: BillDetailViewProps) => {
   const [selectedTool, setSelectedTool] = useState<"overview" | "comparison">("overview");
 
+  // Extract title from the first version's sections, prioritizing the "title" section
+  const getDetailTitle = () => {
+    if (bill.versions && bill.versions.length > 0) {
+      const titleSection = bill.versions[0].sections.find(
+        section => section.title.toLowerCase() === "title"
+      );
+      
+      // If a "title" section exists, use its content
+      if (titleSection) {
+        return titleSection.content.trim();
+      }
+    }
+    
+    // Fallback to the original bill title
+    return bill.title;
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 page-transition-wrapper">
       <Navbar />
@@ -29,7 +46,7 @@ const BillDetailView = ({ bill }: BillDetailViewProps) => {
           </Link>
         </div>
         
-        <h1 className="text-3xl md:text-4xl font-bold mb-3">{bill.title}</h1>
+        <h1 className="text-3xl md:text-4xl font-bold mb-3">{getDetailTitle()}</h1>
         
         {/* Add bill sponsors below the title */}
         <div className="mb-8">
@@ -62,3 +79,4 @@ const BillDetailView = ({ bill }: BillDetailViewProps) => {
 };
 
 export default BillDetailView;
+
