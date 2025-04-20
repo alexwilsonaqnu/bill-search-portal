@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { ChevronLeft } from "lucide-react";
@@ -66,7 +65,7 @@ const BillDetailView = ({ bill }: BillDetailViewProps) => {
           onClick={() => setIsChatOpen(!isChatOpen)} 
         />
 
-        {isChatOpen && <BillChat content={bill.content} />}
+        {isChatOpen && <BillChat billText={bill.text} />}
       </div>
     </SidebarProvider>
   );
