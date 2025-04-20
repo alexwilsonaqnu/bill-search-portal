@@ -1,8 +1,7 @@
+
 import { useState, useRef, useEffect } from "react";
-import { MessageSquare, Send } from "lucide-react";
+import { MessageSquare } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import {
   Sidebar,
@@ -10,24 +9,17 @@ import {
   SidebarHeader,
   SidebarFooter,
 } from "@/components/ui/sidebar";
+import { Message, ChatProps } from "./chat/types";
+import ChatMessage from "./chat/ChatMessage";
+import LoadingIndicator from "./chat/LoadingIndicator";
+import ChatInput from "./chat/ChatInput";
 
-interface Message {
-  role: "user" | "assistant";
-  content: string;
-}
-
-interface BillChatProps {
-  content?: string | null;
-  billText?: string | null;
-}
-
-const BillChat = ({ content, billText }: BillChatProps) => {
+const BillChat = ({ content, billText }: ChatProps) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
-  // Use either content or billText prop, whichever is available
   const billContent = content || billText || "";
 
   useEffect(() => {
@@ -81,56 +73,6 @@ const BillChat = ({ content, billText }: BillChatProps) => {
     }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSendMessage();
-    }
-  };
-
-  const formatMessageContent = (content: string) => {
-    if (!content) return "";
-
-    const hasBullets = content.includes("- ") || content.includes("* ");
-    
-    if (hasBullets) {
-      const lines = content.split("\n");
-      let inList = false;
-      let formattedContent = "";
-      
-      lines.forEach(line => {
-        const trimmedLine = line.trim();
-        if (trimmedLine.startsWith("- ") || trimmedLine.startsWith("* ")) {
-          if (!inList) {
-            formattedContent += "<ul class='list-disc pl-5 my-2'>";
-            inList = true;
-          }
-          formattedContent += `<li>${trimmedLine.substring(2)}</li>`;
-        } else {
-          if (inList) {
-            formattedContent += "</ul>";
-            inList = false;
-          }
-          if (trimmedLine) {
-            formattedContent += `<p class='mb-2'>${trimmedLine}</p>`;
-          } else {
-            formattedContent += "<br />";
-          }
-        }
-      });
-      
-      if (inList) {
-        formattedContent += "</ul>";
-      }
-      
-      return formattedContent;
-    }
-    
-    return content.split("\n").map(line => 
-      line.trim() ? `<p class='mb-2'>${line}</p>` : "<br />"
-    ).join("");
-  };
-
   if (!billContent) return null;
 
   return (
@@ -151,66 +93,25 @@ const BillChat = ({ content, billText }: BillChatProps) => {
         ) : (
           <div className="space-y-4">
             {messages.map((msg, index) => (
-              <div 
-                key={index} 
-                className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-              >
-                <div 
-                  className={`max-w-[80%] rounded-lg p-3 ${
-                    msg.role === 'user' 
-                      ? 'bg-brand-primary text-white' 
-                      : 'bg-gray-100 text-gray-800'
-                  }`}
-                >
-                  {msg.role === 'assistant' ? (
-                    <div 
-                      dangerouslySetInnerHTML={{ __html: formatMessageContent(msg.content) }}
-                      className="chat-message-content"
-                    />
-                  ) : (
-                    msg.content
-                  )}
-                </div>
-              </div>
+              <ChatMessage key={index} message={msg} />
             ))}
-            {isLoading && (
-              <div className="flex justify-start">
-                <div className="bg-gray-100 text-gray-800 rounded-lg p-3 max-w-[80%]">
-                  <div className="flex space-x-2">
-                    <div className="h-2 w-2 bg-brand-primary rounded-full animate-bounce"></div>
-                    <div className="h-2 w-2 bg-brand-primary rounded-full animate-bounce delay-75"></div>
-                    <div className="h-2 w-2 bg-brand-primary rounded-full animate-bounce delay-150"></div>
-                  </div>
-                </div>
-              </div>
-            )}
+            {isLoading && <LoadingIndicator />}
             <div ref={messagesEndRef} />
           </div>
         )}
       </SidebarContent>
 
       <SidebarFooter className="border-t p-4">
-        <div className="flex space-x-2">
-          <Textarea
-            value={inputMessage}
-            onChange={(e) => setInputMessage(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Ask about this bill..."
-            className="resize-none min-h-[60px]"
-            disabled={isLoading}
-          />
-          <Button 
-            onClick={handleSendMessage}
-            disabled={isLoading || !inputMessage.trim()}
-            size="icon"
-            className="h-[60px] bg-brand-primary hover:bg-brand-primary/90"
-          >
-            <Send className="h-5 w-5" />
-          </Button>
-        </div>
+        <ChatInput
+          inputMessage={inputMessage}
+          setInputMessage={setInputMessage}
+          handleSendMessage={handleSendMessage}
+          isLoading={isLoading}
+        />
       </SidebarFooter>
     </Sidebar>
   );
 };
 
 export default BillChat;
+
