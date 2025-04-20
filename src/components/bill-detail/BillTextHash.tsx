@@ -9,6 +9,7 @@ import BillTextHeader from "./BillTextHeader";
 import BillTextLoading from "./BillTextLoading";
 import BillTextError from "./BillTextError";
 import PdfContentDisplay from "./pdf/PdfContentDisplay";
+import ChatToggle from "./ChatToggle";
 
 interface BillTextHashProps {
   textHash: string;
@@ -95,6 +96,10 @@ const BillTextHash = ({ textHash, billId, externalUrl }: BillTextHashProps) => {
   const toggleFullScreen = () => {
     setIsFullScreen(prev => !prev);
   };
+
+  const toggleChat = () => {
+    setIsChatOpen(prev => !prev);
+  };
   
   return (
     <div className="space-y-2 relative">
@@ -143,11 +148,17 @@ const BillTextHash = ({ textHash, billId, externalUrl }: BillTextHashProps) => {
       />
 
       {(textContent && !isPdfContent) || (extractedText && extractedText.length > 100) ? (
-        <BillChat 
-          billText={extractedText || textContent || ""} 
-          isOpen={isChatOpen}
-          onClose={() => setIsChatOpen(false)}
-        />
+        <>
+          <ChatToggle 
+            isOpen={isChatOpen} 
+            onClick={toggleChat} 
+          />
+          <BillChat 
+            billText={extractedText || textContent || ""} 
+            isOpen={isChatOpen}
+            onClose={() => setIsChatOpen(false)}
+          />
+        </>
       ) : null}
     </div>
   );
