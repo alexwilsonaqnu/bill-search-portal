@@ -1,5 +1,4 @@
-
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import BillChat from "./BillChat";
 import TextContentDisplay from "./text/TextContentDisplay";
@@ -148,17 +147,13 @@ const BillTextHash = ({ textHash, billId, externalUrl }: BillTextHashProps) => {
       />
 
       {(textContent && !isPdfContent) || (extractedText && extractedText.length > 100) ? (
-        <>
-          <ChatToggle 
-            isOpen={isChatOpen} 
-            onClick={toggleChat} 
-          />
+        <div className="fixed bottom-4 left-4 z-50">
           <BillChat 
             billText={extractedText || textContent || ""} 
             isOpen={isChatOpen}
             onClose={() => setIsChatOpen(false)}
           />
-        </>
+        </div>
       ) : null}
     </div>
   );
