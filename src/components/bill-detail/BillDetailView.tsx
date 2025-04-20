@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { ChevronLeft } from "lucide-react";
@@ -19,6 +20,9 @@ interface BillDetailViewProps {
 const BillDetailView = ({ bill }: BillDetailViewProps) => {
   const [selectedTool, setSelectedTool] = useState<"overview" | "comparison">("overview");
   const [isChatOpen, setIsChatOpen] = useState(false);
+
+  // Get the bill text from either the text property or from versions if available
+  const billText = bill.text || (bill.versions?.[0]?.sections?.[0]?.content || "");
 
   return (
     <SidebarProvider>
@@ -65,7 +69,7 @@ const BillDetailView = ({ bill }: BillDetailViewProps) => {
           onClick={() => setIsChatOpen(!isChatOpen)} 
         />
 
-        {isChatOpen && <BillChat billText={bill.text} />}
+        {isChatOpen && <BillChat billText={billText} />}
       </div>
     </SidebarProvider>
   );

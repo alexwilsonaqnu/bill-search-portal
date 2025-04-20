@@ -1,4 +1,3 @@
-
 export interface Bill {
   id: string;
   title: string;
@@ -7,7 +6,8 @@ export interface Bill {
   status?: string;
   versions: BillVersion[];
   changes: Change[];
-  data?: Record<string, any>; // Additional data from JSON
+  text?: string;
+  data?: Record<string, any>;
 }
 
 export interface BillVersion {
@@ -34,5 +34,5 @@ export type SearchResults = {
   bills: Bill[];
   totalPages: number;
   currentPage: number;
-  totalItems: number; // Adding the missing totalItems property
+  totalItems: number;
 };
