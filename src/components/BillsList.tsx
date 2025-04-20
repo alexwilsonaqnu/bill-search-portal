@@ -17,7 +17,6 @@ interface BillsListProps {
   error: unknown;
   onRetry: () => void;
   onPageChange: (page: number) => void;
-  fallbackBills: Bill[];
 }
 
 const BillsList = ({
@@ -42,20 +41,7 @@ const BillsList = ({
   }
 
   if (!billsToShow || billsToShow.length === 0) {
-    return (
-      <div className="text-center py-8">
-        <h3 className="text-xl font-medium mb-2">No Bills Found</h3>
-        <p className="text-gray-500 mb-6">
-          {error ? "There was an error loading bills." : "Try adjusting your search criteria"}
-        </p>
-        <Button 
-          onClick={onRetry}
-          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
-        >
-          Retry Search
-        </Button>
-      </div>
-    );
+    return null;
   }
 
   return (

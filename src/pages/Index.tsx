@@ -69,6 +69,12 @@ const Index = () => {
           </div>
         )}
 
+        {query && !isLoading && (!data?.bills || data.bills.length === 0) && (
+          <div className="text-center text-gray-500 mt-8">
+            No bills found for "{query}"
+          </div>
+        )}
+
         <BillsList 
           isLoading={isLoading}
           billsToShow={data?.bills}
@@ -76,7 +82,6 @@ const Index = () => {
           error={error}
           onRetry={handleRetry}
           onPageChange={handlePageChange}
-          fallbackBills={[]}
         />
       </div>
     </div>
