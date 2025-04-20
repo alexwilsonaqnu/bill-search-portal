@@ -68,10 +68,12 @@ const BillDetailView = ({ bill }: BillDetailViewProps) => {
         onClick={() => setIsChatOpen(!isChatOpen)} 
       />
 
-      {/* Only render the chat component when isChatOpen is true */}
+      {/* Creating a separate SidebarProvider for the chat that's only rendered when needed */}
       {isChatOpen && (
         <SidebarProvider>
-          <BillChat billText={billText} />
+          <div className="w-full">
+            <BillChat billText={billText} />
+          </div>
         </SidebarProvider>
       )}
     </div>
