@@ -66,22 +66,6 @@ const BillDetailView = ({ bill }: BillDetailViewProps) => {
         </div>
       </div>
 
-      {/* Render Chat Toggle button */}
-      <ChatToggle 
-        isOpen={isChatOpen} 
-        onClick={toggleChat} 
-      />
-
-      {/* Render the chat component and properly pass isOpen state */}
-      {billText && (
-        <div className="fixed bottom-4 left-4 z-50">
-          <BillChat 
-            billText={billText} 
-            isOpen={isChatOpen} 
-            onClose={() => setIsChatOpen(false)}
-          />
-        </div>
-      )}
     </div>
   );
 };
