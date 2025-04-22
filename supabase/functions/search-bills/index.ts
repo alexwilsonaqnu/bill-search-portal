@@ -16,8 +16,8 @@ serve(async (req) => {
   }
 
   try {
-    const { query } = await req.json();
-    console.log(`Searching LegiScan for: "${query}"`);
+    const { query, page = 1, pageSize = 10 } = await req.json();
+    console.log(`Searching LegiScan for: "${query}", page: ${page}, pageSize: ${pageSize}`);
 
     // Build the LegiScan search URL
     const url = `https://api.legiscan.com/?key=${LEGISCAN_API_KEY}&op=search&state=IL&query=${encodeURIComponent(query)}`;
@@ -31,7 +31,7 @@ serve(async (req) => {
     console.log(`LegiScan returned ${data.searchresult?.summary?.count || 0} results`);
 
     // Transform the results into our Bill format
-    const bills = data.searchresult && typeof data.searchresult === 'object' 
+    const allBills = data.searchresult && typeof data.searchresult === 'object' 
       ? Object.values(data.searchresult)
         .filter(item => item.bill_id) // Filter out the summary object
         .map(item => ({
@@ -50,14 +50,21 @@ serve(async (req) => {
         }))
       : [];
 
-    const totalCount = data.searchresult?.summary?.count || bills.length;
+    // Handle pagination
+    const totalCount = allBills.length;
+    const startIndex = (page - 1) * pageSize;
+    const endIndex = startIndex + pageSize;
+    const paginatedBills = allBills.slice(startIndex, endIndex);
+    const totalPages = Math.ceil(totalCount / pageSize);
+
+    console.log(`Paginating results: ${paginatedBills.length} bills for page ${page} of ${totalPages}`);
 
     return new Response(
       JSON.stringify({
-        bills,
+        bills: paginatedBills,
         totalItems: totalCount,
-        currentPage: 1,
-        totalPages: Math.ceil(totalCount / 10)
+        currentPage: page,
+        totalPages: totalPages
       }),
       {
         headers: {

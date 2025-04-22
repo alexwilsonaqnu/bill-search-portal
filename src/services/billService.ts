@@ -1,8 +1,8 @@
-
 import { Bill, SearchResults } from "@/types";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchBillByIdFromSupabase } from "./supabaseBillService";
+import { processResults } from "@/utils/billProcessingUtils";
 
 /**
  * Fetches bills using LegiScan search API
@@ -21,7 +21,7 @@ export async function fetchBills(
     }
 
     const { data, error } = await supabase.functions.invoke('search-bills', {
-      body: { query }
+      body: { query, page, pageSize }
     });
 
     if (error) {
@@ -29,8 +29,16 @@ export async function fetchBills(
       toast.error("Failed to search bills. Please try again later.");
       return { bills: [], currentPage: page, totalPages: 0, totalItems: 0 };
     }
+    
+    // If we have proper pagination from the API, use it
+    if (data && data.bills && typeof data.currentPage === 'number' && typeof data.totalPages === 'number') {
+      return data;
+    } else if (data && data.bills) {
+      // Otherwise, process the results locally with our pagination logic
+      return processResults(data.bills, "", page, pageSize);
+    }
 
-    return data;
+    return { bills: [], currentPage: page, totalPages: 0, totalItems: 0 };
     
   } catch (error) {
     console.error("Error in fetchBills:", error);

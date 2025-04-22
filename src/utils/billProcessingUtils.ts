@@ -37,6 +37,6 @@ export function processResults(
     bills: paginatedItems,
     totalPages,
     currentPage,
-    totalItems: filteredBills.length // Add the missing totalItems property
+    totalItems: filteredBills.length
   };
 }

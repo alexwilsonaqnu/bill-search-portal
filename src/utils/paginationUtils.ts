@@ -11,8 +11,11 @@ export function paginateItems<T>(
   totalPages: number;
   currentPage: number;
 } {
-  const totalPages = Math.ceil(items.length / pageSize);
-  const safeCurrentPage = Math.min(Math.max(1, page), totalPages || 1);
+  // Calculate total pages - minimum 1 page even for empty arrays
+  const totalPages = Math.max(1, Math.ceil(items.length / pageSize));
+  
+  // Ensure current page is within valid range
+  const safeCurrentPage = Math.min(Math.max(1, page), totalPages);
   
   const start = (safeCurrentPage - 1) * pageSize;
   const end = start + pageSize;
