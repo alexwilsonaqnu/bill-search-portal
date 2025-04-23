@@ -25,31 +25,19 @@ const BillDataExtractor = ({ bill }: BillDataExtractorProps) => {
   // Updated text content detection to be more comprehensive
   const getTextContent = () => {
     const billData = bill.data?.bill || bill.data || {};
-    
-    console.log('Checking text content sources:', {
-      directText: bill.text?.slice(0, 100),
-      billData: billData,
-      textUrl: billData.text_url,
-      texts: billData.texts,
-      description: bill.description,
-      title: bill.title
-    });
 
     // First check direct text field on bill
     if (bill.text && typeof bill.text === 'string' && bill.text.trim().length > 0) {
-      console.log('Found content in direct text field');
       return bill.text;
     }
 
     // Check for text_content from external source
     if (billData.text_content) {
-      console.log('Found content in text_content field');
       return billData.text_content;
     }
 
     // Check for full_text field
     if (billData.full_text) {
-      console.log('Found content in full_text field');
       return billData.full_text;
     }
     
@@ -59,14 +47,12 @@ const BillDataExtractor = ({ bill }: BillDataExtractorProps) => {
         t.content && typeof t.content === 'string' && t.content.trim().length > 0
       );
       if (textWithContent) {
-        console.log('Found content in texts array');
         return textWithContent.content;
       }
     }
     
     // Check for text field
     if (billData.text && typeof billData.text === 'string' && billData.text.trim().length > 0) {
-      console.log('Found content in billData.text field');
       return billData.text;
     }
 
@@ -79,7 +65,6 @@ const BillDataExtractor = ({ bill }: BillDataExtractorProps) => {
           .filter(content => content && content.trim().length > 0)
           .join('\n\n');
         if (combinedContent) {
-          console.log('Found content in bill versions');
           return combinedContent;
         }
       }
@@ -91,17 +76,14 @@ const BillDataExtractor = ({ bill }: BillDataExtractorProps) => {
         bill.title,
         bill.description
       ].filter(Boolean).join('\n\n');
-      console.log('Using cached bill description/title as content');
       return content;
     }
 
     // If we have a text URL but no content yet, return null to allow external content
     if (billData.text_url) {
-      console.log('Found text URL but no content yet');
       return null;
     }
     
-    console.log('No text content found in any source');
     return null;
   };
   
@@ -148,17 +130,6 @@ const BillDataExtractor = ({ bill }: BillDataExtractorProps) => {
   };
   
   const { legiscanBillId, documentId, stateId, sessionId } = getBillIdentifiers();
-  
-  console.log("Extracted data:", {
-    billId: bill.id,
-    legiscanBillId,
-    documentId,
-    stateId,
-    sessionId,
-    textHash,
-    hasTextContent: !!getTextContent(),
-    rawData: JSON.stringify(bill.data).slice(0, 200) + "..." // Log a snippet of raw data for debugging
-  });
   
   // Extract and return all bill data
   const ilgaUrl = getIlgaUrl();

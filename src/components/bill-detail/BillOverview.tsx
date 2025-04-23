@@ -9,14 +9,6 @@ interface BillOverviewProps {
 const BillOverview = ({ bill }: BillOverviewProps) => {
   const [isLoadingExternalContent, setIsLoadingExternalContent] = useState(false);
   const [externalContent, setExternalContent] = useState<string | null>(null);
-
-  console.log("Bill data in overview:", {
-    id: bill.id,
-    hasVersions: bill.versions?.length > 0,
-    hasData: !!bill.data,
-    billDataKeys: bill.data ? Object.keys(bill.data) : [],
-    externalContent: !!externalContent
-  });
   
   return (
     <div className="space-y-6">
