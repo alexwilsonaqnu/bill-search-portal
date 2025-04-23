@@ -26,23 +26,82 @@ const BillDataExtractor = ({ bill }: BillDataExtractorProps) => {
   const getTextContent = () => {
     const billData = bill.data?.bill || bill.data || {};
     
-    // Prioritize direct text_content and full_text fields
-    if (billData.text_content) return billData.text_content;
-    if (billData.full_text) return billData.full_text;
+    console.log('Checking text content sources:', {
+      directText: bill.text?.slice(0, 100),
+      billData: billData,
+      textUrl: billData.text_url,
+      texts: billData.texts,
+      description: bill.description,
+      title: bill.title
+    });
+
+    // First check direct text field on bill
+    if (bill.text && typeof bill.text === 'string' && bill.text.trim().length > 0) {
+      console.log('Found content in direct text field');
+      return bill.text;
+    }
+
+    // Check for text_content from external source
+    if (billData.text_content) {
+      console.log('Found content in text_content field');
+      return billData.text_content;
+    }
+
+    // Check for full_text field
+    if (billData.full_text) {
+      console.log('Found content in full_text field');
+      return billData.full_text;
+    }
     
-    // Check texts array more thoroughly
+    // Check texts array
     if (billData.texts && Array.isArray(billData.texts)) {
       const textWithContent = billData.texts.find(t => 
-        t.content && t.content.trim().length > 50
+        t.content && typeof t.content === 'string' && t.content.trim().length > 0
       );
-      if (textWithContent) return textWithContent.content;
+      if (textWithContent) {
+        console.log('Found content in texts array');
+        return textWithContent.content;
+      }
     }
     
-    // Check for text field with significant content
-    if (billData.text && billData.text.trim().length > 50) {
+    // Check for text field
+    if (billData.text && typeof billData.text === 'string' && billData.text.trim().length > 0) {
+      console.log('Found content in billData.text field');
       return billData.text;
     }
+
+    // Check bill versions
+    if (bill.versions && bill.versions.length > 0) {
+      const latestVersion = bill.versions[bill.versions.length - 1];
+      if (latestVersion.sections && latestVersion.sections.length > 0) {
+        const combinedContent = latestVersion.sections
+          .map(section => section.content)
+          .filter(content => content && content.trim().length > 0)
+          .join('\n\n');
+        if (combinedContent) {
+          console.log('Found content in bill versions');
+          return combinedContent;
+        }
+      }
+    }
+
+    // If we have a description or title from cache, use that as initial content
+    if (bill.description || bill.title) {
+      const content = [
+        bill.title,
+        bill.description
+      ].filter(Boolean).join('\n\n');
+      console.log('Using cached bill description/title as content');
+      return content;
+    }
+
+    // If we have a text URL but no content yet, return null to allow external content
+    if (billData.text_url) {
+      console.log('Found text URL but no content yet');
+      return null;
+    }
     
+    console.log('No text content found in any source');
     return null;
   };
   
