@@ -1,1 +1,11 @@
+
 project_id = "ocmwynwfqoxktdcebkac"
+
+[functions.get-bill]
+verify_jwt = true
+
+[functions.get-bill-history]
+verify_jwt = true
+
+[functions.get-bill-versions]
+verify_jwt = true

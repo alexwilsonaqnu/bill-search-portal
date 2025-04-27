@@ -1,9 +1,8 @@
-
 import { Bill, SearchResults } from "@/types";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { fetchBillByIdFromSupabase } from "./supabaseBillService";
 import { processResults } from "@/utils/billProcessingUtils";
+import { fetchBillById as fetchBillFromLegiscan } from "./legiscanService";
 
 /**
  * Fetches bills using LegiScan search API
@@ -50,7 +49,7 @@ export async function fetchBills(
 }
 
 /**
- * Fetches a bill by ID from Supabase
+ * Fetches a bill by ID from LegiScan API
  */
 export async function fetchBillById(id: string): Promise<Bill | null> {
   try {
@@ -58,13 +57,11 @@ export async function fetchBillById(id: string): Promise<Bill | null> {
       throw new Error("Bill ID is required");
     }
     
-    console.log(`Fetching bill with ID: ${id}`);
-    // Direct fetch of single bill - no unnecessary bulk loading
-    const bill = await fetchBillByIdFromSupabase(id);
+    console.log(`Fetching bill with ID: ${id} from LegiScan API`);
+    const bill = await fetchBillFromLegiscan(id);
     
     if (!bill) {
       console.warn(`Bill ${id} not found`);
-      // Don't show toast error for not found bills as it can be confusing
       return null;
     }
     
