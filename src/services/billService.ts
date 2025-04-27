@@ -1,5 +1,5 @@
 
-import { Bill, SearchResults, Change } from "@/types";
+import { Bill, SearchResults } from "@/types";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchBillByIdFromSupabase } from "./supabaseBillService";
@@ -75,32 +75,3 @@ export async function fetchBillById(id: string): Promise<Bill | null> {
     throw error;
   }
 }
-
-export async function fetchBillHistory(id: string): Promise<Change[]> {
-  try {
-    console.log(`Fetching bill history for ID: ${id} from LegiScan API`);
-    
-    const { data, error } = await supabase.functions.invoke('get-bill-history', {
-      body: { 
-        billId: id,
-        useLegiScan: true  // Signal to use LegiScan API
-      }
-    });
-
-    if (error) {
-      console.error("Error fetching bill history from LegiScan:", error);
-      toast.error("Failed to fetch bill history from LegiScan");
-      return [];
-    }
-
-    // Log the LegiScan response
-    console.log("Bill History from LegiScan API:", data);
-    
-    return data || [];
-  } catch (error) {
-    console.error(`Error fetching bill history for bill ${id} from LegiScan:`, error);
-    toast.error("Failed to fetch bill history");
-    return [];
-  }
-}
-

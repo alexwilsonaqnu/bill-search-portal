@@ -1,23 +1,25 @@
 
 import { Change } from "@/types";
-import { Card } from "@/components/ui/card";
-import BillHistoryTable from "./BillHistoryTable";
 
 interface BillHistoryViewProps {
   changes: Change[];
 }
 
 const BillHistoryView = ({ changes }: BillHistoryViewProps) => {
-  console.log('Bill History Changes from Props:', changes);
-  console.log('Number of Changes:', changes?.length);
-
   if (!changes || changes.length === 0) return null;
   
   return (
-    <Card className="p-6">
-      <h3 className="text-xl font-semibold mb-4">Bill History</h3>
-      <BillHistoryTable changes={changes} />
-    </Card>
+    <div>
+      <h3 className="font-semibold mb-2">Bill History</h3>
+      <ul className="list-disc pl-5 space-y-1">
+        {changes.map((change) => (
+          <li key={change.id} className="text-gray-700">
+            <span>{change.description}</span>
+            {change.details && <span className="text-gray-500 ml-2">({change.details})</span>}
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 };
 

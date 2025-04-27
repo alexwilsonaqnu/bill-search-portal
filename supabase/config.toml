@@ -1,4 +1,1 @@
-
-[functions]
-[functions.get-bill-history]
-verify_jwt = true
+project_id = "ocmwynwfqoxktdcebkac"
