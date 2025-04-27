@@ -1,4 +1,3 @@
-
 import { Bill } from "@/types";
 
 /**
@@ -55,6 +54,14 @@ export function getSponsor(bill: Bill): string | Record<string, any> | null {
   
   // Check for direct sponsor property
   if (bill.data.sponsor) {
+    // Handle circular reference in sponsor
+    if (Array.isArray(bill.data.sponsors) && bill.data.sponsors.length > 0) {
+      const firstSponsor = bill.data.sponsors[0];
+      if (firstSponsor && typeof firstSponsor === 'object' && firstSponsor.message && 
+          firstSponsor.message.includes('Circular Reference')) {
+        return bill.data.sponsor;
+      }
+    }
     return bill.data.sponsor;
   }
   
@@ -65,7 +72,17 @@ export function getSponsor(bill: Bill): string | Record<string, any> | null {
   
   // Check if sponsors array exists and get first item
   if (Array.isArray(bill.data.sponsors) && bill.data.sponsors.length > 0) {
-    return bill.data.sponsors[0];
+    const firstSponsor = bill.data.sponsors[0];
+    
+    // Handle circular reference
+    if (firstSponsor && typeof firstSponsor === 'object' && firstSponsor.message && 
+        firstSponsor.message.includes('Circular Reference')) {
+      if (bill.data.sponsor) {
+        return bill.data.sponsor;
+      }
+    }
+    
+    return firstSponsor;
   }
   
   // Check if sponsors is an object with a sponsor property

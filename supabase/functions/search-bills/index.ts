@@ -44,6 +44,23 @@ serve(async (req) => {
                 const detailsData = await detailsResponse.json();
                 billDetails = detailsData.bill;
                 
+                // Fix circular references before sending data
+                if (billDetails && billDetails.sponsors) {
+                  // If first sponsor is a circular reference, replace with actual sponsor data
+                  if (Array.isArray(billDetails.sponsors) && billDetails.sponsors.length > 0) {
+                    const firstSponsor = billDetails.sponsors[0];
+                    if (firstSponsor && typeof firstSponsor === 'object' && 
+                        Object.keys(firstSponsor).length === 1 && 
+                        firstSponsor.message && firstSponsor.message.includes("Circular")) {
+                      
+                      // Fix circular reference by directly assigning sponsor to sponsors[0]
+                      if (billDetails.sponsor) {
+                        billDetails.sponsors[0] = { ...billDetails.sponsor };
+                      }
+                    }
+                  }
+                }
+                
                 // Log sponsor information for debugging
                 console.log(`Bill ${item.bill_id} sponsor info:`, {
                   sponsor: billDetails?.sponsors?.primary || billDetails?.sponsor,

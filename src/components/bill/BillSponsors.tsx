@@ -29,6 +29,19 @@ const BillSponsors = ({ bill }: BillSponsorsProps) => {
     if (typeof sponsorData === 'string') return sponsorData;
     if (!sponsorData) return 'Unknown';
     
+    // Check if this is a circular reference message
+    if (sponsorData.message && sponsorData.message.includes("Circular")) {
+      // Extract the path from the circular reference
+      const path = sponsorData.message.replace("[Circular Reference to ", "").replace("]", "");
+      
+      // If it's pointing to root.sponsor, use the sponsor data directly
+      if (path === "root.sponsor" && bill.data?.sponsor) {
+        return getSponsorName(bill.data.sponsor);
+      }
+      
+      return "Referenced Sponsor";
+    }
+    
     // Check for name field first
     if (typeof sponsorData.name === 'string') return sponsorData.name;
     if (typeof sponsorData.full_name === 'string') return sponsorData.full_name;
