@@ -1,4 +1,3 @@
-
 import { Users } from "lucide-react";
 import { Bill } from "@/types";
 import { getSponsor, getCoSponsors } from "@/utils/billCardUtils";
@@ -124,32 +123,36 @@ const BillSponsors = ({ bill }: BillSponsorsProps) => {
                 <p className="text-sm text-gray-600">
                   Party Affiliation: {legislatorInfo.party}
                 </p>
-                {legislatorInfo.email.length > 0 && (
+                {legislatorInfo.email && legislatorInfo.email.length > 0 && (
                   <div className="text-sm">
                     <div className="font-medium">Email:</div>
-                    {legislatorInfo.email.map((email, i) => (
-                      <a 
-                        key={i} 
-                        href={`mailto:${email}`}
-                        className="text-blue-600 hover:underline block"
-                      >
-                        {email}
-                      </a>
-                    ))}
+                    <div className="space-y-1">
+                      {legislatorInfo.email.map((email, i) => (
+                        <a 
+                          key={i} 
+                          href={`mailto:${email}`}
+                          className="text-blue-600 hover:underline block"
+                        >
+                          {email}
+                        </a>
+                      ))}
+                    </div>
                   </div>
                 )}
-                {legislatorInfo.phone.length > 0 && (
+                {legislatorInfo.phone && legislatorInfo.phone.length > 0 && (
                   <div className="text-sm">
                     <div className="font-medium">Phone:</div>
-                    {legislatorInfo.phone.map((phone, i) => (
-                      <a 
-                        key={i} 
-                        href={`tel:${phone}`}
-                        className="text-blue-600 hover:underline block"
-                      >
-                        {phone}
-                      </a>
-                    ))}
+                    <div className="space-y-1">
+                      {legislatorInfo.phone.map((phone, i) => (
+                        <a 
+                          key={i} 
+                          href={`tel:${phone}`}
+                          className="text-blue-600 hover:underline block"
+                        >
+                          {phone}
+                        </a>
+                      ))}
+                    </div>
                   </div>
                 )}
               </>
