@@ -1,6 +1,4 @@
-
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
 
 export async function fetchBillText(billId: string) {
   try {
@@ -33,8 +31,6 @@ export async function fetchBillText(billId: string) {
     };
   } catch (error) {
     console.error("Error fetching bill text:", error);
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    toast.error(`Failed to fetch bill text: ${errorMessage}`);
     throw error;
   }
 }
