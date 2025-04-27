@@ -12,11 +12,16 @@ const BillSponsors = ({ bill }: BillSponsorsProps) => {
   const coSponsors = getCoSponsors(bill);
   
   // Debug log to see what data we're working with
-  console.log("BillSponsors component data:", { sponsor, coSponsors });
+  console.log("BillSponsors component data:", { 
+    bill_id: bill.id,
+    sponsor, 
+    coSponsors,
+    rawData: bill.data 
+  });
   
   // Don't render anything if there are no sponsors
   if (!sponsor && coSponsors.length === 0) {
-    return null;
+    return <div className="text-gray-500 italic">No sponsor information available</div>;
   }
   
   // Function to extract name from sponsor object
@@ -24,9 +29,9 @@ const BillSponsors = ({ bill }: BillSponsorsProps) => {
     if (typeof sponsorData === 'string') return sponsorData;
     if (!sponsorData) return 'Unknown';
     
-    // Check different possible name fields
-    if (sponsorData.name) return sponsorData.name;
-    if (sponsorData.full_name) return sponsorData.full_name;
+    // Check for name field first
+    if (typeof sponsorData.name === 'string') return sponsorData.name;
+    if (typeof sponsorData.full_name === 'string') return sponsorData.full_name;
     
     // Try to construct name from parts
     const nameParts = [];
@@ -34,31 +39,41 @@ const BillSponsors = ({ bill }: BillSponsorsProps) => {
     if (sponsorData.middle_name) nameParts.push(sponsorData.middle_name);
     if (sponsorData.last_name) nameParts.push(sponsorData.last_name);
     
-    return nameParts.length > 0 ? nameParts.join(' ') : 'Unknown';
+    // If we have name parts, join them
+    if (nameParts.length > 0) {
+      const fullName = nameParts.join(' ');
+      if (sponsorData.suffix) return `${fullName}, ${sponsorData.suffix}`;
+      return fullName;
+    }
+    
+    return 'Unknown';
   };
   
   return (
-    <div className="space-y-1">
+    <div className="space-y-3">
       {sponsor && (
-        <div className="flex items-center text-sm text-gray-700">
-          <span className="mr-2">Sponsor:</span>
-          <span className="font-medium">
-            {getSponsorName(sponsor)}
-          </span>
+        <div className="text-sm text-gray-700">
+          <div className="font-medium mb-1">Primary Sponsor:</div>
+          <div className="pl-4">{getSponsorName(sponsor)}</div>
         </div>
       )}
       
       {coSponsors.length > 0 && (
-        <div className="flex items-center text-sm text-gray-700">
-          <span className="mr-2 flex items-center gap-1">
-            <Users className="h-4 w-4" /> Co-sponsors:
-          </span>
-          <span className="font-medium">
+        <div className="text-sm text-gray-700">
+          <div className="font-medium mb-1 flex items-center gap-1">
+            <Users className="h-4 w-4" /> 
+            Co-sponsors:
+          </div>
+          <div className="pl-4">
             {coSponsors.map((cosponsor, index) => (
-              (index > 0 ? ', ' : '') + getSponsorName(cosponsor)
+              <div key={index}>{getSponsorName(cosponsor)}</div>
             ))}
-            {bill.data?.cosponsors?.length > 3 && ` +${bill.data.cosponsors.length - 3} more`}
-          </span>
+            {bill.data?.cosponsors?.length > coSponsors.length && (
+              <div className="text-gray-500 mt-1">
+                +{bill.data.cosponsors.length - coSponsors.length} more
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>
