@@ -9,10 +9,15 @@ interface SponsorHoverCardProps {
 }
 
 const SponsorHoverCard = ({ sponsorData, getSponsorName }: SponsorHoverCardProps) => {
+  // Extract identifier - prefer ID but fall back to name
   const legislatorId = sponsorData.people_id || sponsorData.id;
-  const { data: legislatorInfo, isLoading, error } = useLegislatorInfo(legislatorId);
+  const sponsorName = getSponsorName(sponsorData);
   
-  console.log("SponsorHoverCard for legislator:", legislatorId, { 
+  // Use ID if available, otherwise use name
+  const lookupParams = legislatorId ? { legislatorId } : { name: sponsorName };
+  const { data: legislatorInfo, isLoading, error } = useLegislatorInfo(lookupParams);
+  
+  console.log("SponsorHoverCard for legislator:", legislatorId || sponsorName, { 
     legislatorInfo,
     isLoading,
     hasError: !!error
@@ -21,11 +26,11 @@ const SponsorHoverCard = ({ sponsorData, getSponsorName }: SponsorHoverCardProps
   return (
     <HoverCard>
       <HoverCardTrigger className="cursor-pointer hover:text-blue-600 transition-colors">
-        {getSponsorName(sponsorData)}
+        {sponsorName}
       </HoverCardTrigger>
       <HoverCardContent className="w-80">
         <div className="space-y-2">
-          <h4 className="text-sm font-semibold">{getSponsorName(sponsorData)}</h4>
+          <h4 className="text-sm font-semibold">{sponsorName}</h4>
           {isLoading && <p className="text-sm text-gray-500">Loading legislator info...</p>}
           {error && <p className="text-sm text-red-500">Error loading legislator info</p>}
           {legislatorInfo && (

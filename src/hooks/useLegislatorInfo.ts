@@ -9,22 +9,43 @@ interface LegislatorInfo {
   phone: string[];
 }
 
-export const useLegislatorInfo = (legislatorId: string) => {
+interface LegislatorLookupParams {
+  legislatorId?: string;
+  name?: string;
+}
+
+export const useLegislatorInfo = (identifier: string | LegislatorLookupParams) => {
   const { toast } = useToast();
   
+  // Process input to determine whether we have an ID or name
+  let legislatorId: string | undefined;
+  let name: string | undefined;
+  
+  if (typeof identifier === 'string') {
+    legislatorId = identifier;
+  } else {
+    legislatorId = identifier?.legislatorId;
+    name = identifier?.name;
+  }
+
+  const hasIdentifier = !!legislatorId || !!name;
+  const queryKey = legislatorId ? ['legislator', 'id', legislatorId] : ['legislator', 'name', name];
+  
   return useQuery({
-    queryKey: ['legislator', legislatorId],
+    queryKey: queryKey,
     queryFn: async (): Promise<LegislatorInfo | null> => {
       try {
-        console.log(`Fetching legislator info for ID: ${legislatorId}`);
-        
-        if (!legislatorId) {
-          console.warn("Missing legislator ID");
+        if (legislatorId) {
+          console.log(`Fetching legislator info for ID: ${legislatorId}`);
+        } else if (name) {
+          console.log(`Fetching legislator info for name: ${name}`);
+        } else {
+          console.warn("Missing legislator identifier");
           return null;
         }
         
         const { data, error } = await supabase.functions.invoke('get-legislator', {
-          body: { legislatorId }
+          body: { legislatorId, name }
         });
         
         if (error) {
@@ -60,6 +81,6 @@ export const useLegislatorInfo = (legislatorId: string) => {
         return null;
       }
     },
-    enabled: !!legislatorId,
+    enabled: hasIdentifier,
   });
 };
