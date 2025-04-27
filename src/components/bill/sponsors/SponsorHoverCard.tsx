@@ -10,16 +10,9 @@ interface SponsorHoverCardProps {
 
 const SponsorHoverCard = ({ sponsorData, getSponsorName }: SponsorHoverCardProps) => {
   const legislatorId = sponsorData.people_id || sponsorData.id;
-  const legislatorName = getSponsorName(sponsorData);
+  const { data: legislatorInfo, isLoading, error } = useLegislatorInfo(legislatorId);
   
-  const { data: legislatorInfo, isLoading, error } = useLegislatorInfo(
-    legislatorId, 
-    legislatorName
-  );
-  
-  console.log("SponsorHoverCard for legislator:", { 
-    id: legislatorId,
-    name: legislatorName,
+  console.log("SponsorHoverCard for legislator:", legislatorId, { 
     legislatorInfo,
     isLoading,
     hasError: !!error

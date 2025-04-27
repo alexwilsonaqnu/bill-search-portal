@@ -9,22 +9,22 @@ interface LegislatorInfo {
   phone: string[];
 }
 
-export const useLegislatorInfo = (legislatorId?: string, legislatorName?: string) => {
+export const useLegislatorInfo = (legislatorId: string) => {
   const { toast } = useToast();
   
   return useQuery({
-    queryKey: ['legislator', legislatorId, legislatorName],
+    queryKey: ['legislator', legislatorId],
     queryFn: async (): Promise<LegislatorInfo | null> => {
       try {
-        if (!legislatorId && !legislatorName) {
-          console.warn("Missing both legislator ID and name");
+        console.log(`Fetching legislator info for ID: ${legislatorId}`);
+        
+        if (!legislatorId) {
+          console.warn("Missing legislator ID");
           return null;
         }
         
-        console.log(`Fetching legislator info for ID: ${legislatorId || 'N/A'}, Name: ${legislatorName || 'N/A'}`);
-        
         const { data, error } = await supabase.functions.invoke('get-legislator', {
-          body: { legislatorId, name: legislatorName }
+          body: { legislatorId }
         });
         
         if (error) {
@@ -60,6 +60,6 @@ export const useLegislatorInfo = (legislatorId?: string, legislatorName?: string
         return null;
       }
     },
-    enabled: !!(legislatorId || legislatorName),
+    enabled: !!legislatorId,
   });
 };
