@@ -2,24 +2,12 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 
-const OPEN_STATES_API_KEY = Deno.env.get('OPEN_STATES_API_KEY');
+const LEGISCAN_API_KEY = Deno.env.get('LEGISCAN_API_KEY');
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
-
-interface Office {
-  classification: string;
-  address?: string;
-  voice?: string;
-  fax?: string;
-  email?: string;
-}
-
-// Simple in-memory cache
-const cache = new Map();
-const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -28,13 +16,13 @@ serve(async (req) => {
   }
 
   try {
-    const { legislatorName } = await req.json();
+    const { legislatorId } = await req.json();
     
-    if (!legislatorName) {
+    if (!legislatorId) {
       return new Response(
         JSON.stringify({ 
-          error: 'Missing legislator name',
-          message: 'Legislator name is required' 
+          error: 'Missing legislator ID',
+          message: 'Legislator ID is required' 
         }),
         { 
           status: 400,
@@ -46,105 +34,48 @@ serve(async (req) => {
       );
     }
 
-    console.log(`Fetching legislator details for name: ${legislatorName}`);
+    console.log(`Fetching legislator details for ID: ${legislatorId}`);
     
-    // Check cache first
-    if (cache.has(legislatorName)) {
-      const cachedData = cache.get(legislatorName);
-      if (Date.now() - cachedData.timestamp < CACHE_TTL) {
-        console.log(`Using cached data for ${legislatorName}`);
-        return new Response(
-          JSON.stringify(cachedData.data),
-          {
-            headers: {
-              'Content-Type': 'application/json',
-              ...corsHeaders
-            }
-          }
-        );
-      } else {
-        // Cache expired, remove it
-        cache.delete(legislatorName);
-      }
-    }
-    
-    // Add a small delay to help with rate limiting (100-500ms)
-    const delay = Math.floor(Math.random() * 400) + 100;
-    await new Promise(resolve => setTimeout(resolve, delay));
-    
-    const url = `https://v3.openstates.org/people?jurisdiction=Illinois&name=${encodeURIComponent(legislatorName)}&apikey=${OPEN_STATES_API_KEY}`;
+    // Call LegiScan API to get legislator details
+    const url = `https://api.legiscan.com/?key=${LEGISCAN_API_KEY}&op=getPerson&id=${legislatorId}`;
     
     const response = await fetch(url);
     if (!response.ok) {
-      // If we hit rate limit, try to use cached data even if expired
-      if (response.status === 429 && cache.has(legislatorName)) {
-        console.log(`Rate limited, using expired cache for ${legislatorName}`);
-        return new Response(
-          JSON.stringify(cache.get(legislatorName).data),
-          {
-            headers: {
-              'Content-Type': 'application/json',
-              ...corsHeaders
-            }
-          }
-        );
-      }
-      
-      throw new Error(`OpenStates API error: ${response.status} ${response.statusText}`);
+      throw new Error(`LegiScan API error: ${response.status} ${response.statusText}`);
     }
 
     const data = await response.json();
     
-    if (!data.results?.[0]) {
-      console.log('No legislator found in OpenStates:', { name: legislatorName });
-      return new Response(
-        JSON.stringify(null),
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            ...corsHeaders
-          }
-        }
-      );
+    if (data.status !== 'OK' || !data.person) {
+      console.error('Invalid response from LegiScan:', data);
+      throw new Error('Failed to retrieve legislator information');
     }
 
-    const legislator = data.results[0];
-    
-    // Extract contact info from offices
-    const emails = legislator.offices
-      ?.filter((office: Office) => office.email)
-      .map((office: Office) => office.email) || [];
-    
-    const phones = legislator.offices
-      ?.filter((office: Office) => office.voice)
-      .map((office: Office) => office.voice) || [];
+    // Extract the legislator data
+    const legislator = data.person;
 
-    // Build legislator info
-    const legislatorInfo = {
+    // Build contact info
+    const contactInfo = {
       party: legislator.party || 'Unknown',
-      email: emails,
-      phone: phones,
-      district: legislator.current_role?.district || '',
-      role: legislator.current_role?.role || '',
+      // LegiScan API doesn't provide direct email/phone info in getPerson
+      // We'll need to consider if we want to get this from a different source
+      email: [], 
+      phone: [],
+      district: legislator.district || '',
+      role: legislator.role || '',
       name: {
-        first: legislator.name.split(' ')[0],
-        middle: '',  // OpenStates doesn't provide middle name
-        last: legislator.name.split(' ').slice(1).join(' '),
-        suffix: '',  // OpenStates doesn't provide suffix
-        full: legislator.name
+        first: legislator.first_name || '',
+        middle: legislator.middle_name || '',
+        last: legislator.last_name || '',
+        suffix: legislator.suffix || '',
+        full: legislator.name || ''
       }
     };
 
-    console.log("Extracted legislator info:", JSON.stringify(legislatorInfo, null, 2));
-    
-    // Cache the result
-    cache.set(legislatorName, {
-      data: legislatorInfo,
-      timestamp: Date.now()
-    });
+    console.log("Extracted legislator info:", JSON.stringify(contactInfo, null, 2));
     
     return new Response(
-      JSON.stringify(legislatorInfo),
+      JSON.stringify(contactInfo),
       {
         headers: {
           'Content-Type': 'application/json',

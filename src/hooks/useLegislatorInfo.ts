@@ -20,35 +20,31 @@ interface LegislatorInfo {
   name: LegislatorName;
 }
 
-export const useLegislatorInfo = (legislatorName: string) => {
+export const useLegislatorInfo = (legislatorId: string) => {
   const { toast } = useToast();
   
   return useQuery({
-    queryKey: ['legislator', legislatorName],
+    queryKey: ['legislator', legislatorId],
     queryFn: async (): Promise<LegislatorInfo | null> => {
       try {
-        console.log(`Fetching legislator info for name: ${legislatorName}`);
+        console.log(`Fetching legislator info for ID: ${legislatorId}`);
         
-        if (!legislatorName) {
-          console.warn("Missing legislator name");
+        if (!legislatorId) {
+          console.warn("Missing legislator ID");
           return null;
         }
         
         const { data, error } = await supabase.functions.invoke('get-legislator', {
-          body: { legislatorName }
+          body: { legislatorId }
         });
         
         if (error) {
           console.error("Error fetching legislator info:", error);
-          
-          // Don't show toast for rate limit errors to avoid overwhelming the user
-          if (!error.message?.includes("429")) {
-            toast({
-              title: "Information Notice",
-              description: "Legislator details temporarily unavailable",
-              variant: "default"
-            });
-          }
+          toast({
+            title: "Error",
+            description: "Could not load legislator information",
+            variant: "destructive"
+          });
           return null;
         }
         
@@ -64,27 +60,14 @@ export const useLegislatorInfo = (legislatorName: string) => {
 
       } catch (error) {
         console.error("Error in fetchLegislatorInfo:", error);
-        
-        // Don't show destructive toast for expected errors
         toast({
-          title: "Information Notice",
-          description: "Legislator information temporarily unavailable",
-          variant: "default"
+          title: "Error",
+          description: "Failed to load legislator information",
+          variant: "destructive"
         });
         return null;
       }
     },
-    enabled: !!legislatorName,
-    retry: (failureCount, error: any) => {
-      // Don't retry on 429 rate limit errors
-      if (error?.message?.includes('429')) {
-        return false;
-      }
-      // Retry other errors up to 2 times
-      return failureCount < 2;
-    },
-    retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff
-    staleTime: 1000 * 60 * 60, // Cache for 1 hour
-    gcTime: 1000 * 60 * 60 * 24, // Keep unused data for 1 day
+    enabled: !!legislatorId,
   });
 };
