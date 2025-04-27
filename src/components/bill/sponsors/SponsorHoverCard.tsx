@@ -25,7 +25,7 @@ const SponsorHoverCard = ({ sponsorData, getSponsorName }: SponsorHoverCardProps
       </HoverCardTrigger>
       <HoverCardContent className="w-80">
         <div className="space-y-2">
-          <h4 className="text-sm font-semibold">{getSponsorName(sponsorData)}</h4>
+          <h4 className="text-sm font-semibold">{legislatorInfo?.name?.full || getSponsorName(sponsorData)}</h4>
           {isLoading && <p className="text-sm text-gray-500">Loading legislator info...</p>}
           {error && <p className="text-sm text-red-500">Error loading legislator info</p>}
           {legislatorInfo && (
@@ -35,6 +35,11 @@ const SponsorHoverCard = ({ sponsorData, getSponsorName }: SponsorHoverCardProps
                        legislatorInfo.party === 'R' ? 'Republican' : 
                        legislatorInfo.party}
               </p>
+              {legislatorInfo.role && legislatorInfo.district && (
+                <p className="text-sm text-gray-600">
+                  {legislatorInfo.role}, District {legislatorInfo.district}
+                </p>
+              )}
               <SponsorContactInfo 
                 emails={legislatorInfo.email} 
                 phones={legislatorInfo.phone}
@@ -51,4 +56,3 @@ const SponsorHoverCard = ({ sponsorData, getSponsorName }: SponsorHoverCardProps
 };
 
 export default SponsorHoverCard;
-
