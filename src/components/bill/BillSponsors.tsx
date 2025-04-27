@@ -1,41 +1,16 @@
+
 import { Users } from "lucide-react";
 import { Bill } from "@/types";
 import { getSponsor, getCoSponsors } from "@/utils/billCardUtils";
-import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import SponsorHoverCard from "./sponsors/SponsorHoverCard";
 
 interface BillSponsorsProps {
   bill: Bill;
 }
 
-interface LegislatorInfo {
-  party: string;
-  email: string[];
-  phone: string[];
-}
-
 const BillSponsors = ({ bill }: BillSponsorsProps) => {
   const sponsor = getSponsor(bill);
   const coSponsors = getCoSponsors(bill);
-
-  const fetchLegislatorInfo = async (legislatorId: string): Promise<LegislatorInfo | null> => {
-    try {
-      const { data, error } = await supabase.functions.invoke('get-legislator', {
-        body: { legislatorId }
-      });
-      
-      if (error) {
-        console.error("Error fetching legislator info:", error);
-        return null;
-      }
-      
-      return data;
-    } catch (error) {
-      console.error("Error in fetchLegislatorInfo:", error);
-      return null;
-    }
-  };
 
   const getSponsorName = (sponsorData: any): string => {
     if (typeof sponsorData === 'string') return sponsorData;
@@ -102,67 +77,6 @@ const BillSponsors = ({ bill }: BillSponsorsProps) => {
     return 0;
   };
 
-  const SponsorHoverCard = ({ sponsorData }: { sponsorData: any }) => {
-    const legislatorId = sponsorData.people_id || sponsorData.id;
-    const { data: legislatorInfo } = useQuery({
-      queryKey: ['legislator', legislatorId],
-      queryFn: () => fetchLegislatorInfo(legislatorId),
-      enabled: !!legislatorId,
-    });
-
-    return (
-      <HoverCard>
-        <HoverCardTrigger className="cursor-pointer hover:text-blue-600 transition-colors">
-          {getSponsorName(sponsorData)}
-        </HoverCardTrigger>
-        <HoverCardContent className="w-80">
-          <div className="space-y-2">
-            <h4 className="text-sm font-semibold">{getSponsorName(sponsorData)}</h4>
-            {legislatorInfo && (
-              <>
-                <p className="text-sm text-gray-600">
-                  Party Affiliation: {legislatorInfo.party}
-                </p>
-                {legislatorInfo.email && legislatorInfo.email.length > 0 && (
-                  <div className="text-sm">
-                    <div className="font-medium">Email:</div>
-                    <div className="space-y-1">
-                      {legislatorInfo.email.map((email, i) => (
-                        <a 
-                          key={i} 
-                          href={`mailto:${email}`}
-                          className="text-blue-600 hover:underline block"
-                        >
-                          {email}
-                        </a>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                {legislatorInfo.phone && legislatorInfo.phone.length > 0 && (
-                  <div className="text-sm">
-                    <div className="font-medium">Phone:</div>
-                    <div className="space-y-1">
-                      {legislatorInfo.phone.map((phone, i) => (
-                        <a 
-                          key={i} 
-                          href={`tel:${phone}`}
-                          className="text-blue-600 hover:underline block"
-                        >
-                          {phone}
-                        </a>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </>
-            )}
-          </div>
-        </HoverCardContent>
-      </HoverCard>
-    );
-  };
-
   if (!sponsor && coSponsors.length === 0) {
     return <div className="text-gray-500 italic">No sponsor information available</div>;
   }
@@ -173,7 +87,7 @@ const BillSponsors = ({ bill }: BillSponsorsProps) => {
         <div className="text-sm text-gray-700">
           <div className="font-medium mb-1">Primary Sponsor:</div>
           <div className="pl-4">
-            <SponsorHoverCard sponsorData={sponsor} />
+            <SponsorHoverCard sponsorData={sponsor} getSponsorName={getSponsorName} />
           </div>
         </div>
       )}
@@ -187,7 +101,7 @@ const BillSponsors = ({ bill }: BillSponsorsProps) => {
           <div className="pl-4">
             {coSponsors.map((cosponsor, index) => (
               <div key={index}>
-                <SponsorHoverCard sponsorData={cosponsor} />
+                <SponsorHoverCard sponsorData={cosponsor} getSponsorName={getSponsorName} />
               </div>
             ))}
             {hasMoreCosponsors() && (
