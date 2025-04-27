@@ -46,11 +46,17 @@ const BillChat = ({ content, billText, isOpen, onClose }: ChatProps & { isOpen: 
       });
 
       if (error) {
+        console.error("Error invoking function:", error);
         throw new Error(`Error invoking function: ${error.message}`);
       }
 
       if (data.error) {
-        throw new Error(data.error);
+        console.error("Function returned error:", data.error);
+        throw new Error(data.userMessage || data.error);
+      }
+
+      if (!data.response || !data.response.content) {
+        throw new Error("Invalid response format from AI");
       }
 
       setMessages(prev => [
