@@ -18,6 +18,11 @@ export const useLegislatorInfo = (legislatorId: string) => {
       try {
         console.log(`Fetching legislator info for ID: ${legislatorId}`);
         
+        if (!legislatorId) {
+          console.warn("Missing legislator ID");
+          return null;
+        }
+        
         const { data, error } = await supabase.functions.invoke('get-legislator', {
           body: { legislatorId }
         });

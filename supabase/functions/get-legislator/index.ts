@@ -54,31 +54,53 @@ serve(async (req) => {
     // Extract relevant information
     const legislator = data.person;
     
-    // Process contact information
+    // Process contact information with improved extraction
     const emails = [];
     const phones = [];
     
     // Add personal email if available
-    if (legislator.email) {
-      emails.push(legislator.email);
+    if (legislator.email && typeof legislator.email === 'string' && legislator.email.trim()) {
+      emails.push(legislator.email.trim());
+    }
+    
+    // Process personal phone if available
+    if (legislator.phone && typeof legislator.phone === 'string' && legislator.phone.trim()) {
+      phones.push(legislator.phone.trim());
     }
     
     // Process offices array to extract all contact information
     if (legislator.offices && Array.isArray(legislator.offices)) {
       legislator.offices.forEach(office => {
         // Add office email if available and not already in the list
-        if (office.email && !emails.includes(office.email)) {
-          emails.push(office.email);
+        if (office.email && typeof office.email === 'string' && office.email.trim()) {
+          const email = office.email.trim();
+          if (!emails.includes(email)) {
+            emails.push(email);
+          }
         }
         
         // Add office phone if available
-        if (office.phone) {
-          const formattedPhone = office.phone.trim();
-          if (formattedPhone && !phones.includes(formattedPhone)) {
-            phones.push(formattedPhone);
+        if (office.phone && typeof office.phone === 'string' && office.phone.trim()) {
+          const phone = office.phone.trim();
+          if (!phones.includes(phone)) {
+            phones.push(phone);
           }
         }
       });
+    }
+    
+    // Fallback for different API response formats
+    // Sometimes contact info might be nested differently
+    if (emails.length === 0 && phones.length === 0) {
+      // Check if contact info is in a different location
+      if (legislator.contact) {
+        if (legislator.contact.email && typeof legislator.contact.email === 'string') {
+          emails.push(legislator.contact.email.trim());
+        }
+        if (legislator.contact.phone && typeof legislator.contact.phone === 'string') {
+          phones.push(legislator.contact.phone.trim());
+        }
+      }
     }
     
     // Log what we found for debugging
@@ -87,7 +109,8 @@ serve(async (req) => {
       emails, 
       phones,
       hasOffices: !!legislator.offices,
-      officesCount: legislator.offices ? legislator.offices.length : 0
+      officesCount: legislator.offices ? legislator.offices.length : 0,
+      raw: JSON.stringify(legislator).substring(0, 200) + "..." // Log first part of raw data
     });
     
     return new Response(

@@ -29,7 +29,7 @@ const SponsorContactInfo = ({ emails, phones }: SponsorContactInfoProps) => {
               <a 
                 key={i} 
                 href={`mailto:${email}`}
-                className="text-blue-600 hover:underline block"
+                className="text-blue-600 hover:underline block break-all"
               >
                 {email}
               </a>

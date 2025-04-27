@@ -37,6 +37,9 @@ const SponsorHoverCard = ({ sponsorData, getSponsorName }: SponsorHoverCardProps
                 emails={legislatorInfo.email} 
                 phones={legislatorInfo.phone}
               />
+              {(!legislatorInfo.email?.length && !legislatorInfo.phone?.length) && (
+                <p className="text-sm text-gray-500 italic">No contact information available</p>
+              )}
             </>
           )}
         </div>
