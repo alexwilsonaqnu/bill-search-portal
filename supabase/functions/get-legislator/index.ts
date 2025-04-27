@@ -58,21 +58,37 @@ serve(async (req) => {
     const emails = [];
     const phones = [];
     
+    // Add personal email if available
     if (legislator.email) {
       emails.push(legislator.email);
     }
     
+    // Process offices array to extract all contact information
     if (legislator.offices && Array.isArray(legislator.offices)) {
       legislator.offices.forEach(office => {
+        // Add office email if available and not already in the list
         if (office.email && !emails.includes(office.email)) {
           emails.push(office.email);
         }
         
+        // Add office phone if available
         if (office.phone) {
-          phones.push(office.phone);
+          const formattedPhone = office.phone.trim();
+          if (formattedPhone && !phones.includes(formattedPhone)) {
+            phones.push(formattedPhone);
+          }
         }
       });
     }
+    
+    // Log what we found for debugging
+    console.log("Extracted contact info:", { 
+      party: legislator.party, 
+      emails, 
+      phones,
+      hasOffices: !!legislator.offices,
+      officesCount: legislator.offices ? legislator.offices.length : 0
+    });
     
     return new Response(
       JSON.stringify({

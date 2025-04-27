@@ -7,7 +7,14 @@ interface SponsorContactInfoProps {
 }
 
 const SponsorContactInfo = ({ emails, phones }: SponsorContactInfoProps) => {
-  if (!emails?.length && !phones?.length) return null;
+  // Debug output
+  console.log("SponsorContactInfo received:", { emails, phones });
+  
+  // Return null if no contact info available
+  if (!emails?.length && !phones?.length) {
+    console.log("No contact info to display");
+    return null;
+  }
 
   return (
     <div className="space-y-2">
