@@ -33,6 +33,9 @@ serve(async (req) => {
 
     const data = await response.json();
     
+    // Log raw history data to see what we're working with
+    console.log("Raw history data:", data.bill?.history);
+    
     // Extract and format history from LegiScan response
     const history = data.bill?.history || [];
     const formattedHistory = history.map((item: any, index: number) => ({
@@ -42,6 +45,7 @@ serve(async (req) => {
     }));
 
     console.log(`Found ${formattedHistory.length} history items for bill ${billId}`);
+    console.log("Sample formatted history:", formattedHistory.slice(0, 2));
 
     return new Response(JSON.stringify(formattedHistory), {
       headers: {

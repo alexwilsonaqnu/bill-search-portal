@@ -11,6 +11,7 @@ import BillSponsors from "@/components/bill/BillSponsors";
 import BillNotificationSignup from "./BillNotificationSignup";
 import BillChat from "./BillChat";
 import ChatToggle from "./ChatToggle";
+import BillHistoryView from "./BillHistoryView";
 
 interface BillDetailViewProps {
   bill: Bill;
@@ -22,6 +23,10 @@ const BillDetailView = ({ bill }: BillDetailViewProps) => {
 
   // Get the bill text from versions if available (not directly from bill.text)
   const billText = bill.versions?.[0]?.sections?.[0]?.content || "";
+
+  // Log to check if bill has history data
+  console.log("Bill history in BillDetailView:", bill.changes);
+  console.log("Bill history count:", bill.changes?.length);
 
   const toggleChat = () => {
     setIsChatOpen(prev => !prev);
@@ -61,6 +66,13 @@ const BillDetailView = ({ bill }: BillDetailViewProps) => {
               <BillOverview bill={bill} />
             ) : (
               <BillComparisonContainer bill={bill} />
+            )}
+            
+            {/* Add bill history view component */}
+            {bill.changes && bill.changes.length > 0 && (
+              <div className="mt-8">
+                <BillHistoryView changes={bill.changes} />
+              </div>
             )}
           </div>
         </div>

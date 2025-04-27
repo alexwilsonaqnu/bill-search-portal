@@ -1,3 +1,4 @@
+
 import { useParams } from "react-router-dom";
 import { useBillData } from "@/hooks/useBillData";
 import BillDetailView from "./BillDetailView";
@@ -36,7 +37,17 @@ const BillFetchWrapper = () => {
   }, [id]);
   
   // Pass the ID directly to the hook
-  const { bill, isLoading, isError } = useBillData({ id });
+  const { bill, billHistory, isLoading, isError } = useBillData({ id });
+
+  // Log to verify bill history data
+  console.log("Bill history data in wrapper:", billHistory);
+  console.log("Bill history count in wrapper:", billHistory?.length);
+
+  // If bill exists, ensure it has the latest history data
+  const enrichedBill = bill ? {
+    ...bill,
+    changes: billHistory.length > 0 ? billHistory : bill.changes || []
+  } : null;
 
   // If we're still loading from the API and don't have a local version, show loading
   if (isLoading && !localBill) {
@@ -54,8 +65,8 @@ const BillFetchWrapper = () => {
     return <BillDetailError id={id || ""} />;
   }
 
-  // If we have a bill from the API, use that
-  return <BillDetailView bill={bill || localBill!} />;
+  // If we have a bill from the API, use that with enriched history
+  return <BillDetailView bill={enrichedBill || localBill!} />;
 };
 
 export default BillFetchWrapper;

@@ -1,3 +1,4 @@
+
 import { useQuery } from "@tanstack/react-query";
 import { Bill, Change } from "@/types";
 import { fetchBillById, fetchBillHistory } from "@/services/billService";
@@ -46,9 +47,9 @@ export function useBillData({ id }: UseBillDataProps): UseBillDataResult {
   
   const { 
     data: bill, 
-    isLoading, 
-    error, 
-    isError 
+    isLoading: isBillLoading, 
+    error: billError, 
+    isError: isBillError 
   } = useQuery({
     queryKey: ["bill", lookupId],
     queryFn: async () => {
@@ -74,31 +75,42 @@ export function useBillData({ id }: UseBillDataProps): UseBillDataResult {
   const {
     data: billHistory = [],
     isLoading: isHistoryLoading,
-    error: historyError
+    error: historyError,
+    isError: isHistoryError
   } = useQuery({
-    queryKey: ["billHistory", lookupId],
-    queryFn: () => id ? fetchBillHistory(id) : Promise.resolve([]),
+    queryKey: ["billHistory", id],
+    queryFn: async () => {
+      if (!id) return [];
+      console.log(`Fetching bill history for ID: ${id}`);
+      const history = await fetchBillHistory(id);
+      console.log(`Fetched bill history for ${id}:`, history);
+      return history;
+    },
     enabled: !!id,
+    retry: 1
   });
 
-  // Logging for diagnostics
-  if (billHistory && billHistory.length > 0) {
-    console.log(`Fetched ${billHistory.length} bill history items for ${lookupId}`);
+  // Merge the bill history data with the bill data
+  const mergedBill = bill ? {
+    ...bill,
+    changes: billHistory.length > 0 ? billHistory : bill.changes || []
+  } : null;
+
+  // Log merged bill data
+  if (mergedBill) {
+    console.log("Merged bill data with history:", {
+      id: mergedBill.id,
+      historyLength: mergedBill.changes?.length || 0
+    });
   }
 
-  // Additional logging when bill data changes
-  if (bill && !isLoading) {
-    console.log(`Bill data for ${lookupId}:`, {
-      id: bill.id,
-      title: bill.title?.substring(0, 30) + "...",
-      dataPresent: !!bill.data
-    });
-  } else if (!bill && !isLoading && !isError) {
-    console.warn(`No bill data returned for ID: ${lookupId}`);
-  }
+  // Determine overall loading and error state
+  const isLoading = isBillLoading || isHistoryLoading;
+  const isError = isBillError || isHistoryError;
+  const error = billError || historyError;
 
   return {
-    bill: bill || null,
+    bill: mergedBill,
     billHistory,
     isLoading,
     isError,
