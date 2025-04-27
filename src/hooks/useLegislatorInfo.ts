@@ -40,11 +40,15 @@ export const useLegislatorInfo = (legislatorName: string) => {
         
         if (error) {
           console.error("Error fetching legislator info:", error);
-          toast({
-            title: "Error",
-            description: "Could not load legislator information",
-            variant: "destructive"
-          });
+          
+          // Don't show toast for rate limit errors to avoid overwhelming the user
+          if (!error.message?.includes("429")) {
+            toast({
+              title: "Information Notice",
+              description: "Legislator details temporarily unavailable",
+              variant: "default"
+            });
+          }
           return null;
         }
         
@@ -60,15 +64,27 @@ export const useLegislatorInfo = (legislatorName: string) => {
 
       } catch (error) {
         console.error("Error in fetchLegislatorInfo:", error);
+        
+        // Don't show destructive toast for expected errors
         toast({
-          title: "Error",
-          description: "Failed to load legislator information",
-          variant: "destructive"
+          title: "Information Notice",
+          description: "Legislator information temporarily unavailable",
+          variant: "default"
         });
         return null;
       }
     },
     enabled: !!legislatorName,
+    retry: (failureCount, error: any) => {
+      // Don't retry on 429 rate limit errors
+      if (error?.message?.includes('429')) {
+        return false;
+      }
+      // Retry other errors up to 2 times
+      return failureCount < 2;
+    },
+    retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff
+    staleTime: 1000 * 60 * 60, // Cache for 1 hour
+    gcTime: 1000 * 60 * 60 * 24, // Keep unused data for 1 day
   });
 };
-

@@ -17,6 +17,10 @@ interface Office {
   email?: string;
 }
 
+// Simple in-memory cache
+const cache = new Map();
+const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -44,10 +48,48 @@ serve(async (req) => {
 
     console.log(`Fetching legislator details for name: ${legislatorName}`);
     
+    // Check cache first
+    if (cache.has(legislatorName)) {
+      const cachedData = cache.get(legislatorName);
+      if (Date.now() - cachedData.timestamp < CACHE_TTL) {
+        console.log(`Using cached data for ${legislatorName}`);
+        return new Response(
+          JSON.stringify(cachedData.data),
+          {
+            headers: {
+              'Content-Type': 'application/json',
+              ...corsHeaders
+            }
+          }
+        );
+      } else {
+        // Cache expired, remove it
+        cache.delete(legislatorName);
+      }
+    }
+    
+    // Add a small delay to help with rate limiting (100-500ms)
+    const delay = Math.floor(Math.random() * 400) + 100;
+    await new Promise(resolve => setTimeout(resolve, delay));
+    
     const url = `https://v3.openstates.org/people?jurisdiction=Illinois&name=${encodeURIComponent(legislatorName)}&apikey=${OPEN_STATES_API_KEY}`;
     
     const response = await fetch(url);
     if (!response.ok) {
+      // If we hit rate limit, try to use cached data even if expired
+      if (response.status === 429 && cache.has(legislatorName)) {
+        console.log(`Rate limited, using expired cache for ${legislatorName}`);
+        return new Response(
+          JSON.stringify(cache.get(legislatorName).data),
+          {
+            headers: {
+              'Content-Type': 'application/json',
+              ...corsHeaders
+            }
+          }
+        );
+      }
+      
       throw new Error(`OpenStates API error: ${response.status} ${response.statusText}`);
     }
 
@@ -95,6 +137,12 @@ serve(async (req) => {
 
     console.log("Extracted legislator info:", JSON.stringify(legislatorInfo, null, 2));
     
+    // Cache the result
+    cache.set(legislatorName, {
+      data: legislatorInfo,
+      timestamp: Date.now()
+    });
+    
     return new Response(
       JSON.stringify(legislatorInfo),
       {
@@ -122,4 +170,3 @@ serve(async (req) => {
     );
   }
 });
-

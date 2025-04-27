@@ -27,7 +27,7 @@ const SponsorHoverCard = ({ sponsorData, getSponsorName }: SponsorHoverCardProps
         <div className="space-y-2">
           <h4 className="text-sm font-semibold">{legislatorInfo?.name?.full || sponsorName}</h4>
           {isLoading && <p className="text-sm text-gray-500">Loading legislator info...</p>}
-          {error && <p className="text-sm text-red-500">Error loading legislator info</p>}
+          {error && <p className="text-sm text-gray-500">Legislator info temporarily unavailable</p>}
           {legislatorInfo && (
             <>
               <p className="text-sm text-gray-600">
@@ -48,6 +48,9 @@ const SponsorHoverCard = ({ sponsorData, getSponsorName }: SponsorHoverCardProps
                 <p className="text-sm text-gray-500 italic">No contact information available</p>
               )}
             </>
+          )}
+          {!legislatorInfo && !isLoading && !error && (
+            <p className="text-sm text-gray-500 italic">No additional information available</p>
           )}
         </div>
       </HoverCardContent>
