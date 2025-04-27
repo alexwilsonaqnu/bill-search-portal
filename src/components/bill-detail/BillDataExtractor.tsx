@@ -1,3 +1,4 @@
+
 import { Bill } from "@/types";
 
 interface BillDataExtractorProps {
@@ -26,9 +27,18 @@ const BillDataExtractor = ({ bill }: BillDataExtractorProps) => {
   const getTextContent = () => {
     const billData = bill.data?.bill || bill.data || {};
 
-    // First check direct text field on bill
-    if (bill.text && typeof bill.text === 'string' && bill.text.trim().length > 0) {
-      return bill.text;
+    // Check bill versions first
+    if (bill.versions && bill.versions.length > 0) {
+      const latestVersion = bill.versions[bill.versions.length - 1];
+      if (latestVersion.sections && latestVersion.sections.length > 0) {
+        const combinedContent = latestVersion.sections
+          .map(section => section.content)
+          .filter(content => content && content.trim().length > 0)
+          .join('\n\n');
+        if (combinedContent) {
+          return combinedContent;
+        }
+      }
     }
 
     // Check for text_content from external source
@@ -54,20 +64,6 @@ const BillDataExtractor = ({ bill }: BillDataExtractorProps) => {
     // Check for text field
     if (billData.text && typeof billData.text === 'string' && billData.text.trim().length > 0) {
       return billData.text;
-    }
-
-    // Check bill versions
-    if (bill.versions && bill.versions.length > 0) {
-      const latestVersion = bill.versions[bill.versions.length - 1];
-      if (latestVersion.sections && latestVersion.sections.length > 0) {
-        const combinedContent = latestVersion.sections
-          .map(section => section.content)
-          .filter(content => content && content.trim().length > 0)
-          .join('\n\n');
-        if (combinedContent) {
-          return combinedContent;
-        }
-      }
     }
 
     // If we have a description or title from cache, use that as initial content

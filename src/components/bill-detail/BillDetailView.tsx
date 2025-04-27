@@ -20,8 +20,8 @@ const BillDetailView = ({ bill }: BillDetailViewProps) => {
   const [selectedTool, setSelectedTool] = useState<"overview" | "comparison">("overview");
   const [isChatOpen, setIsChatOpen] = useState(false);
 
-  // Get the bill text from either the text property or from versions if available
-  const billText = bill.text || (bill.versions?.[0]?.sections?.[0]?.content || "");
+  // Get the bill text from versions if available (not directly from bill.text)
+  const billText = bill.versions?.[0]?.sections?.[0]?.content || "";
 
   const toggleChat = () => {
     setIsChatOpen(prev => !prev);
