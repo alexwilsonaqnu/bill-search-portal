@@ -56,7 +56,8 @@ const BillOverviewHeader = ({
           externalUrl={ilgaUrl} 
         />
         
-        <BillHistoryView changes={bill.changes} />
+        {/* Use bill changes from the API or stored data */}
+        <BillHistoryView changes={bill.changes || []} />
       </div>
     </Card>
   );

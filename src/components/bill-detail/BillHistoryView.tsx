@@ -6,7 +6,7 @@ interface BillHistoryViewProps {
 }
 
 const BillHistoryView = ({ changes }: BillHistoryViewProps) => {
-  console.log('Bill History Changes:', changes);
+  console.log('Bill History Changes from Props:', changes);
   console.log('Number of Changes:', changes?.length);
 
   if (!changes || changes.length === 0) return null;

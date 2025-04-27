@@ -1,4 +1,3 @@
-
 import { Bill, SearchResults } from "@/types";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -73,5 +72,28 @@ export async function fetchBillById(id: string): Promise<Bill | null> {
     console.error(`Error fetching bill ${id}:`, error);
     toast.error(`Error fetching bill ${id}`);
     throw error;
+  }
+}
+
+export async function fetchBillHistory(id: string): Promise<Change[]> {
+  try {
+    console.log(`Fetching bill history for ID: ${id}`);
+    
+    const { data, error } = await supabase.functions.invoke('get-bill-history', {
+      body: { billId: id }
+    });
+
+    if (error) {
+      console.error("Error fetching bill history:", error);
+      return [];
+    }
+
+    // Validate and log the returned history
+    console.log("Bill History from API:", data);
+    
+    return data || [];
+  } catch (error) {
+    console.error(`Error fetching bill history for bill ${id}:`, error);
+    return [];
   }
 }

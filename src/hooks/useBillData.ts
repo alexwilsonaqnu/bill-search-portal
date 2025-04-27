@@ -1,7 +1,6 @@
-
 import { useQuery } from "@tanstack/react-query";
-import { Bill } from "@/types";
-import { fetchBillById } from "@/services/billService";
+import { Bill, Change } from "@/types";
+import { fetchBillById, fetchBillHistory } from "@/services/billService";
 import { toast } from "sonner";
 
 interface UseBillDataProps {
@@ -10,6 +9,7 @@ interface UseBillDataProps {
 
 interface UseBillDataResult {
   bill: Bill | null;
+  billHistory: Change[];
   isLoading: boolean;
   isError: boolean;
   error: Error | null;
@@ -70,6 +70,22 @@ export function useBillData({ id }: UseBillDataProps): UseBillDataResult {
     refetchOnWindowFocus: false
   });
 
+  // Add a new query for bill history
+  const {
+    data: billHistory = [],
+    isLoading: isHistoryLoading,
+    error: historyError
+  } = useQuery({
+    queryKey: ["billHistory", lookupId],
+    queryFn: () => id ? fetchBillHistory(id) : Promise.resolve([]),
+    enabled: !!id,
+  });
+
+  // Logging for diagnostics
+  if (billHistory && billHistory.length > 0) {
+    console.log(`Fetched ${billHistory.length} bill history items for ${lookupId}`);
+  }
+
   // Additional logging when bill data changes
   if (bill && !isLoading) {
     console.log(`Bill data for ${lookupId}:`, {
@@ -83,6 +99,7 @@ export function useBillData({ id }: UseBillDataProps): UseBillDataResult {
 
   return {
     bill: bill || null,
+    billHistory,
     isLoading,
     isError,
     error: error as Error | null
