@@ -1,3 +1,4 @@
+
 import { useState, useMemo } from "react";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -19,12 +20,15 @@ const VersionComparison = ({ versions, displayMode = "side-by-side", className =
   const leftVersion = versions.find((v) => v.id === leftVersionId);
   const rightVersion = versions.find((v) => v.id === rightVersionId);
 
+  // Use useMemo with a content size limit to prevent browser crashes
   const sectionDiffs = useMemo(() => {
     if (!leftVersion || !rightVersion || displayMode !== "visual-diff") return null;
 
+    // Map for faster lookups
     const leftSectionsMap = new Map(leftVersion.sections.map(s => [s.id, s]));
     const rightSectionsMap = new Map(rightVersion.sections.map(s => [s.id, s]));
     
+    // Get all unique section IDs
     const allSectionIds = Array.from(
       new Set([...leftSectionsMap.keys(), ...rightSectionsMap.keys()])
     );
@@ -33,8 +37,29 @@ const VersionComparison = ({ versions, displayMode = "side-by-side", className =
       const leftSection = leftSectionsMap.get(sectionId);
       const rightSection = rightSectionsMap.get(sectionId);
       
+      // Function to safely truncate content if too large
+      const safeContentSize = (content: string) => {
+        const MAX_CONTENT_LENGTH = 20000; // Limit content size to prevent browser crashes
+        if (content && content.length > MAX_CONTENT_LENGTH) {
+          return content.substring(0, MAX_CONTENT_LENGTH) + 
+            " ... [Content truncated to prevent performance issues. Full comparison available in side-by-side view]";
+        }
+        return content;
+      };
+      
       if (leftSection && rightSection) {
-        const changes = diffWords(leftSection.content, rightSection.content);
+        // Safely process the diff to prevent browser crashes
+        const leftContent = safeContentSize(leftSection.content);
+        const rightContent = safeContentSize(rightSection.content);
+        
+        // Skip diff if content is too large (will only display content in side-by-side)
+        const isTooLarge = 
+          (leftContent?.length || 0) + (rightContent?.length || 0) > 40000;
+          
+        const changes = isTooLarge ? 
+          [{ value: "Content too large for visual diff, please use side-by-side view", added: false, removed: false }] : 
+          diffWords(leftContent || "", rightContent || "");
+          
         return {
           id: sectionId,
           leftTitle: leftSection.title,
@@ -42,13 +67,14 @@ const VersionComparison = ({ versions, displayMode = "side-by-side", className =
           changes,
           onlyInLeft: false,
           onlyInRight: false,
+          isTooLarge
         };
       } else if (leftSection) {
         return {
           id: sectionId,
           leftTitle: leftSection.title,
           rightTitle: null,
-          content: leftSection.content,
+          content: safeContentSize(leftSection.content),
           onlyInLeft: true,
           onlyInRight: false,
         };
@@ -57,7 +83,7 @@ const VersionComparison = ({ versions, displayMode = "side-by-side", className =
           id: sectionId,
           leftTitle: null,
           rightTitle: rightSection.title,
-          content: rightSection.content,
+          content: safeContentSize(rightSection.content),
           onlyInLeft: false,
           onlyInRight: true,
         };
@@ -71,6 +97,16 @@ const VersionComparison = ({ versions, displayMode = "side-by-side", className =
     leftSections: BillSection[] = [],
     rightSections: BillSection[] = []
   ) => {
+    // Function to safely truncate content if too large
+    const safeContentSize = (content: string) => {
+      const MAX_CONTENT_LENGTH = 50000; // Side-by-side can handle more content
+      if (content && content.length > MAX_CONTENT_LENGTH) {
+        return content.substring(0, MAX_CONTENT_LENGTH) + 
+          " ... [Content truncated to prevent performance issues]";
+      }
+      return content;
+    };
+    
     const allSectionIds = Array.from(
       new Set([
         ...leftSections.map((s) => s.id),
@@ -83,7 +119,9 @@ const VersionComparison = ({ versions, displayMode = "side-by-side", className =
       const rightSection = rightSections.find((s) => s.id === sectionId);
 
       if (leftSection && rightSection) {
-        const isSameContent = leftSection.content === rightSection.content;
+        const leftContent = safeContentSize(leftSection.content);
+        const rightContent = safeContentSize(rightSection.content);
+        const isSameContent = leftContent === rightContent;
 
         return (
           <div key={sectionId} className="mb-8">
@@ -93,7 +131,7 @@ const VersionComparison = ({ versions, displayMode = "side-by-side", className =
                   {leftSection.title}
                 </h3>
                 <div className={`p-4 rounded-md ${!isSameContent ? 'bg-red-50' : 'bg-gray-50'}`}>
-                  <p className="whitespace-pre-wrap">{leftSection.content}</p>
+                  <p className="whitespace-pre-wrap">{leftContent}</p>
                 </div>
               </div>
               <div>
@@ -101,7 +139,7 @@ const VersionComparison = ({ versions, displayMode = "side-by-side", className =
                   {rightSection.title}
                 </h3>
                 <div className={`p-4 rounded-md ${!isSameContent ? 'bg-green-50' : 'bg-gray-50'}`}>
-                  <p className="whitespace-pre-wrap">{rightSection.content}</p>
+                  <p className="whitespace-pre-wrap">{rightContent}</p>
                 </div>
               </div>
             </div>
@@ -123,7 +161,7 @@ const VersionComparison = ({ versions, displayMode = "side-by-side", className =
                   {leftSection.title}
                 </h3>
                 <div className="p-4 rounded-md bg-red-50">
-                  <p className="whitespace-pre-wrap">{leftSection.content}</p>
+                  <p className="whitespace-pre-wrap">{safeContentSize(leftSection.content)}</p>
                 </div>
               </div>
               <div>
@@ -159,7 +197,7 @@ const VersionComparison = ({ versions, displayMode = "side-by-side", className =
                   {rightSection.title}
                 </h3>
                 <div className="p-4 rounded-md bg-green-50">
-                  <p className="whitespace-pre-wrap">{rightSection.content}</p>
+                  <p className="whitespace-pre-wrap">{safeContentSize(rightSection.content)}</p>
                 </div>
               </div>
             </div>
@@ -180,6 +218,22 @@ const VersionComparison = ({ versions, displayMode = "side-by-side", className =
     }
 
     return sectionDiffs.map((diff) => {
+      if (diff.isTooLarge) {
+        return (
+          <div key={diff.id} className="mb-8 border rounded-md overflow-hidden">
+            <div className="p-3 bg-amber-100 flex justify-between items-center">
+              <h3 className="font-medium">{diff.leftTitle} → {diff.rightTitle}</h3>
+              <span className="text-xs bg-amber-200 text-amber-800 px-2 py-1 rounded">Content Too Large</span>
+            </div>
+            <div className="p-4 bg-white">
+              <p className="text-amber-700">
+                This content is too large for visual diff comparison. Please use the side-by-side view instead.
+              </p>
+            </div>
+          </div>
+        );
+      }
+      
       if (diff.onlyInLeft) {
         return (
           <div key={diff.id} className="mb-8 border rounded-md overflow-hidden">

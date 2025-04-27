@@ -16,9 +16,18 @@ interface BillComparisonContainerProps {
 const BillComparisonContainer = ({ bill }: BillComparisonContainerProps) => {
   const [summarizing, setSummarizing] = useState(false);
   const [summary, setSummary] = useState<string | null>(null);
+  
+  // Limit versions to improve performance and prevent browser crashes
+  const safeVersions = bill.versions ? 
+    // Only use the first 5 versions to prevent performance issues
+    bill.versions.slice(0, 5) : 
+    [];
+  
+  // Add a warning if we're limiting versions
+  const hasLimitedVersions = bill.versions && bill.versions.length > 5;
 
   const generateSummary = async () => {
-    if (!bill.versions || bill.versions.length < 2) {
+    if (!safeVersions || safeVersions.length < 2) {
       toast.error("At least two versions are needed to generate a summary of changes");
       return;
     }
@@ -26,8 +35,8 @@ const BillComparisonContainer = ({ bill }: BillComparisonContainerProps) => {
     setSummarizing(true);
     try {
       // Get the first two versions to compare (typically the original and first amendment)
-      const originalVersion = bill.versions[0];
-      const amendedVersion = bill.versions[1];
+      const originalVersion = safeVersions[0];
+      const amendedVersion = safeVersions[1];
 
       // Format the bill versions into readable text for the API
       const originalText = originalVersion.sections.map(s => `${s.title}: ${s.content}`).join('\n\n');
@@ -68,7 +77,14 @@ const BillComparisonContainer = ({ bill }: BillComparisonContainerProps) => {
     <div className="bg-white rounded-lg border shadow-sm p-6">
       <h2 className="text-2xl font-semibold mb-6">Version Comparison</h2>
 
-      {bill.versions && bill.versions.length > 1 ? (
+      {hasLimitedVersions && (
+        <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-md text-amber-700 text-sm">
+          <strong>Performance Notice:</strong> Only showing the first 5 versions to prevent browser performance issues.
+          This bill has {bill.versions?.length} versions total.
+        </div>
+      )}
+
+      {safeVersions && safeVersions.length > 1 ? (
         <>
           {/* Summary Section */}
           <div className="mb-8 p-4 bg-gray-50 rounded-lg border border-gray-200">
@@ -111,11 +127,11 @@ const BillComparisonContainer = ({ bill }: BillComparisonContainerProps) => {
             </TabsList>
             
             <TabsContent value="visual-diff" className="mt-0">
-              <VersionComparison versions={bill.versions} displayMode="visual-diff" />
+              <VersionComparison versions={safeVersions} displayMode="visual-diff" />
             </TabsContent>
             
             <TabsContent value="side-by-side" className="mt-0">
-              <VersionComparison versions={bill.versions} displayMode="side-by-side" />
+              <VersionComparison versions={safeVersions} displayMode="side-by-side" />
             </TabsContent>
           </Tabs>
         </>
