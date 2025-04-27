@@ -2,7 +2,6 @@
 import { useState } from "react";
 import { Bill } from "@/types";
 import BillOverviewHeader from "./BillOverviewHeader";
-import BillVersions from "./BillVersions";
 import { Card } from "@/components/ui/card";
 
 interface BillOverviewProps {
@@ -21,11 +20,6 @@ const BillOverview = ({ bill }: BillOverviewProps) => {
         setIsLoadingExternalContent={setIsLoadingExternalContent}
         setExternalContent={setExternalContent}
       />
-      
-      {/* Display bill versions if available */}
-      {bill.versions && bill.versions.length > 0 && (
-        <BillVersions versions={bill.versions} />
-      )}
     </div>
   );
 };
