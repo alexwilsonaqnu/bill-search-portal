@@ -1,7 +1,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import parse from 'html-react-parser';
+import parse, { HTMLReactParserOptions, Element, domToReact } from 'html-react-parser';
 
 interface TextContentDisplayProps {
   content: string;
@@ -44,26 +44,27 @@ const TextContentDisplay = ({ content, isHtml }: TextContentDisplayProps) => {
   };
 
   // Custom options for the HTML parser
-  const parserOptions = {
-    replace: (domNode: any) => {
-      if (domNode.name === 'table') {
+  const parserOptions: HTMLReactParserOptions = {
+    replace: (domNode) => {
+      if (domNode instanceof Element && domNode.name === 'table') {
         // Add responsive table wrapper and styling
         return (
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
-              {domNode.children}
+              {domToReact(domNode.children, parserOptions)}
             </table>
           </div>
         );
       }
-      if (domNode.name === 'code') {
+      if (domNode instanceof Element && domNode.name === 'code') {
         // Style code blocks
         return (
           <code className="px-1 py-0.5 bg-gray-100 rounded text-sm">
-            {domNode.children}
+            {domToReact(domNode.children, parserOptions)}
           </code>
         );
       }
+      return undefined;
     }
   };
   
