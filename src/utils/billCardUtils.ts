@@ -1,3 +1,4 @@
+
 import { Bill } from "@/types";
 
 /**
@@ -40,18 +41,36 @@ export const getSummary = (bill: Bill): string => {
 
 /**
  * Get the primary sponsor of the bill
+ * Handles all possible data structures
  */
 export function getSponsor(bill: Bill): string | Record<string, any> | null {
-  if (!bill) return null;
+  if (!bill || !bill.data) return null;
+  
+  // Try all possible sponsor locations in the data
   
   // First try to get from data.sponsors.primary if available
-  if (bill.data?.sponsors?.primary) {
+  if (bill.data.sponsors?.primary) {
     return bill.data.sponsors.primary;
   }
   
-  // Then try to get from data.sponsor
-  if (bill.data?.sponsor) {
+  // Check for direct sponsor property
+  if (bill.data.sponsor) {
     return bill.data.sponsor;
+  }
+  
+  // Check for author property
+  if (bill.data.author) {
+    return bill.data.author;
+  }
+  
+  // Check if sponsors array exists and get first item
+  if (Array.isArray(bill.data.sponsors) && bill.data.sponsors.length > 0) {
+    return bill.data.sponsors[0];
+  }
+  
+  // Check if sponsors is an object with a sponsor property
+  if (typeof bill.data.sponsors === 'object' && bill.data.sponsors?.sponsor) {
+    return bill.data.sponsors.sponsor;
   }
   
   return null;
@@ -59,9 +78,12 @@ export function getSponsor(bill: Bill): string | Record<string, any> | null {
 
 /**
  * Get co-sponsors of the bill (max 3)
+ * Handles all possible data structures
  */
 export function getCoSponsors(bill: Bill): (string | Record<string, any>)[] {
   if (!bill || !bill.data) return [];
+  
+  // Try all possible cosponsor locations in the data
   
   // First check for cosponsors array
   if (Array.isArray(bill.data.cosponsors)) {
@@ -71,6 +93,21 @@ export function getCoSponsors(bill: Bill): (string | Record<string, any>)[] {
   // Then check for sponsors.cosponsors array
   if (Array.isArray(bill.data.sponsors?.cosponsors)) {
     return bill.data.sponsors.cosponsors.slice(0, 3);
+  }
+  
+  // Check for co_sponsors array
+  if (Array.isArray(bill.data.co_sponsors)) {
+    return bill.data.co_sponsors.slice(0, 3);
+  }
+  
+  // Check for coSponsors array
+  if (Array.isArray(bill.data.coSponsors)) {
+    return bill.data.coSponsors.slice(0, 3);
+  }
+  
+  // Check if sponsors is an array and get items beyond the first one
+  if (Array.isArray(bill.data.sponsors) && bill.data.sponsors.length > 1) {
+    return bill.data.sponsors.slice(1, 4);
   }
   
   return [];

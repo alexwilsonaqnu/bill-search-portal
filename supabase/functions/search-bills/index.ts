@@ -43,6 +43,12 @@ serve(async (req) => {
                 const detailsResponse = await fetch(billDetailsUrl);
                 const detailsData = await detailsResponse.json();
                 billDetails = detailsData.bill;
+                
+                // Log sponsor information for debugging
+                console.log(`Bill ${item.bill_id} sponsor info:`, {
+                  sponsor: billDetails?.sponsors?.primary || billDetails?.sponsor,
+                  hasCoSponsors: !!billDetails?.sponsors?.cosponsors || !!billDetails?.cosponsors
+                });
               } catch (error) {
                 console.error(`Error fetching details for bill ${item.bill_id}:`, error);
                 billDetails = null;
@@ -113,4 +119,3 @@ serve(async (req) => {
     );
   }
 });
-

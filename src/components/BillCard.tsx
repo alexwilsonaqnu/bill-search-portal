@@ -15,6 +15,13 @@ interface BillCardProps {
 }
 
 const BillCard = ({ bill, className = "", animationDelay }: BillCardProps) => {
+  // For debugging sponsor data
+  console.log("Bill sponsors in card:", {
+    id: bill.id,
+    sponsor: bill.data?.sponsor || bill.data?.sponsors?.primary,
+    cosponsors: bill.data?.cosponsors || bill.data?.sponsors?.cosponsors
+  });
+
   return (
     <Card 
       className={`bill-card overflow-hidden animate-fade-up hover:shadow-md transition-all ${className}`}
