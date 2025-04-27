@@ -46,7 +46,7 @@ const SponsorContactInfo = ({ emails, phones }: SponsorContactInfoProps) => {
           <div className="space-y-1">
             {phones.map((phone, i) => (
               <a 
-                key={i} 
+                key={i}
                 href={`tel:${phone}`}
                 className="text-blue-600 hover:underline block"
               >
@@ -61,3 +61,4 @@ const SponsorContactInfo = ({ emails, phones }: SponsorContactInfoProps) => {
 };
 
 export default SponsorContactInfo;
+

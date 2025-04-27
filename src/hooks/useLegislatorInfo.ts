@@ -3,10 +3,18 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "./use-toast";
 
+interface Office {
+  type: string;
+  address: string;
+  phone: string | null;
+  email: string | null;
+}
+
 interface LegislatorInfo {
   party: string;
   email: string[];
   phone: string[];
+  offices?: Office[];
 }
 
 export const useLegislatorInfo = (legislatorId: string) => {
@@ -44,11 +52,47 @@ export const useLegislatorInfo = (legislatorId: string) => {
           console.error("Invalid legislator data format:", data);
           return null;
         }
+
+        const extractContactInfo = (legislator: any): { emails: string[], phones: string[] } => {
+          const emails: string[] = [];
+          const phones: string[] = [];
+          
+          // Extract direct email and phone if available
+          if (legislator.email && typeof legislator.email === 'string' && legislator.email.trim()) {
+            emails.push(legislator.email.trim());
+          }
+          if (legislator.phone && typeof legislator.phone === 'string' && legislator.phone.trim()) {
+            phones.push(legislator.phone.trim());
+          }
+          
+          // Extract from offices array
+          if (legislator.offices && Array.isArray(legislator.offices)) {
+            legislator.offices.forEach((office: any) => {
+              if (office.email && typeof office.email === 'string' && office.email.trim()) {
+                const email = office.email.trim();
+                if (!emails.includes(email)) {
+                  emails.push(email);
+                }
+              }
+              if (office.phone && typeof office.phone === 'string' && office.phone.trim()) {
+                const phone = office.phone.trim();
+                if (!phones.includes(phone)) {
+                  phones.push(phone);
+                }
+              }
+            });
+          }
+          
+          return { emails, phones };
+        };
+
+        const contactInfo = extractContactInfo(data);
         
         return {
           party: data.party || 'Unknown',
-          email: Array.isArray(data.email) ? data.email : [],
-          phone: Array.isArray(data.phone) ? data.phone : []
+          email: contactInfo.emails,
+          phone: contactInfo.phones,
+          offices: data.offices || []
         };
       } catch (error) {
         console.error("Error in fetchLegislatorInfo:", error);
@@ -63,3 +107,4 @@ export const useLegislatorInfo = (legislatorId: string) => {
     enabled: !!legislatorId,
   });
 };
+

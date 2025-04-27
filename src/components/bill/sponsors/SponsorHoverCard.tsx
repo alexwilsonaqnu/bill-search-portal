@@ -31,7 +31,9 @@ const SponsorHoverCard = ({ sponsorData, getSponsorName }: SponsorHoverCardProps
           {legislatorInfo && (
             <>
               <p className="text-sm text-gray-600">
-                Party Affiliation: {legislatorInfo.party}
+                Party: {legislatorInfo.party === 'D' ? 'Democratic' : 
+                       legislatorInfo.party === 'R' ? 'Republican' : 
+                       legislatorInfo.party}
               </p>
               <SponsorContactInfo 
                 emails={legislatorInfo.email} 
@@ -49,3 +51,4 @@ const SponsorHoverCard = ({ sponsorData, getSponsorName }: SponsorHoverCardProps
 };
 
 export default SponsorHoverCard;
+
