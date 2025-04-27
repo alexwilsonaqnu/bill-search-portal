@@ -27,13 +27,6 @@ const BillDetailView = ({ bill }: BillDetailViewProps) => {
     setIsChatOpen(prev => !prev);
   };
 
-  // For debugging sponsor data
-  console.log("Bill sponsors in detail view:", {
-    data: bill.data,
-    sponsor: bill.data?.sponsor || bill.data?.sponsors?.primary,
-    cosponsors: bill.data?.cosponsors || bill.data?.sponsors?.cosponsors
-  });
-
   return (
     <div className="min-h-screen bg-gray-50 page-transition-wrapper w-full">
       <Navbar />
