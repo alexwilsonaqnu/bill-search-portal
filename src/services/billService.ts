@@ -5,25 +5,30 @@ import { supabase } from "@/integrations/supabase/client";
 import { fetchBillByIdFromSupabase } from "./supabaseBillService";
 import { processResults } from "@/utils/billProcessingUtils";
 
-/**
- * Fetches bills using LegiScan search API
- */
 export async function fetchBills(
   query: string = "",
   page: number = 1,
   pageSize: number = 10,
-  sessionId?: string
+  sessionId?: string,
+  startDate?: Date,
+  endDate?: Date
 ): Promise<SearchResults> {
   try {
-    console.log(`Searching bills with query: "${query}", page: ${page}, sessionId: ${sessionId}`);
+    console.log(`Searching bills with query: "${query}", page: ${page}, sessionId: ${sessionId}, dateRange: ${startDate?.toISOString()} - ${endDate?.toISOString()}`);
     
-    // If no search query, return empty results
     if (!query) {
       return { bills: [], currentPage: page, totalPages: 0, totalItems: 0 };
     }
 
     const { data, error } = await supabase.functions.invoke('search-bills', {
-      body: { query, page, pageSize, sessionId }
+      body: { 
+        query, 
+        page, 
+        pageSize, 
+        sessionId,
+        startDate: startDate?.toISOString(),
+        endDate: endDate?.toISOString()
+      }
     });
 
     if (error) {
@@ -32,11 +37,9 @@ export async function fetchBills(
       return { bills: [], currentPage: page, totalPages: 0, totalItems: 0 };
     }
     
-    // If we have proper pagination from the API, use it
     if (data && data.bills && typeof data.currentPage === 'number' && typeof data.totalPages === 'number') {
       return data;
     } else if (data && data.bills) {
-      // Otherwise, process the results locally with our pagination logic
       return processResults(data.bills, "", page, pageSize);
     }
 

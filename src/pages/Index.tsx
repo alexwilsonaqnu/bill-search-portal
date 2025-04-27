@@ -15,26 +15,29 @@ const Index = () => {
   const pageParam = searchParams.get("page");
   const currentPage = pageParam ? parseInt(pageParam) : 1;
   
+  const [startDate, setStartDate] = useState<Date>();
+  const [endDate, setEndDate] = useState<Date>();
+  
   const { dbStatus, storageStatus, availableBuckets } = useSupabaseStatus();
   
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ["bills", query, currentPage],
-    queryFn: () => fetchBills(query, currentPage),
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    queryKey: ["bills", query, currentPage, startDate?.toISOString(), endDate?.toISOString()],
+    queryFn: () => fetchBills(query, currentPage, undefined, undefined, startDate, endDate),
+    staleTime: 5 * 60 * 1000,
     placeholderData: (previousData) => previousData,
-    enabled: !!query, // Only fetch when there's a search query
-  });
-
-  console.log("Index page - Search status:", {
-    query,
-    isLoading,
-    hasError: !!error,
-    resultsCount: data?.bills?.length || 0,
-    totalResults: data?.totalItems || 0,
+    enabled: !!query,
   });
 
   const handleSearch = (newQuery: string) => {
     setSearchParams({ q: newQuery, page: "1" });
+  };
+
+  const handleDateChange = (start: Date | undefined, end: Date | undefined) => {
+    setStartDate(start);
+    setEndDate(end);
+    if (query) {
+      refetch();
+    }
   };
 
   const handlePageChange = (page: number) => {
@@ -54,7 +57,10 @@ const Index = () => {
       <div className="max-w-5xl mx-auto pt-28 pb-20 px-6">
         <HeaderSection 
           query={query} 
-          onSearch={handleSearch} 
+          onSearch={handleSearch}
+          startDate={startDate}
+          endDate={endDate}
+          onDateChange={handleDateChange}
         />
         
         {!query && !isLoading && (
