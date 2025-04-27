@@ -2,12 +2,20 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 
-const LEGISCAN_API_KEY = Deno.env.get('LEGISCAN_API_KEY');
+const OPEN_STATES_API_KEY = Deno.env.get('OPEN_STATES_API_KEY');
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+interface Office {
+  classification: string;
+  address?: string;
+  voice?: string;
+  fax?: string;
+  email?: string;
+}
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -16,13 +24,13 @@ serve(async (req) => {
   }
 
   try {
-    const { legislatorId } = await req.json();
+    const { legislatorName } = await req.json();
     
-    if (!legislatorId) {
+    if (!legislatorName) {
       return new Response(
         JSON.stringify({ 
-          error: 'Missing legislator ID',
-          message: 'Legislator ID is required' 
+          error: 'Missing legislator name',
+          message: 'Legislator name is required' 
         }),
         { 
           status: 400,
@@ -34,48 +42,61 @@ serve(async (req) => {
       );
     }
 
-    console.log(`Fetching legislator details for ID: ${legislatorId}`);
+    console.log(`Fetching legislator details for name: ${legislatorName}`);
     
-    // Call LegiScan API to get legislator details
-    const url = `https://api.legiscan.com/?key=${LEGISCAN_API_KEY}&op=getPerson&id=${legislatorId}`;
+    const url = `https://v3.openstates.org/people?jurisdiction=Illinois&name=${encodeURIComponent(legislatorName)}&apikey=${OPEN_STATES_API_KEY}`;
     
     const response = await fetch(url);
     if (!response.ok) {
-      throw new Error(`LegiScan API error: ${response.status} ${response.statusText}`);
+      throw new Error(`OpenStates API error: ${response.status} ${response.statusText}`);
     }
 
     const data = await response.json();
     
-    if (data.status !== 'OK' || !data.person) {
-      console.error('Invalid response from LegiScan:', data);
-      throw new Error('Failed to retrieve legislator information');
+    if (!data.results?.[0]) {
+      console.log('No legislator found in OpenStates:', { name: legislatorName });
+      return new Response(
+        JSON.stringify(null),
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            ...corsHeaders
+          }
+        }
+      );
     }
 
-    // Extract the legislator data
-    const legislator = data.person;
+    const legislator = data.results[0];
+    
+    // Extract contact info from offices
+    const emails = legislator.offices
+      ?.filter((office: Office) => office.email)
+      .map((office: Office) => office.email) || [];
+    
+    const phones = legislator.offices
+      ?.filter((office: Office) => office.voice)
+      .map((office: Office) => office.voice) || [];
 
-    // Build contact info
-    const contactInfo = {
+    // Build legislator info
+    const legislatorInfo = {
       party: legislator.party || 'Unknown',
-      // LegiScan API doesn't provide direct email/phone info in getPerson
-      // We'll need to consider if we want to get this from a different source
-      email: [], 
-      phone: [],
-      district: legislator.district || '',
-      role: legislator.role || '',
+      email: emails,
+      phone: phones,
+      district: legislator.current_role?.district || '',
+      role: legislator.current_role?.role || '',
       name: {
-        first: legislator.first_name || '',
-        middle: legislator.middle_name || '',
-        last: legislator.last_name || '',
-        suffix: legislator.suffix || '',
-        full: legislator.name || ''
+        first: legislator.name.split(' ')[0],
+        middle: '',  // OpenStates doesn't provide middle name
+        last: legislator.name.split(' ').slice(1).join(' '),
+        suffix: '',  // OpenStates doesn't provide suffix
+        full: legislator.name
       }
     };
 
-    console.log("Extracted legislator info:", JSON.stringify(contactInfo, null, 2));
+    console.log("Extracted legislator info:", JSON.stringify(legislatorInfo, null, 2));
     
     return new Response(
-      JSON.stringify(contactInfo),
+      JSON.stringify(legislatorInfo),
       {
         headers: {
           'Content-Type': 'application/json',
