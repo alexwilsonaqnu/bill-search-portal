@@ -1,3 +1,4 @@
+
 import { Bill, SearchResults } from "@/types";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,10 +11,11 @@ import { processResults } from "@/utils/billProcessingUtils";
 export async function fetchBills(
   query: string = "",
   page: number = 1,
-  pageSize: number = 10
+  pageSize: number = 10,
+  sessionId?: string
 ): Promise<SearchResults> {
   try {
-    console.log(`Searching bills with query: "${query}", page: ${page}`);
+    console.log(`Searching bills with query: "${query}", page: ${page}, sessionId: ${sessionId}`);
     
     // If no search query, return empty results
     if (!query) {
@@ -21,7 +23,7 @@ export async function fetchBills(
     }
 
     const { data, error } = await supabase.functions.invoke('search-bills', {
-      body: { query, page, pageSize }
+      body: { query, page, pageSize, sessionId }
     });
 
     if (error) {

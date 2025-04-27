@@ -1,13 +1,14 @@
 export interface Bill {
   id: string;
   title: string;
-  description: string;
-  lastUpdated?: string;
+  description?: string;
   status?: string;
+  lastUpdated?: string;
+  sessionName?: string;
+  sessionYear?: string;
   versions: BillVersion[];
-  changes: Change[];
-  text?: string;
-  data?: Record<string, any>;
+  changes: BillChange[];
+  data?: any;
 }
 
 export interface BillVersion {
@@ -24,7 +25,7 @@ export interface BillSection {
   content: string;
 }
 
-export interface Change {
+export interface BillChange {
   id: string;
   description: string;
   details?: string;

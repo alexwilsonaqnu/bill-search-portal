@@ -16,11 +16,12 @@ serve(async (req) => {
   }
 
   try {
-    const { query, page = 1, pageSize = 10 } = await req.json();
-    console.log(`Searching LegiScan for: "${query}", page: ${page}, pageSize: ${pageSize}`);
+    const { query, page = 1, pageSize = 10, sessionId } = await req.json();
+    console.log(`Searching LegiScan for: "${query}", page: ${page}, pageSize: ${pageSize}, sessionId: ${sessionId}`);
 
     // Build the LegiScan search URL
-    const url = `https://api.legiscan.com/?key=${LEGISCAN_API_KEY}&op=search&state=IL&query=${encodeURIComponent(query)}`;
+    // Remove the state filter to search across all sessions
+    const url = `https://api.legiscan.com/?key=${LEGISCAN_API_KEY}&op=search${sessionId ? `&masterlist=${sessionId}` : ''}&query=${encodeURIComponent(query)}`;
     
     const response = await fetch(url);
     if (!response.ok) {
@@ -40,6 +41,8 @@ serve(async (req) => {
           description: item.description || item.title || '',
           status: item.status || '',
           lastUpdated: item.last_action_date || '',
+          sessionName: item.session?.session_name || 'Unknown Session', // Add session information
+          sessionYear: item.session?.year_start || '',
           versions: [],
           changes: [{
             id: 'last_action',
