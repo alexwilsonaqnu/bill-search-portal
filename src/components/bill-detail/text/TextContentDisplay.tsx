@@ -1,7 +1,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import parse, { HTMLReactParserOptions, Element, domToReact } from 'html-react-parser';
+import parse, { HTMLReactParserOptions, Element, domToReact, DOMNode } from 'html-react-parser';
 
 interface TextContentDisplayProps {
   content: string;
@@ -51,7 +51,8 @@ const TextContentDisplay = ({ content, isHtml }: TextContentDisplayProps) => {
         return (
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
-              {domToReact(domNode.children, parserOptions)}
+              {/* Cast children to DOMNode[] to satisfy TypeScript */}
+              {domToReact(domNode.children as DOMNode[], parserOptions)}
             </table>
           </div>
         );
@@ -60,7 +61,8 @@ const TextContentDisplay = ({ content, isHtml }: TextContentDisplayProps) => {
         // Style code blocks
         return (
           <code className="px-1 py-0.5 bg-gray-100 rounded text-sm">
-            {domToReact(domNode.children, parserOptions)}
+            {/* Cast children to DOMNode[] to satisfy TypeScript */}
+            {domToReact(domNode.children as DOMNode[], parserOptions)}
           </code>
         );
       }
