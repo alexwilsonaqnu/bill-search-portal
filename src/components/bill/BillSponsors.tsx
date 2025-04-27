@@ -20,7 +20,9 @@ const BillSponsors = ({ bill }: BillSponsorsProps) => {
       {sponsor && (
         <div className="flex items-center text-sm text-gray-700">
           <span className="mr-2">Sponsor:</span>
-          <span className="font-medium">{sponsor}</span>
+          <span className="font-medium">
+            {typeof sponsor === 'string' ? sponsor : sponsor.name || 'Unknown'}
+          </span>
         </div>
       )}
       
@@ -30,7 +32,11 @@ const BillSponsors = ({ bill }: BillSponsorsProps) => {
             <Users className="h-4 w-4" /> Co-sponsors:
           </span>
           <span className="font-medium">
-            {coSponsors.join(", ")}
+            {coSponsors.map((cosponsor, index) => (
+              typeof cosponsor === 'string' 
+                ? (index > 0 ? ', ' : '') + cosponsor
+                : (index > 0 ? ', ' : '') + (cosponsor.name || 'Unknown')
+            ))}
             {bill.data?.cosponsors?.length > 3 && ` +${bill.data.cosponsors.length - 3} more`}
           </span>
         </div>

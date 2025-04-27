@@ -1,4 +1,3 @@
-
 import { Bill } from "@/types";
 
 /**
@@ -40,35 +39,42 @@ export const getSummary = (bill: Bill): string => {
 };
 
 /**
- * Get the primary sponsor of a bill
+ * Get the primary sponsor of the bill
  */
-export const getSponsor = (bill: Bill): string | null => {
-  if (bill.data?.sponsor) return bill.data.sponsor;
-  if (bill.data?.author) return bill.data.author;
-  if (bill.data?.sponsors && bill.data.sponsors.length > 0) {
-    return Array.isArray(bill.data.sponsors) 
-      ? bill.data.sponsors[0] 
-      : bill.data.sponsors;
+export function getSponsor(bill: Bill): string | Record<string, any> | null {
+  if (!bill) return null;
+  
+  // First try to get from data.sponsors.primary if available
+  if (bill.data?.sponsors?.primary) {
+    return bill.data.sponsors.primary;
   }
+  
+  // Then try to get from data.sponsor
+  if (bill.data?.sponsor) {
+    return bill.data.sponsor;
+  }
+  
   return null;
-};
+}
 
 /**
- * Get co-sponsors for a bill (up to 3)
+ * Get co-sponsors of the bill (max 3)
  */
-export const getCoSponsors = (bill: Bill): string[] => {
-  if (!bill.data) return [];
+export function getCoSponsors(bill: Bill): (string | Record<string, any>)[] {
+  if (!bill || !bill.data) return [];
   
-  const possibleFields = ['cosponsors', 'co_sponsors', 'coSponsors', 'co-sponsors'];
+  // First check for cosponsors array
+  if (Array.isArray(bill.data.cosponsors)) {
+    return bill.data.cosponsors.slice(0, 3);
+  }
   
-  for (const field of possibleFields) {
-    if (bill.data[field] && Array.isArray(bill.data[field]) && bill.data[field].length > 0) {
-      return bill.data[field].slice(0, 3);
-    }
+  // Then check for sponsors.cosponsors array
+  if (Array.isArray(bill.data.sponsors?.cosponsors)) {
+    return bill.data.sponsors.cosponsors.slice(0, 3);
   }
   
   return [];
-};
+}
 
 /**
  * Get the most relevant date for a bill
