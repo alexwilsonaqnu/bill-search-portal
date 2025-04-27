@@ -33,7 +33,7 @@ const SearchBar = ({ initialQuery = "", onSearch, className = "" }: SearchBarPro
     >
       <Input
         type="text"
-        placeholder="E.g. Taxes, Education"
+        placeholder="Search by topic (such as taxes or education) by bill name or by sponsor"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         className="flex-grow border-0 shadow-none focus-visible:ring-0 px-2"
