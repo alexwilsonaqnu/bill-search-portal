@@ -59,7 +59,48 @@ const BillSponsors = ({ bill }: BillSponsorsProps) => {
       return fullName;
     }
     
-    return 'Unknown';
+    // If we have a title or role, add that to the display
+    let displayName = 'Unknown';
+    if (sponsorData.role) {
+      displayName = `${sponsorData.role}.`;
+      if (sponsorData.party) displayName += ` (${sponsorData.party})`;
+    } else if (sponsorData.title) {
+      displayName = sponsorData.title;
+    }
+    
+    return displayName;
+  };
+  
+  // Function to check if there are more cosponsors than we're showing
+  const hasMoreCosponsors = () => {
+    if (!bill.data) return false;
+    if (!bill.data.cosponsors) return false;
+    
+    // Check all possible places where more co-sponsor count could be found
+    const cosponsorCount = Array.isArray(bill.data.cosponsors) ? bill.data.cosponsors.length : 
+                          (Array.isArray(bill.data.sponsors?.cosponsors) ? bill.data.sponsors.cosponsors.length : 0);
+    
+    return cosponsorCount > coSponsors.length;
+  };
+  
+  // Function to get the count of total co-sponsors
+  const getTotalCosponsorCount = () => {
+    if (!bill.data) return 0;
+    
+    if (Array.isArray(bill.data.cosponsors)) {
+      return bill.data.cosponsors.length;
+    } else if (Array.isArray(bill.data.sponsors?.cosponsors)) {
+      return bill.data.sponsors.cosponsors.length;
+    } else if (Array.isArray(bill.data.co_sponsors)) {
+      return bill.data.co_sponsors.length;
+    } else if (Array.isArray(bill.data.coSponsors)) {
+      return bill.data.coSponsors.length;
+    } else if (Array.isArray(bill.data.sponsors) && bill.data.sponsors.length > 1) {
+      // First one is primary sponsor, rest are co-sponsors
+      return bill.data.sponsors.length - 1;
+    }
+    
+    return 0;
   };
   
   return (
@@ -81,9 +122,9 @@ const BillSponsors = ({ bill }: BillSponsorsProps) => {
             {coSponsors.map((cosponsor, index) => (
               <div key={index}>{getSponsorName(cosponsor)}</div>
             ))}
-            {bill.data?.cosponsors?.length > coSponsors.length && (
+            {hasMoreCosponsors() && (
               <div className="text-gray-500 mt-1">
-                +{bill.data.cosponsors.length - coSponsors.length} more
+                +{getTotalCosponsorCount() - coSponsors.length} more
               </div>
             )}
           </div>

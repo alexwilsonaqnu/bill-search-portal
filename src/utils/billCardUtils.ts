@@ -1,3 +1,4 @@
+
 import { Bill } from "@/types";
 
 /**
@@ -94,7 +95,7 @@ export function getSponsor(bill: Bill): string | Record<string, any> | null {
 }
 
 /**
- * Get co-sponsors of the bill (max 3)
+ * Get co-sponsors of the bill
  * Handles all possible data structures
  */
 export function getCoSponsors(bill: Bill): (string | Record<string, any>)[] {
@@ -102,29 +103,29 @@ export function getCoSponsors(bill: Bill): (string | Record<string, any>)[] {
   
   // Try all possible cosponsor locations in the data
   
-  // First check for cosponsors array
+  // First check for cosponsors array, get all of them if available
   if (Array.isArray(bill.data.cosponsors)) {
-    return bill.data.cosponsors.slice(0, 3);
+    return bill.data.cosponsors;
   }
   
   // Then check for sponsors.cosponsors array
   if (Array.isArray(bill.data.sponsors?.cosponsors)) {
-    return bill.data.sponsors.cosponsors.slice(0, 3);
+    return bill.data.sponsors.cosponsors;
   }
   
   // Check for co_sponsors array
   if (Array.isArray(bill.data.co_sponsors)) {
-    return bill.data.co_sponsors.slice(0, 3);
+    return bill.data.co_sponsors;
   }
   
   // Check for coSponsors array
   if (Array.isArray(bill.data.coSponsors)) {
-    return bill.data.coSponsors.slice(0, 3);
+    return bill.data.coSponsors;
   }
   
   // Check if sponsors is an array and get items beyond the first one
   if (Array.isArray(bill.data.sponsors) && bill.data.sponsors.length > 1) {
-    return bill.data.sponsors.slice(1, 4);
+    return bill.data.sponsors.slice(1);
   }
   
   return [];
