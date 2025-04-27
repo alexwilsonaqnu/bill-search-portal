@@ -19,9 +19,8 @@ serve(async (req) => {
     const { query, page = 1, pageSize = 10, sessionId } = await req.json();
     console.log(`Searching LegiScan for: "${query}", page: ${page}, pageSize: ${pageSize}, sessionId: ${sessionId}`);
 
-    // Build the LegiScan search URL
-    // Remove the state filter to search across all sessions
-    const url = `https://api.legiscan.com/?key=${LEGISCAN_API_KEY}&op=search${sessionId ? `&masterlist=${sessionId}` : ''}&query=${encodeURIComponent(query)}`;
+    // Build the LegiScan search URL - adding state=IL to filter for Illinois only
+    const url = `https://api.legiscan.com/?key=${LEGISCAN_API_KEY}&op=search&state=IL${sessionId ? `&masterlist=${sessionId}` : ''}&query=${encodeURIComponent(query)}`;
     
     const response = await fetch(url);
     if (!response.ok) {
@@ -41,7 +40,7 @@ serve(async (req) => {
           description: item.description || item.title || '',
           status: item.status || '',
           lastUpdated: item.last_action_date || '',
-          sessionName: item.session?.session_name || 'Unknown Session', // Add session information
+          sessionName: item.session?.session_name || 'Unknown Session',
           sessionYear: item.session?.year_start || '',
           versions: [],
           changes: [{
