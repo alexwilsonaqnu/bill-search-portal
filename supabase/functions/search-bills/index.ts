@@ -30,26 +30,43 @@ serve(async (req) => {
     const data = await response.json();
     console.log(`LegiScan returned ${data.searchresult?.summary?.count || 0} results`);
 
-    // Transform the results into our Bill format
+    // Transform the results and fetch additional bill details for each result
     const allBills = data.searchresult && typeof data.searchresult === 'object' 
-      ? Object.values(data.searchresult)
-        .filter(item => item.bill_id) // Filter out the summary object
-        .map(item => ({
-          id: item.bill_id.toString(),
-          title: item.title || `${item.bill_number}`,
-          description: item.description || item.title || '',
-          status: item.status || '',
-          lastUpdated: item.last_action_date || '',
-          sessionName: item.session?.session_name || 'Unknown Session',
-          sessionYear: item.session?.year_start || '',
-          versions: [],
-          changes: [{
-            id: 'last_action',
-            description: item.last_action || '',
-            details: item.last_action_date || ''
-          }],
-          data: item
-        }))
+      ? await Promise.all(
+          Object.values(data.searchresult)
+            .filter(item => item.bill_id) // Filter out the summary object
+            .map(async (item) => {
+              // Fetch additional bill details
+              const billDetailsUrl = `https://api.legiscan.com/?key=${LEGISCAN_API_KEY}&op=getBill&id=${item.bill_id}`;
+              let billDetails;
+              try {
+                const detailsResponse = await fetch(billDetailsUrl);
+                const detailsData = await detailsResponse.json();
+                billDetails = detailsData.bill;
+              } catch (error) {
+                console.error(`Error fetching details for bill ${item.bill_id}:`, error);
+                billDetails = null;
+              }
+
+              return {
+                id: item.bill_id.toString(),
+                title: item.title || `${item.bill_number}`,
+                description: billDetails?.description || item.description || item.title || '',
+                status: item.status || '',
+                lastUpdated: item.last_action_date || '',
+                sessionName: item.session?.session_name || 'Unknown Session',
+                sessionYear: item.session?.year_start || '',
+                text: billDetails?.text_content || billDetails?.summary || '',
+                versions: [],
+                changes: [{
+                  id: 'last_action',
+                  description: item.last_action || '',
+                  details: item.last_action_date || ''
+                }],
+                data: billDetails || item
+              };
+            })
+        )
       : [];
 
     // Handle pagination
@@ -96,3 +113,4 @@ serve(async (req) => {
     );
   }
 });
+
