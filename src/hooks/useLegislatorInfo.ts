@@ -71,3 +71,4 @@ export const useLegislatorInfo = (legislatorName: string) => {
     enabled: !!legislatorName,
   });
 };
+
