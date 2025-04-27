@@ -10,14 +10,16 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { query, page = 1, pageSize = 10, sessionId, startDate, endDate } = await req.json();
-    console.log(`Searching LegiScan for: "${query}", page: ${page}, dateRange: ${startDate} - ${endDate}`);
+    const { query, page = 1, pageSize = 10, sessionId } = await req.json();
+    console.log(`Searching LegiScan for: "${query}", page: ${page}, pageSize: ${pageSize}, sessionId: ${sessionId}`);
 
+    // Build the LegiScan search URL - adding state=IL to filter for Illinois only
     const url = `https://api.legiscan.com/?key=${LEGISCAN_API_KEY}&op=search&state=IL${sessionId ? `&masterlist=${sessionId}` : ''}&query=${encodeURIComponent(query)}`;
     
     const response = await fetch(url);
@@ -32,29 +34,7 @@ serve(async (req) => {
     const allBills = data.searchresult && typeof data.searchresult === 'object' 
       ? await Promise.all(
           Object.values(data.searchresult)
-            .filter(item => item.bill_id)
-            .filter(item => {
-              if (!startDate && !endDate) return true;
-              
-              const lastActionDate = item.last_action_date 
-                ? new Date(item.last_action_date) 
-                : null;
-              
-              if (!lastActionDate) return true;
-              
-              const start = startDate ? new Date(startDate) : null;
-              const end = endDate ? new Date(endDate) : null;
-              
-              if (start && end) {
-                return lastActionDate >= start && lastActionDate <= end;
-              } else if (start) {
-                return lastActionDate >= start;
-              } else if (end) {
-                return lastActionDate <= end;
-              }
-              
-              return true;
-            })
+            .filter(item => item.bill_id) // Filter out the summary object
             .map(async (item) => {
               // Fetch additional bill details
               const billDetailsUrl = `https://api.legiscan.com/?key=${LEGISCAN_API_KEY}&op=getBill&id=${item.bill_id}`;
@@ -133,3 +113,4 @@ serve(async (req) => {
     );
   }
 });
+

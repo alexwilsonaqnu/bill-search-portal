@@ -2,23 +2,13 @@
 import React from "react";
 import { format } from "date-fns";
 import SearchBar from "@/components/SearchBar";
-import DateRangeFilter from "@/components/DateRangeFilter";
 
 interface HeaderSectionProps {
   query: string;
   onSearch: (query: string) => void;
-  startDate: Date | undefined;
-  endDate: Date | undefined;
-  onDateChange: (start: Date | undefined, end: Date | undefined) => void;
 }
 
-const HeaderSection = ({ 
-  query, 
-  onSearch,
-  startDate,
-  endDate,
-  onDateChange
-}: HeaderSectionProps) => {
+const HeaderSection = ({ query, onSearch }: HeaderSectionProps) => {
   return (
     <div className="text-center mb-16">
       <div className="hidden md:block absolute top-20 left-6 text-gray-500 text-sm">
@@ -29,13 +19,8 @@ const HeaderSection = ({
         Billinois
       </h1>
       
-      <div className="mx-auto max-w-xl space-y-4">
+      <div className="mx-auto max-w-xl">
         <SearchBar initialQuery={query} onSearch={onSearch} />
-        <DateRangeFilter
-          startDate={startDate}
-          endDate={endDate}
-          onDateChange={onDateChange}
-        />
       </div>
     </div>
   );
