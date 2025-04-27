@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import parse from 'html-react-parser';
 
@@ -46,18 +46,12 @@ const TextContentDisplay = ({ content, isHtml }: TextContentDisplayProps) => {
   // Custom options for the HTML parser
   const parserOptions = {
     replace: (domNode: any) => {
-      // Only process actual elements (not text nodes)
-      if (domNode.type !== 'tag') return;
-      
       if (domNode.name === 'table') {
         // Add responsive table wrapper and styling
         return (
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
-              {domNode.children && domNode.children.map ? 
-                domNode.children.map((child: any, i: number) => 
-                  <React.Fragment key={i}>{parse(child.toString())}</React.Fragment>
-                ) : null}
+              {domNode.children}
             </table>
           </div>
         );
@@ -66,15 +60,10 @@ const TextContentDisplay = ({ content, isHtml }: TextContentDisplayProps) => {
         // Style code blocks
         return (
           <code className="px-1 py-0.5 bg-gray-100 rounded text-sm">
-            {domNode.children && domNode.children.map ? 
-              domNode.children.map((child: any, i: number) => 
-                <React.Fragment key={i}>{child.data || ''}</React.Fragment>
-              ) : null}
+            {domNode.children}
           </code>
         );
       }
-      // Return undefined for all other tags to let the parser handle them
-      return undefined;
     }
   };
   
