@@ -86,6 +86,8 @@ const VersionComparison = ({
           id: sectionId,
           leftTitle: leftSection.title,
           rightTitle: rightSection.title,
+          leftContent: leftContent,
+          rightContent: rightContent,
           changes,
           onlyInLeft: false,
           onlyInRight: false,

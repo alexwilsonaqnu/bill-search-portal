@@ -8,6 +8,8 @@ interface DiffData {
   rightTitle: string | null;
   changes?: { value: string; added?: boolean; removed?: boolean; }[];
   content?: string;
+  leftContent?: string;
+  rightContent?: string;
   onlyInLeft?: boolean;
   onlyInRight?: boolean;
   isTooLarge?: boolean;
