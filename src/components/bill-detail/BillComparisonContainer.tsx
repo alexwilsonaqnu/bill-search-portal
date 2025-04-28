@@ -59,6 +59,15 @@ const BillComparisonContainer = ({ bill }: BillComparisonContainerProps) => {
       }
 
       if (data.error) {
+        console.warn("Warning from summary generation:", data.error);
+        // If the API returns both an error and a summary, we'll show the summary
+        if (data.summary) {
+          setSummary(data.summary);
+          if (data.error.includes("too large")) {
+            toast.warning("The bill text was too large for detailed analysis. Showing a simplified summary.");
+          }
+          return;
+        }
         throw new Error(data.error);
       }
 

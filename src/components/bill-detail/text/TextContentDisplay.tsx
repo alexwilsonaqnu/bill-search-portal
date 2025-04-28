@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import parse, { HTMLReactParserOptions, Element, domToReact, DOMNode } from 'html-react-parser';
@@ -113,7 +112,7 @@ const TextContentDisplay = ({ content, isHtml }: TextContentDisplayProps) => {
                       .filter((cell: any) => cell.name === 'td' || cell.name === 'th')
                       .map((cell: any, i) => (
                         <TableHead key={i}>
-                          {domToReact(Array.isArray(cell.children) ? cell.children : [], parserOptions) || '\u00A0'}
+                          {domToReact(cell.children ? Array.isArray(cell.children) ? cell.children : [] : [], parserOptions) || '\u00A0'}
                         </TableHead>
                       ))}
                   </TableRow>
@@ -129,7 +128,7 @@ const TextContentDisplay = ({ content, isHtml }: TextContentDisplayProps) => {
                         .filter((cell: any) => cell.name === 'td' || cell.name === 'th')
                         .map((cell: any, j) => (
                           <TableCell key={j}>
-                            {domToReact(Array.isArray(cell.children) ? cell.children : [], parserOptions) || '\u00A0'}
+                            {domToReact(cell.children ? Array.isArray(cell.children) ? cell.children : [] : [], parserOptions) || '\u00A0'}
                           </TableCell>
                         ))}
                     </TableRow>
@@ -144,7 +143,7 @@ const TextContentDisplay = ({ content, isHtml }: TextContentDisplayProps) => {
         // Style code blocks
         return (
           <code className="px-1 py-0.5 bg-gray-100 rounded text-sm">
-            {domToReact(Array.isArray(domNode.children) ? domNode.children : [], parserOptions)}
+            {domToReact(domNode.children ? Array.isArray(domNode.children) ? domNode.children : [] : [], parserOptions)}
           </code>
         );
       }
@@ -153,7 +152,7 @@ const TextContentDisplay = ({ content, isHtml }: TextContentDisplayProps) => {
       if (domNode instanceof Element && domNode.name === 'font') {
         return (
           <span className="font-medium">
-            {domToReact(Array.isArray(domNode.children) ? domNode.children : [], parserOptions)}
+            {domToReact(domNode.children ? Array.isArray(domNode.children) ? domNode.children : [] : [], parserOptions)}
           </span>
         );
       }
