@@ -1,7 +1,7 @@
 
 import { useState } from "react";
 import parse from 'html-react-parser';
-import { Element } from 'html-react-parser';
+import { Element, domToReact, HTMLReactParserOptions, DOMNode } from 'html-react-parser';
 import TableRenderer from "./components/TableRenderer";
 import ShowMoreButton from "./components/ShowMoreButton";
 import { cleanHtmlContent, extractMeaningfulContent } from "./utils/htmlCleaner";
@@ -29,7 +29,7 @@ const TextContentDisplay = ({ content, isHtml }: TextContentDisplayProps) => {
     return content.substring(0, 500) + "...";
   };
 
-  const parserOptions = {
+  const parserOptions: HTMLReactParserOptions = {
     replace: (domNode) => {
       if (domNode instanceof Element) {
         if (domNode.name === 'table') {
@@ -38,14 +38,24 @@ const TextContentDisplay = ({ content, isHtml }: TextContentDisplayProps) => {
         if (domNode.name === 'code') {
           return (
             <code className="px-1 py-0.5 bg-gray-100 rounded text-sm">
-              {domNode.children && domToReact(domNode.children, parserOptions)}
+              {domNode.children && domToReact(
+                Array.from(domNode.children).filter((node): node is DOMNode => 
+                  node instanceof Element || typeof node === 'string'
+                ), 
+                parserOptions
+              )}
             </code>
           );
         }
         if (domNode.name === 'font') {
           return (
             <span className="font-medium">
-              {domNode.children && domToReact(domNode.children, parserOptions)}
+              {domNode.children && domToReact(
+                Array.from(domNode.children).filter((node): node is DOMNode => 
+                  node instanceof Element || typeof node === 'string'
+                ), 
+                parserOptions
+              )}
             </span>
           );
         }
