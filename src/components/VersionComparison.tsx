@@ -1,9 +1,12 @@
+
 import { useState, useMemo } from "react";
 import { Card } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { BillVersion, BillSection } from "@/types";
+import { BillVersion } from "@/types";
 import { diffWords } from "diff";
-import TextContentDisplay from "@/components/bill-detail/text/TextContentDisplay";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import VersionSelector from "./bill-detail/comparison/VersionSelector";
+import VisualDiffView from "./bill-detail/comparison/VisualDiffView";
+import SideBySideView from "./bill-detail/comparison/SideBySideView";
 
 interface VersionComparisonProps {
   versions: BillVersion[];
@@ -11,7 +14,11 @@ interface VersionComparisonProps {
   className?: string;
 }
 
-const VersionComparison = ({ versions, displayMode = "side-by-side", className = "" }: VersionComparisonProps) => {
+const VersionComparison = ({ 
+  versions, 
+  displayMode = "side-by-side", 
+  className = "" 
+}: VersionComparisonProps) => {
   const [leftVersionId, setLeftVersionId] = useState(versions[0]?.id || "");
   const [rightVersionId, setRightVersionId] = useState(
     versions.length > 1 ? versions[1].id : versions[0]?.id || ""
@@ -111,264 +118,6 @@ const VersionComparison = ({ versions, displayMode = "side-by-side", className =
     }).filter(Boolean);
   }, [leftVersion, rightVersion, displayMode]);
 
-  const renderSideBySideComparison = (
-    leftSections: BillSection[] = [],
-    rightSections: BillSection[] = []
-  ) => {
-    const safeContentSize = (content: string) => {
-      const MAX_CONTENT_LENGTH = 50000;
-      if (content && content.length > MAX_CONTENT_LENGTH) {
-        return content.substring(0, MAX_CONTENT_LENGTH) + 
-          " ... [Content truncated to prevent performance issues]";
-      }
-      return content;
-    };
-    
-    const allSectionIds = Array.from(
-      new Set([
-        ...leftSections.map((s) => s.id),
-        ...rightSections.map((s) => s.id),
-      ])
-    );
-
-    return allSectionIds.map((sectionId) => {
-      const leftSection = leftSections.find((s) => s.id === sectionId);
-      const rightSection = rightSections.find((s) => s.id === sectionId);
-      
-      const leftIsHtml = leftSection && isHtmlContent(leftSection.content);
-      const rightIsHtml = rightSection && isHtmlContent(rightSection.content);
-
-      if (leftSection && rightSection) {
-        const leftContent = safeContentSize(leftSection.content);
-        const rightContent = safeContentSize(rightSection.content);
-        const isSameContent = leftContent === rightContent;
-
-        return (
-          <div key={sectionId} className="mb-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <h3 className="text-lg font-semibold text-brand-primary mb-2">
-                  {leftSection.title}
-                </h3>
-                <div className={`rounded-md ${!isSameContent ? 'bg-red-50' : 'bg-gray-50'}`}>
-                  {leftIsHtml ? (
-                    <TextContentDisplay content={leftContent} isHtml={true} />
-                  ) : (
-                    <div className="p-4">
-                      <p className="whitespace-pre-wrap">{leftContent}</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold text-brand-primary mb-2">
-                  {rightSection.title}
-                </h3>
-                <div className={`rounded-md ${!isSameContent ? 'bg-green-50' : 'bg-gray-50'}`}>
-                  {rightIsHtml ? (
-                    <TextContentDisplay content={rightContent} isHtml={true} />
-                  ) : (
-                    <div className="p-4">
-                      <p className="whitespace-pre-wrap">{rightContent}</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-            {!isSameContent && (
-              <div className="mt-2 px-4 py-2 bg-yellow-50 border border-yellow-200 rounded text-sm">
-                <span className="font-medium">Change:</span> Content has been modified between versions
-              </div>
-            )}
-          </div>
-        );
-      }
-
-      if (leftSection && !rightSection) {
-        return (
-          <div key={sectionId} className="mb-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <h3 className="text-lg font-semibold text-brand-primary mb-2">
-                  {leftSection.title}
-                </h3>
-                <div className="rounded-md bg-red-50">
-                  {leftIsHtml ? (
-                    <TextContentDisplay content={safeContentSize(leftSection.content)} isHtml={true} />
-                  ) : (
-                    <div className="p-4">
-                      <p className="whitespace-pre-wrap">{safeContentSize(leftSection.content)}</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold text-gray-400 mb-2">
-                  [Removed in this version]
-                </h3>
-                <div className="p-4 rounded-md bg-gray-50 border border-dashed border-gray-300 text-gray-400 italic">
-                  This section does not exist in the selected version
-                </div>
-              </div>
-            </div>
-            <div className="mt-2 px-4 py-2 bg-yellow-50 border border-yellow-200 rounded text-sm">
-              <span className="font-medium">Change:</span> Section removed in newer version
-            </div>
-          </div>
-        );
-      }
-
-      if (!leftSection && rightSection) {
-        return (
-          <div key={sectionId} className="mb-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <h3 className="text-lg font-semibold text-gray-400 mb-2">
-                  [Added in newer version]
-                </h3>
-                <div className="p-4 rounded-md bg-gray-50 border border-dashed border-gray-300 text-gray-400 italic">
-                  This section does not exist in the selected version
-                </div>
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold text-brand-primary mb-2">
-                  {rightSection.title}
-                </h3>
-                <div className="rounded-md bg-green-50">
-                  {rightIsHtml ? (
-                    <TextContentDisplay content={safeContentSize(rightSection.content)} isHtml={true} />
-                  ) : (
-                    <div className="p-4">
-                      <p className="whitespace-pre-wrap">{safeContentSize(rightSection.content)}</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-            <div className="mt-2 px-4 py-2 bg-yellow-50 border border-yellow-200 rounded text-sm">
-              <span className="font-medium">Change:</span> New section added in newer version
-            </div>
-          </div>
-        );
-      }
-
-      return null;
-    });
-  };
-
-  const renderVisualDiffComparison = () => {
-    if (!sectionDiffs || !sectionDiffs.length) {
-      return <p className="text-muted-foreground">No differences found between selected versions.</p>;
-    }
-
-    return sectionDiffs.map((diff) => {
-      if (diff.isHtml) {
-        return (
-          <div key={diff.id} className="mb-8 border rounded-md overflow-hidden">
-            <div className="p-3 bg-blue-100 flex justify-between items-center">
-              <h3 className="font-medium">{diff.leftTitle || diff.rightTitle}</h3>
-              <span className="text-xs bg-blue-200 text-blue-800 px-2 py-1 rounded">HTML Content</span>
-            </div>
-            <div className="p-4 bg-white">
-              <p className="text-blue-700 mb-2">
-                HTML content is best viewed in side-by-side mode. Here's a formatted version:
-              </p>
-              {diff.leftContent && (
-                <TextContentDisplay 
-                  content={diff.leftContent} 
-                  isHtml={true} 
-                />
-              )}
-              {diff.rightContent && !diff.leftContent && (
-                <TextContentDisplay 
-                  content={diff.rightContent} 
-                  isHtml={true} 
-                />
-              )}
-            </div>
-          </div>
-        );
-      }
-
-      if (diff.isTooLarge) {
-        return (
-          <div key={diff.id} className="mb-8 border rounded-md overflow-hidden">
-            <div className="p-3 bg-amber-100 flex justify-between items-center">
-              <h3 className="font-medium">{diff.leftTitle} → {diff.rightTitle}</h3>
-              <span className="text-xs bg-amber-200 text-amber-800 px-2 py-1 rounded">Content Too Large</span>
-            </div>
-            <div className="p-4 bg-white">
-              <p className="text-amber-700">
-                This content is too large for visual diff comparison. Please use the side-by-side view instead.
-              </p>
-            </div>
-          </div>
-        );
-      }
-      
-      if (diff.onlyInLeft) {
-        return (
-          <div key={diff.id} className="mb-8 border rounded-md overflow-hidden">
-            <div className="p-3 bg-red-100 flex justify-between items-center">
-              <h3 className="font-medium">{diff.leftTitle}</h3>
-              <span className="text-xs bg-red-200 text-red-800 px-2 py-1 rounded">Removed</span>
-            </div>
-            <div className="p-4 bg-red-50">
-              {diff.isHtml ? (
-                <TextContentDisplay content={diff.content} isHtml={true} />
-              ) : (
-                <p className="whitespace-pre-wrap text-red-800 line-through">{diff.content}</p>
-              )}
-            </div>
-          </div>
-        );
-      }
-
-      if (diff.onlyInRight) {
-        return (
-          <div key={diff.id} className="mb-8 border rounded-md overflow-hidden">
-            <div className="p-3 bg-green-100 flex justify-between items-center">
-              <h3 className="font-medium">{diff.rightTitle}</h3>
-              <span className="text-xs bg-green-200 text-green-800 px-2 py-1 rounded">Added</span>
-            </div>
-            <div className="p-4 bg-green-50">
-              {diff.isHtml ? (
-                <TextContentDisplay content={diff.content} isHtml={true} />
-              ) : (
-                <p className="whitespace-pre-wrap text-green-800">{diff.content}</p>
-              )}
-            </div>
-          </div>
-        );
-      }
-
-      return (
-        <div key={diff.id} className="mb-8 border rounded-md overflow-hidden">
-          <div className="p-3 bg-yellow-100 flex justify-between items-center">
-            <h3 className="font-medium">{diff.leftTitle} → {diff.rightTitle}</h3>
-            <span className="text-xs bg-yellow-200 text-yellow-800 px-2 py-1 rounded">Modified</span>
-          </div>
-          <div className="p-4 bg-white">
-            <div className="whitespace-pre-wrap font-mono text-sm">
-              {diff.changes.map((part, index) => {
-                const className = part.added 
-                  ? "bg-green-100 text-green-800" 
-                  : part.removed 
-                    ? "bg-red-100 text-red-800 line-through" 
-                    : "";
-                return (
-                  <span key={index} className={className}>
-                    {part.value}
-                  </span>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      );
-    });
-  };
-
   if (!versions.length) {
     return (
       <Card className={`p-6 ${className}`}>
@@ -380,50 +129,29 @@ const VersionComparison = ({ versions, displayMode = "side-by-side", className =
   return (
     <div className={className}>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-        <div>
-          <h3 className="font-medium mb-2 text-gray-600">Version 1</h3>
-          <Select
-            value={leftVersionId}
-            onValueChange={setLeftVersionId}
-          >
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Select version" />
-            </SelectTrigger>
-            <SelectContent>
-              {versions.map((version) => (
-                <SelectItem key={`left-${version.id}`} value={version.id}>
-                  {version.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div>
-          <h3 className="font-medium mb-2 text-gray-600">Version 2</h3>
-          <Select
-            value={rightVersionId}
-            onValueChange={setRightVersionId}
-          >
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Select version" />
-            </SelectTrigger>
-            <SelectContent>
-              {versions.map((version) => (
-                <SelectItem key={`right-${version.id}`} value={version.id}>
-                  {version.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+        <VersionSelector
+          versions={versions}
+          selectedVersionId={leftVersionId}
+          label="Version 1"
+          onVersionChange={setLeftVersionId}
+        />
+        <VersionSelector
+          versions={versions}
+          selectedVersionId={rightVersionId}
+          label="Version 2"
+          onVersionChange={setRightVersionId}
+        />
       </div>
 
       <div className="mt-8">
         {leftVersion && rightVersion ? (
           displayMode === "visual-diff" ? (
-            renderVisualDiffComparison()
+            <VisualDiffView sectionDiffs={sectionDiffs || []} />
           ) : (
-            renderSideBySideComparison(leftVersion.sections, rightVersion.sections)
+            <SideBySideView 
+              leftSections={leftVersion.sections} 
+              rightSections={rightVersion.sections} 
+            />
           )
         ) : (
           <p className="text-muted-foreground">Select versions to compare</p>
