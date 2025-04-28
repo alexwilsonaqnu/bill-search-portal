@@ -13,7 +13,7 @@ interface TextContentDisplayProps {
 }
 
 const TextContentDisplay = ({ content, isHtml }: TextContentDisplayProps) => {
-  const [showFullText, setShowFullText] = useState(true);
+  const [showFullText, setShowFullText] = useState(false);
 
   const getDisplayText = () => {
     if (!content) return "";
