@@ -10,37 +10,36 @@ interface TextContentDisplayProps {
 
 const TextContentDisplay = ({ content, isHtml }: TextContentDisplayProps) => {
   const [showFullText, setShowFullText] = useState(true);
-  
+
   // Function to clean up HTML content
   const cleanHtmlContent = (htmlContent: string) => {
-    // Remove the raw HTML tags from display if they appear to be unprocessed
-    if (htmlContent.includes('<table') && htmlContent.includes('<tr') && htmlContent.includes('<td')) {
-      try {
-        // Extract meaningful content from the HTML
-        const extractedText = extractMeaningfulContent(htmlContent);
-        return `
-          <div class="bill-text-content">
-            ${extractedText}
-          </div>
-        `;
-      } catch (e) {
-        console.error("Error cleaning HTML content:", e);
-      }
-    }
-    
+    // Process markdown-style formatting first
+    let processedContent = htmlContent
+      // Convert headers
+      .replace(/^# (.*$)/gm, '<h1 class="text-2xl font-bold mb-4">$1</h1>')
+      .replace(/^## (.*$)/gm, '<h2 class="text-xl font-semibold mb-3">$1</h2>')
+      .replace(/^### (.*$)/gm, '<h3 class="text-lg font-medium mb-2">$1</h3>')
+      // Convert bold text
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+      // Convert italic text
+      .replace(/\*(.*?)\*/g, '<em>$1</em>')
+      // Convert bullet points
+      .replace(/^- (.*$)/gm, '<li class="ml-4">$1</li>')
+      .replace(/(?:\n\n|\r\n\r\n)(- .*(?:\n- .*)*)/g, '<ul class="list-disc mb-4">$1</ul>');
+
     // Remove excess whitespace between tags
-    const cleanedContent = htmlContent
+    processedContent = processedContent
       .replace(/>\s+</g, '><')
       .replace(/\s+/g, ' ')
       .trim();
-    
+
     return `
       <div class="bill-text-content">
-        ${cleanedContent}
+        ${processedContent}
       </div>
     `;
   };
-  
+
   // Extract meaningful content from complex HTML
   const extractMeaningfulContent = (htmlContent: string) => {
     // This is a simple extraction that tries to find text content
@@ -78,7 +77,7 @@ const TextContentDisplay = ({ content, isHtml }: TextContentDisplayProps) => {
       ${importantLines ? `<div class="mb-4"><h3 class="font-medium">BILL TEXT</h3><p>${importantLines}</p></div>` : ''}
     `;
   };
-  
+
   // Get display text with proper truncation
   const getDisplayText = () => {
     if (!content) return "";
@@ -88,7 +87,6 @@ const TextContentDisplay = ({ content, isHtml }: TextContentDisplayProps) => {
     }
     
     if (isHtml) {
-      // Basic HTML truncation - not perfect but provides a cutoff
       return content.substring(0, 500) + "... <p>[Content truncated]</p>";
     }
     
@@ -198,12 +196,12 @@ const TextContentDisplay = ({ content, isHtml }: TextContentDisplayProps) => {
       return undefined;
     }
   };
-  
+
   // If content is obviously raw HTML tags, display cleaned version
   const isRawHtmlTags = content && typeof content === 'string' && 
     (content.includes('<table') || content.includes('<tr>') || content.includes('<td>')) &&
     (content.includes('&lt;') || content.includes('&gt;'));
-  
+
   return (
     <div className="mt-4">
       {isHtml ? (
@@ -212,18 +210,37 @@ const TextContentDisplay = ({ content, isHtml }: TextContentDisplayProps) => {
             .bill-text-content {
               font-family: system-ui, -apple-system, sans-serif;
             }
-            .bill-text-content h2 {
-              font-size: 1.25rem;
-              font-weight: 600;
+            .bill-text-content h1 {
+              font-size: 1.5rem;
+              font-weight: 700;
               margin-bottom: 1rem;
               color: #1e40af;
             }
+            .bill-text-content h2 {
+              font-size: 1.25rem;
+              font-weight: 600;
+              margin-bottom: 0.75rem;
+              color: #1e40af;
+            }
             .bill-text-content h3 {
-              font-size: 1rem;
+              font-size: 1.125rem;
               font-weight: 500;
               margin-bottom: 0.5rem;
-              margin-top: 1rem;
               color: #1e40af;
+            }
+            .bill-text-content strong {
+              font-weight: 600;
+            }
+            .bill-text-content em {
+              font-style: italic;
+            }
+            .bill-text-content ul {
+              list-style-type: disc;
+              padding-left: 1.5rem;
+              margin-bottom: 1rem;
+            }
+            .bill-text-content li {
+              margin-bottom: 0.5rem;
             }
             .bill-text-content p {
               margin-bottom: 1rem;
