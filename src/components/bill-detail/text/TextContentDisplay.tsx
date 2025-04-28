@@ -1,7 +1,7 @@
 
 import { useState } from "react";
 import parse from 'html-react-parser';
-import { Element } from 'html-react-parser';
+import { Element, domToReact, HTMLReactParserOptions, DOMNode } from 'html-react-parser';
 import TableRenderer from "./components/TableRenderer";
 import ShowMoreButton from "./components/ShowMoreButton";
 import { cleanHtmlContent, extractMeaningfulContent } from "./utils/htmlCleaner";
