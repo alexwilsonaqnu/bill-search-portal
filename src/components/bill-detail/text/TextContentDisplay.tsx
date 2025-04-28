@@ -29,7 +29,7 @@ const TextContentDisplay = ({ content, isHtml }: TextContentDisplayProps) => {
     return content.substring(0, 500) + "...";
   };
 
-  const parserOptions: HTMLReactParserOptions = {
+  const parserOptions = {
     replace: (domNode) => {
       if (domNode instanceof Element) {
         if (domNode.name === 'table') {
@@ -38,24 +38,14 @@ const TextContentDisplay = ({ content, isHtml }: TextContentDisplayProps) => {
         if (domNode.name === 'code') {
           return (
             <code className="px-1 py-0.5 bg-gray-100 rounded text-sm">
-              {domNode.children && domToReact(
-                Array.from(domNode.children).filter((node): node is DOMNode => 
-                  node instanceof Element || typeof node === 'string'
-                ), 
-                parserOptions
-              )}
+              {domNode.children && domToReact(domNode.children, parserOptions)}
             </code>
           );
         }
         if (domNode.name === 'font') {
           return (
             <span className="font-medium">
-              {domNode.children && domToReact(
-                Array.from(domNode.children).filter((node): node is DOMNode => 
-                  node instanceof Element || typeof node === 'string'
-                ), 
-                parserOptions
-              )}
+              {domNode.children && domToReact(domNode.children, parserOptions)}
             </span>
           );
         }
