@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import BillChat from "./BillChat";
 import TextContentDisplay from "./text/TextContentDisplay";
 import FullScreenDialog from "./FullScreenDialog";
-import { fetchBillText } from "@/services/billTextService";
+import { fetchBillText } from "@/services/legiscanService";
 import BillTextHeader from "./BillTextHeader";
 import BillTextLoading from "./BillTextLoading";
 import BillTextError from "./BillTextError";
