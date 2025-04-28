@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import parse, { HTMLReactParserOptions, Element, domToReact, DOMNode } from 'html-react-parser';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 interface TextContentDisplayProps {
   content: string;
@@ -13,17 +14,69 @@ const TextContentDisplay = ({ content, isHtml }: TextContentDisplayProps) => {
   
   // Function to clean up HTML content
   const cleanHtmlContent = (htmlContent: string) => {
+    // Remove the raw HTML tags from display if they appear to be unprocessed
+    if (htmlContent.includes('<table') && htmlContent.includes('<tr') && htmlContent.includes('<td')) {
+      try {
+        // Extract meaningful content from the HTML
+        const extractedText = extractMeaningfulContent(htmlContent);
+        return `
+          <div class="bill-text-content">
+            ${extractedText}
+          </div>
+        `;
+      } catch (e) {
+        console.error("Error cleaning HTML content:", e);
+      }
+    }
+    
     // Remove excess whitespace between tags
     const cleanedContent = htmlContent
       .replace(/>\s+</g, '><')
       .replace(/\s+/g, ' ')
       .trim();
     
-    // Add basic styling to common elements
     return `
       <div class="bill-text-content">
         ${cleanedContent}
       </div>
+    `;
+  };
+  
+  // Extract meaningful content from complex HTML
+  const extractMeaningfulContent = (htmlContent: string) => {
+    // This is a simple extraction that tries to find text content
+    // while removing most of the HTML structure
+    
+    // Check for specific bill headers and content
+    const billNumberMatch = htmlContent.match(/HB\d+|SB\d+/);
+    const billNumber = billNumberMatch ? billNumberMatch[0] : "";
+    
+    const synopsisMatch = htmlContent.match(/SYNOPSIS AS INTRODUCED:(.*?)(?:<\/td>|<\/code>)/is);
+    const synopsis = synopsisMatch ? synopsisMatch[1].replace(/<\/?[^>]+(>|$)/g, "") : "";
+    
+    const actContentMatch = htmlContent.match(/AN ACT concerning(.*?)(?:<\/td>|<\/code>)/is);
+    const actContent = actContentMatch ? actContentMatch[1].replace(/<\/?[^>]+(>|$)/g, "") : "";
+    
+    // Extract any other text content that seems important
+    const lines = htmlContent
+      .replace(/<tr>|<\/tr>|<td[^>]*>|<\/td>|<table[^>]*>|<\/table>|<colgroup[^>]*>|<\/colgroup>/g, " ")
+      .replace(/<code>|<\/code>/g, " ")
+      .replace(/<[^>]+>/g, " ")
+      .replace(/&nbsp;/g, " ")
+      .replace(/\s+/g, " ")
+      .split(/\.\s+/);
+    
+    const importantLines = lines
+      .filter(line => line.trim().length > 20) // Only keep lines with substantial content
+      .map(line => line.trim() + ".")
+      .join("\n\n");
+    
+    // Formatted output
+    return `
+      <h2 class="text-lg font-bold mb-4">${billNumber}</h2>
+      ${synopsis ? `<div class="mb-4"><h3 class="font-medium">SYNOPSIS</h3><p>${synopsis}</p></div>` : ''}
+      ${actContent ? `<div class="mb-4"><h3 class="font-medium">ACT CONTENT</h3><p>${actContent}</p></div>` : ''}
+      ${importantLines ? `<div class="mb-4"><h3 class="font-medium">BILL TEXT</h3><p>${importantLines}</p></div>` : ''}
     `;
   };
   
@@ -49,26 +102,70 @@ const TextContentDisplay = ({ content, isHtml }: TextContentDisplayProps) => {
       if (domNode instanceof Element && domNode.name === 'table') {
         // Add responsive table wrapper and styling
         return (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              {/* Cast children to DOMNode[] to satisfy TypeScript */}
-              {domToReact(domNode.children as DOMNode[], parserOptions)}
-            </table>
+          <div className="overflow-x-auto mb-4">
+            <Table>
+              <TableHeader>
+                {domNode.children.find((child: any) => child.name === 'tr') && (
+                  <TableRow>
+                    {Array.from(domNode.children)
+                      .filter((child: any) => child.name === 'tr')[0]
+                      .children
+                      .filter((cell: any) => cell.name === 'td' || cell.name === 'th')
+                      .map((cell: any, i) => (
+                        <TableHead key={i}>
+                          {domToReact(cell.children as DOMNode[], parserOptions) || '\u00A0'}
+                        </TableHead>
+                      ))}
+                  </TableRow>
+                )}
+              </TableHeader>
+              <TableBody>
+                {Array.from(domNode.children)
+                  .filter((child: any) => child.name === 'tr')
+                  .slice(1) // Skip the first row as it's used for header
+                  .map((row: any, i) => (
+                    <TableRow key={i}>
+                      {Array.from(row.children)
+                        .filter((cell: any) => cell.name === 'td' || cell.name === 'th')
+                        .map((cell: any, j) => (
+                          <TableCell key={j}>
+                            {domToReact(cell.children as DOMNode[], parserOptions) || '\u00A0'}
+                          </TableCell>
+                        ))}
+                    </TableRow>
+                  ))}
+              </TableBody>
+            </Table>
           </div>
         );
       }
+      
       if (domNode instanceof Element && domNode.name === 'code') {
         // Style code blocks
         return (
           <code className="px-1 py-0.5 bg-gray-100 rounded text-sm">
-            {/* Cast children to DOMNode[] to satisfy TypeScript */}
             {domToReact(domNode.children as DOMNode[], parserOptions)}
           </code>
         );
       }
+      
+      // Handle font tags (common in legislative documents)
+      if (domNode instanceof Element && domNode.name === 'font') {
+        return (
+          <span className="font-medium">
+            {domToReact(domNode.children as DOMNode[], parserOptions)}
+          </span>
+        );
+      }
+      
       return undefined;
     }
   };
+  
+  // If content is obviously raw HTML tags, display cleaned version
+  const isRawHtmlTags = content && typeof content === 'string' && 
+    (content.includes('<table') || content.includes('<tr>') || content.includes('<td>')) &&
+    (content.includes('&lt;') || content.includes('&gt;'));
   
   return (
     <div className="mt-4">
@@ -77,6 +174,23 @@ const TextContentDisplay = ({ content, isHtml }: TextContentDisplayProps) => {
           <style>{`
             .bill-text-content {
               font-family: system-ui, -apple-system, sans-serif;
+            }
+            .bill-text-content h2 {
+              font-size: 1.25rem;
+              font-weight: 600;
+              margin-bottom: 1rem;
+              color: #1e40af;
+            }
+            .bill-text-content h3 {
+              font-size: 1rem;
+              font-weight: 500;
+              margin-bottom: 0.5rem;
+              margin-top: 1rem;
+              color: #1e40af;
+            }
+            .bill-text-content p {
+              margin-bottom: 1rem;
+              line-height: 1.5;
             }
             .bill-text-content table {
               border-collapse: collapse;

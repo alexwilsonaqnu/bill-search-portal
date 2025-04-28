@@ -1,9 +1,9 @@
-
 import { useState, useMemo } from "react";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BillVersion, BillSection } from "@/types";
 import { diffWords } from "diff";
+import TextContentDisplay from "@/components/bill-detail/text/TextContentDisplay";
 
 interface VersionComparisonProps {
   versions: BillVersion[];
@@ -20,15 +20,17 @@ const VersionComparison = ({ versions, displayMode = "side-by-side", className =
   const leftVersion = versions.find((v) => v.id === leftVersionId);
   const rightVersion = versions.find((v) => v.id === rightVersionId);
 
-  // Use useMemo with a content size limit to prevent browser crashes
+  const isHtmlContent = (content: string): boolean => {
+    if (!content) return false;
+    return /<[a-z][\s\S]*>/i.test(content);
+  };
+
   const sectionDiffs = useMemo(() => {
     if (!leftVersion || !rightVersion || displayMode !== "visual-diff") return null;
 
-    // Map for faster lookups
     const leftSectionsMap = new Map(leftVersion.sections.map(s => [s.id, s]));
     const rightSectionsMap = new Map(rightVersion.sections.map(s => [s.id, s]));
     
-    // Get all unique section IDs
     const allSectionIds = Array.from(
       new Set([...leftSectionsMap.keys(), ...rightSectionsMap.keys()])
     );
@@ -37,9 +39,8 @@ const VersionComparison = ({ versions, displayMode = "side-by-side", className =
       const leftSection = leftSectionsMap.get(sectionId);
       const rightSection = rightSectionsMap.get(sectionId);
       
-      // Function to safely truncate content if too large
       const safeContentSize = (content: string) => {
-        const MAX_CONTENT_LENGTH = 20000; // Limit content size to prevent browser crashes
+        const MAX_CONTENT_LENGTH = 20000;
         if (content && content.length > MAX_CONTENT_LENGTH) {
           return content.substring(0, MAX_CONTENT_LENGTH) + 
             " ... [Content truncated to prevent performance issues. Full comparison available in side-by-side view]";
@@ -47,12 +48,26 @@ const VersionComparison = ({ versions, displayMode = "side-by-side", className =
         return content;
       };
       
+      const leftIsHtml = leftSection && isHtmlContent(leftSection.content);
+      const rightIsHtml = rightSection && isHtmlContent(rightSection.content);
+      
       if (leftSection && rightSection) {
-        // Safely process the diff to prevent browser crashes
+        if (leftIsHtml || rightIsHtml) {
+          return {
+            id: sectionId,
+            leftTitle: leftSection.title,
+            rightTitle: rightSection.title,
+            leftContent: leftSection.content,
+            rightContent: rightSection.content,
+            isHtml: true,
+            onlyInLeft: false,
+            onlyInRight: false,
+          };
+        }
+        
         const leftContent = safeContentSize(leftSection.content);
         const rightContent = safeContentSize(rightSection.content);
         
-        // Skip diff if content is too large (will only display content in side-by-side)
         const isTooLarge = 
           (leftContent?.length || 0) + (rightContent?.length || 0) > 40000;
           
@@ -67,7 +82,8 @@ const VersionComparison = ({ versions, displayMode = "side-by-side", className =
           changes,
           onlyInLeft: false,
           onlyInRight: false,
-          isTooLarge
+          isTooLarge,
+          isHtml: false
         };
       } else if (leftSection) {
         return {
@@ -77,6 +93,7 @@ const VersionComparison = ({ versions, displayMode = "side-by-side", className =
           content: safeContentSize(leftSection.content),
           onlyInLeft: true,
           onlyInRight: false,
+          isHtml: leftIsHtml
         };
       } else if (rightSection) {
         return {
@@ -86,6 +103,7 @@ const VersionComparison = ({ versions, displayMode = "side-by-side", className =
           content: safeContentSize(rightSection.content),
           onlyInLeft: false,
           onlyInRight: true,
+          isHtml: rightIsHtml
         };
       }
       
@@ -97,9 +115,8 @@ const VersionComparison = ({ versions, displayMode = "side-by-side", className =
     leftSections: BillSection[] = [],
     rightSections: BillSection[] = []
   ) => {
-    // Function to safely truncate content if too large
     const safeContentSize = (content: string) => {
-      const MAX_CONTENT_LENGTH = 50000; // Side-by-side can handle more content
+      const MAX_CONTENT_LENGTH = 50000;
       if (content && content.length > MAX_CONTENT_LENGTH) {
         return content.substring(0, MAX_CONTENT_LENGTH) + 
           " ... [Content truncated to prevent performance issues]";
@@ -117,6 +134,9 @@ const VersionComparison = ({ versions, displayMode = "side-by-side", className =
     return allSectionIds.map((sectionId) => {
       const leftSection = leftSections.find((s) => s.id === sectionId);
       const rightSection = rightSections.find((s) => s.id === sectionId);
+      
+      const leftIsHtml = leftSection && isHtmlContent(leftSection.content);
+      const rightIsHtml = rightSection && isHtmlContent(rightSection.content);
 
       if (leftSection && rightSection) {
         const leftContent = safeContentSize(leftSection.content);
@@ -130,16 +150,28 @@ const VersionComparison = ({ versions, displayMode = "side-by-side", className =
                 <h3 className="text-lg font-semibold text-brand-primary mb-2">
                   {leftSection.title}
                 </h3>
-                <div className={`p-4 rounded-md ${!isSameContent ? 'bg-red-50' : 'bg-gray-50'}`}>
-                  <p className="whitespace-pre-wrap">{leftContent}</p>
+                <div className={`rounded-md ${!isSameContent ? 'bg-red-50' : 'bg-gray-50'}`}>
+                  {leftIsHtml ? (
+                    <TextContentDisplay content={leftContent} isHtml={true} />
+                  ) : (
+                    <div className="p-4">
+                      <p className="whitespace-pre-wrap">{leftContent}</p>
+                    </div>
+                  )}
                 </div>
               </div>
               <div>
                 <h3 className="text-lg font-semibold text-brand-primary mb-2">
                   {rightSection.title}
                 </h3>
-                <div className={`p-4 rounded-md ${!isSameContent ? 'bg-green-50' : 'bg-gray-50'}`}>
-                  <p className="whitespace-pre-wrap">{rightContent}</p>
+                <div className={`rounded-md ${!isSameContent ? 'bg-green-50' : 'bg-gray-50'}`}>
+                  {rightIsHtml ? (
+                    <TextContentDisplay content={rightContent} isHtml={true} />
+                  ) : (
+                    <div className="p-4">
+                      <p className="whitespace-pre-wrap">{rightContent}</p>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -160,8 +192,14 @@ const VersionComparison = ({ versions, displayMode = "side-by-side", className =
                 <h3 className="text-lg font-semibold text-brand-primary mb-2">
                   {leftSection.title}
                 </h3>
-                <div className="p-4 rounded-md bg-red-50">
-                  <p className="whitespace-pre-wrap">{safeContentSize(leftSection.content)}</p>
+                <div className="rounded-md bg-red-50">
+                  {leftIsHtml ? (
+                    <TextContentDisplay content={safeContentSize(leftSection.content)} isHtml={true} />
+                  ) : (
+                    <div className="p-4">
+                      <p className="whitespace-pre-wrap">{safeContentSize(leftSection.content)}</p>
+                    </div>
+                  )}
                 </div>
               </div>
               <div>
@@ -196,8 +234,14 @@ const VersionComparison = ({ versions, displayMode = "side-by-side", className =
                 <h3 className="text-lg font-semibold text-brand-primary mb-2">
                   {rightSection.title}
                 </h3>
-                <div className="p-4 rounded-md bg-green-50">
-                  <p className="whitespace-pre-wrap">{safeContentSize(rightSection.content)}</p>
+                <div className="rounded-md bg-green-50">
+                  {rightIsHtml ? (
+                    <TextContentDisplay content={safeContentSize(rightSection.content)} isHtml={true} />
+                  ) : (
+                    <div className="p-4">
+                      <p className="whitespace-pre-wrap">{safeContentSize(rightSection.content)}</p>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -218,6 +262,34 @@ const VersionComparison = ({ versions, displayMode = "side-by-side", className =
     }
 
     return sectionDiffs.map((diff) => {
+      if (diff.isHtml) {
+        return (
+          <div key={diff.id} className="mb-8 border rounded-md overflow-hidden">
+            <div className="p-3 bg-blue-100 flex justify-between items-center">
+              <h3 className="font-medium">{diff.leftTitle || diff.rightTitle}</h3>
+              <span className="text-xs bg-blue-200 text-blue-800 px-2 py-1 rounded">HTML Content</span>
+            </div>
+            <div className="p-4 bg-white">
+              <p className="text-blue-700 mb-2">
+                HTML content is best viewed in side-by-side mode. Here's a formatted version:
+              </p>
+              {diff.leftContent && (
+                <TextContentDisplay 
+                  content={diff.leftContent} 
+                  isHtml={true} 
+                />
+              )}
+              {diff.rightContent && !diff.leftContent && (
+                <TextContentDisplay 
+                  content={diff.rightContent} 
+                  isHtml={true} 
+                />
+              )}
+            </div>
+          </div>
+        );
+      }
+
       if (diff.isTooLarge) {
         return (
           <div key={diff.id} className="mb-8 border rounded-md overflow-hidden">
@@ -242,7 +314,11 @@ const VersionComparison = ({ versions, displayMode = "side-by-side", className =
               <span className="text-xs bg-red-200 text-red-800 px-2 py-1 rounded">Removed</span>
             </div>
             <div className="p-4 bg-red-50">
-              <p className="whitespace-pre-wrap text-red-800 line-through">{diff.content}</p>
+              {diff.isHtml ? (
+                <TextContentDisplay content={diff.content} isHtml={true} />
+              ) : (
+                <p className="whitespace-pre-wrap text-red-800 line-through">{diff.content}</p>
+              )}
             </div>
           </div>
         );
@@ -256,7 +332,11 @@ const VersionComparison = ({ versions, displayMode = "side-by-side", className =
               <span className="text-xs bg-green-200 text-green-800 px-2 py-1 rounded">Added</span>
             </div>
             <div className="p-4 bg-green-50">
-              <p className="whitespace-pre-wrap text-green-800">{diff.content}</p>
+              {diff.isHtml ? (
+                <TextContentDisplay content={diff.content} isHtml={true} />
+              ) : (
+                <p className="whitespace-pre-wrap text-green-800">{diff.content}</p>
+              )}
             </div>
           </div>
         );
