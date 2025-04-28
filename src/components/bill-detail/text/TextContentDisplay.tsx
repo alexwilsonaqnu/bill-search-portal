@@ -104,15 +104,28 @@ const TextContentDisplay = ({ content, isHtml }: TextContentDisplayProps) => {
           <div className="overflow-x-auto mb-4">
             <Table>
               <TableHeader>
-                {domNode.children.find((child: any) => child.name === 'tr') && (
+                {domNode.children.find((child) => {
+                  return child instanceof Element && child.name === 'tr';
+                }) && (
                   <TableRow>
                     {Array.from(domNode.children)
-                      .filter((child: any) => child.name === 'tr')[0]
+                      .filter((child): child is Element => 
+                        child instanceof Element && child.name === 'tr'
+                      )[0]
                       .children
-                      .filter((cell: any) => cell.name === 'td' || cell.name === 'th')
-                      .map((cell: any, i) => (
+                      .filter((cell): cell is Element => 
+                        cell instanceof Element && (cell.name === 'td' || cell.name === 'th')
+                      )
+                      .map((cell, i) => (
                         <TableHead key={i}>
-                          {domToReact(cell.children ? Array.isArray(cell.children) ? cell.children : [] : [], parserOptions) || '\u00A0'}
+                          {domToReact(
+                            cell instanceof Element && cell.children ? 
+                              Array.from(cell.children).filter((node): node is DOMNode => 
+                                node instanceof Element || typeof node === 'string'
+                              ) : 
+                              [], 
+                            parserOptions
+                          ) || '\u00A0'}
                         </TableHead>
                       ))}
                   </TableRow>
@@ -120,15 +133,26 @@ const TextContentDisplay = ({ content, isHtml }: TextContentDisplayProps) => {
               </TableHeader>
               <TableBody>
                 {Array.from(domNode.children)
-                  .filter((child: any) => child.name === 'tr')
+                  .filter((child): child is Element => 
+                    child instanceof Element && child.name === 'tr'
+                  )
                   .slice(1) // Skip the first row as it's used for header
-                  .map((row: any, i) => (
+                  .map((row, i) => (
                     <TableRow key={i}>
                       {Array.from(row.children)
-                        .filter((cell: any) => cell.name === 'td' || cell.name === 'th')
-                        .map((cell: any, j) => (
+                        .filter((cell): cell is Element => 
+                          cell instanceof Element && (cell.name === 'td' || cell.name === 'th')
+                        )
+                        .map((cell, j) => (
                           <TableCell key={j}>
-                            {domToReact(cell.children ? Array.isArray(cell.children) ? cell.children : [] : [], parserOptions) || '\u00A0'}
+                            {domToReact(
+                              cell instanceof Element && cell.children ? 
+                                Array.from(cell.children).filter((node): node is DOMNode => 
+                                  node instanceof Element || typeof node === 'string'
+                                ) : 
+                                [], 
+                              parserOptions
+                            ) || '\u00A0'}
                           </TableCell>
                         ))}
                     </TableRow>
@@ -143,7 +167,14 @@ const TextContentDisplay = ({ content, isHtml }: TextContentDisplayProps) => {
         // Style code blocks
         return (
           <code className="px-1 py-0.5 bg-gray-100 rounded text-sm">
-            {domToReact(domNode.children ? Array.isArray(domNode.children) ? domNode.children : [] : [], parserOptions)}
+            {domToReact(
+              domNode.children ? 
+                Array.from(domNode.children).filter((node): node is DOMNode => 
+                  node instanceof Element || typeof node === 'string'
+                ) : 
+                [], 
+              parserOptions
+            )}
           </code>
         );
       }
@@ -152,7 +183,14 @@ const TextContentDisplay = ({ content, isHtml }: TextContentDisplayProps) => {
       if (domNode instanceof Element && domNode.name === 'font') {
         return (
           <span className="font-medium">
-            {domToReact(domNode.children ? Array.isArray(domNode.children) ? domNode.children : [] : [], parserOptions)}
+            {domToReact(
+              domNode.children ? 
+                Array.from(domNode.children).filter((node): node is DOMNode => 
+                  node instanceof Element || typeof node === 'string'
+                ) : 
+                [], 
+              parserOptions
+            )}
           </span>
         );
       }
