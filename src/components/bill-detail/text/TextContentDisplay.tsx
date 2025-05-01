@@ -1,7 +1,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import parse, { HTMLReactParserOptions, Element, domToReact, DOMNode, Text } from 'html-react-parser';
+import parse, { HTMLReactParserOptions, Element, domToReact, DOMNode, Text, Comment } from 'html-react-parser';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 interface TextContentDisplayProps {
@@ -116,7 +116,7 @@ const TextContentDisplay = ({ content, isHtml }: TextContentDisplayProps) => {
                         <TableHead key={i}>
                           {cell.children && domToReact(
                             Array.from(cell.children)
-                              .filter(child => child instanceof Element || child instanceof Text) as DOMNode[], 
+                              .filter(child => !(child instanceof Comment)) as DOMNode[], 
                             parserOptions
                           ) || '\u00A0'}
                         </TableHead>
@@ -136,7 +136,7 @@ const TextContentDisplay = ({ content, isHtml }: TextContentDisplayProps) => {
                           <TableCell key={j}>
                             {cell.children && domToReact(
                               Array.from(cell.children)
-                                .filter(child => child instanceof Element || child instanceof Text) as DOMNode[], 
+                                .filter(child => !(child instanceof Comment)) as DOMNode[], 
                               parserOptions
                             ) || '\u00A0'}
                           </TableCell>
@@ -155,7 +155,7 @@ const TextContentDisplay = ({ content, isHtml }: TextContentDisplayProps) => {
           <code className="px-1 py-0.5 bg-gray-100 rounded text-sm">
             {domNode.children && domToReact(
               Array.from(domNode.children)
-                .filter(child => child instanceof Element || child instanceof Text) as DOMNode[], 
+                .filter(child => !(child instanceof Comment)) as DOMNode[], 
               parserOptions
             )}
           </code>
@@ -168,7 +168,7 @@ const TextContentDisplay = ({ content, isHtml }: TextContentDisplayProps) => {
           <span className="font-medium">
             {domNode.children && domToReact(
               Array.from(domNode.children)
-                .filter(child => child instanceof Element || child instanceof Text) as DOMNode[], 
+                .filter(child => !(child instanceof Comment)) as DOMNode[], 
               parserOptions
             )}
           </span>
