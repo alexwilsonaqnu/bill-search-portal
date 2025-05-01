@@ -1,7 +1,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import parse, { HTMLReactParserOptions, Element, domToReact, DOMNode, Text, Comment } from 'html-react-parser';
+import parse, { HTMLReactParserOptions, Element, domToReact, DOMNode, Text } from 'html-react-parser';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 interface TextContentDisplayProps {
@@ -96,67 +96,107 @@ const TextContentDisplay = ({ content, isHtml }: TextContentDisplayProps) => {
     return content.substring(0, 500) + "...";
   };
 
+  // Convert Markdown syntax to HTML
+  const convertMarkdownToHtml = (markdown: string): string => {
+    if (!markdown) return "";
+    
+    // Handle headers (# Header, ## Header, ### Header)
+    let html = markdown
+      .replace(/^### (.+)$/gm, '<h3 class="text-lg font-semibold mt-4 mb-2">$1</h3>')
+      .replace(/^## (.+)$/gm, '<h2 class="text-xl font-semibold mt-6 mb-3">$1</h2>')
+      .replace(/^# (.+)$/gm, '<h1 class="text-2xl font-bold mt-6 mb-4">$1</h1>');
+    
+    // Handle bold (**text**)
+    html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+    
+    // Handle italic (*text*)
+    html = html.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+    
+    // Handle lists
+    html = html.replace(/^- (.+)$/gm, '<li class="ml-4">$1</li>');
+    
+    // Handle paragraphs
+    html = html.split('\n\n').map(para => {
+      if (para.trim().startsWith('<h') || para.trim().startsWith('<li')) {
+        return para;
+      }
+      return `<p class="mb-3">${para}</p>`;
+    }).join('\n');
+    
+    // Wrap lists in <ul>
+    html = html.replace(/(<li[^>]*>.*<\/li>\n)+/g, match => {
+      return `<ul class="list-disc ml-6 mb-4">${match}</ul>`;
+    });
+
+    return html;
+  };
+
+  // Helper function to safely filter and cast nodes for domToReact
+  const safelyFilterNodes = (nodes: Element['children']): DOMNode[] => {
+    if (!nodes) return [];
+    return Array.from(nodes).filter(node => 
+      node.type !== 'comment'
+    ) as DOMNode[];
+  };
+
   // Custom options for the HTML parser
   const parserOptions: HTMLReactParserOptions = {
     replace: (domNode) => {
-      // Check if the node is an Element before accessing the 'children' property
-      if (domNode instanceof Element && domNode.name === 'table') {
-        // Add responsive table wrapper and styling
-        return (
-          <div className="overflow-x-auto mb-4">
-            <Table>
-              <TableHeader>
-                {domNode.children.find((child: any) => child.name === 'tr') && (
-                  <TableRow>
-                    {Array.from(domNode.children)
-                      .filter((child: any) => child.name === 'tr')[0]
-                      .children
-                      .filter((cell: any) => cell.name === 'td' || cell.name === 'th')
-                      .map((cell: any, i) => (
-                        <TableHead key={i}>
-                          {cell.children && domToReact(Array.from(cell.children).filter(child => !(child instanceof Comment)))}
-                        </TableHead>
-                      ))}
-                  </TableRow>
-                )}
-              </TableHeader>
-              <TableBody>
-                {Array.from(domNode.children)
-                  .filter((child: any) => child.name === 'tr')
-                  .slice(1) // Skip the first row as it's used for header
-                  .map((row: any, i) => (
+      if (domNode instanceof Element) {
+        if (domNode.name === 'table') {
+          // Add responsive table wrapper and styling
+          const tableRows = Array.from(domNode.children || [])
+            .filter(child => child instanceof Element && child.name === 'tr');
+
+          return (
+            <div className="overflow-x-auto mb-4">
+              <Table>
+                <TableHeader>
+                  {tableRows.length > 0 && tableRows[0] instanceof Element && (
+                    <TableRow>
+                      {Array.from(tableRows[0].children || [])
+                        .filter(cell => cell instanceof Element && (cell.name === 'td' || cell.name === 'th'))
+                        .map((cell, i) => (
+                          <TableHead key={i}>
+                            {cell instanceof Element && cell.children && 
+                              domToReact(safelyFilterNodes(cell.children))}
+                          </TableHead>
+                        ))}
+                    </TableRow>
+                  )}
+                </TableHeader>
+                <TableBody>
+                  {tableRows.slice(1).map((row, i) => (
                     <TableRow key={i}>
-                      {Array.from(row.children)
-                        .filter((cell: any) => cell.name === 'td' || cell.name === 'th')
-                        .map((cell: any, j) => (
+                      {row instanceof Element && Array.from(row.children || [])
+                        .filter(cell => cell instanceof Element && (cell.name === 'td' || cell.name === 'th'))
+                        .map((cell, j) => (
                           <TableCell key={j}>
-                            {cell.children && domToReact(Array.from(cell.children).filter(child => !(child instanceof Comment)))}
+                            {cell instanceof Element && cell.children && 
+                              domToReact(safelyFilterNodes(cell.children))}
                           </TableCell>
                         ))}
                     </TableRow>
                   ))}
-              </TableBody>
-            </Table>
-          </div>
-        );
-      }
-      
-      if (domNode instanceof Element && domNode.name === 'code') {
-        // Style code blocks
-        return (
-          <code className="px-1 py-0.5 bg-gray-100 rounded text-sm">
-            {domNode.children && domToReact(Array.from(domNode.children).filter(child => !(child instanceof Comment)))}
-          </code>
-        );
-      }
-      
-      // Handle font tags (common in legislative documents)
-      if (domNode instanceof Element && domNode.name === 'font') {
-        return (
-          <span className="font-medium">
-            {domNode.children && domToReact(Array.from(domNode.children).filter(child => !(child instanceof Comment)))}
-          </span>
-        );
+                </TableBody>
+              </Table>
+            </div>
+          );
+        } else if (domNode.name === 'code') {
+          // Style code blocks
+          return (
+            <code className="px-1 py-0.5 bg-gray-100 rounded text-sm">
+              {domNode.children && domToReact(safelyFilterNodes(domNode.children))}
+            </code>
+          );
+        } else if (domNode.name === 'font') {
+          // Handle font tags (common in legislative documents)
+          return (
+            <span className="font-medium">
+              {domNode.children && domToReact(safelyFilterNodes(domNode.children))}
+            </span>
+          );
+        }
       }
       
       return undefined;
@@ -167,6 +207,11 @@ const TextContentDisplay = ({ content, isHtml }: TextContentDisplayProps) => {
   const isRawHtmlTags = content && typeof content === 'string' && 
     (content.includes('<table') || content.includes('<tr>') || content.includes('<td>')) &&
     (content.includes('&lt;') || content.includes('&gt;'));
+
+  // Detect if content is Markdown by looking for common Markdown syntax
+  const isMarkdown = !isHtml && content && typeof content === 'string' && 
+    (content.includes('# ') || content.includes('## ') || content.includes('- ') || 
+     content.match(/\*\*.*\*\*/) || content.match(/\*.*\*/));
   
   return (
     <div className="mt-4">
@@ -211,6 +256,10 @@ const TextContentDisplay = ({ content, isHtml }: TextContentDisplayProps) => {
             }
           `}</style>
           {parse(cleanHtmlContent(getDisplayText()), parserOptions)}
+        </div>
+      ) : isMarkdown ? (
+        <div className="bg-white p-4 rounded-md overflow-auto max-h-[600px] border shadow-sm prose prose-slate max-w-none">
+          {parse(convertMarkdownToHtml(getDisplayText()))}
         </div>
       ) : (
         <div className="whitespace-pre-wrap bg-gray-50 p-4 rounded-md text-sm font-mono overflow-auto max-h-[600px] border">
