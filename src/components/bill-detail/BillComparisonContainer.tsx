@@ -1,7 +1,6 @@
-
 import { useState } from "react";
 import { Bill } from "@/types";
-import VersionComparison from "@/components/bill-detail/comparison/VersionComparison";
+import VersionComparison from "@/components/VersionComparison";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
