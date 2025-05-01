@@ -1,11 +1,10 @@
-
 import { useState } from "react";
 import { Bill } from "@/types";
 import VersionComparison from "@/components/VersionComparison";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { RefreshCcw, AlertCircle } from "lucide-react";
+import { RefreshCcw, AlertCircle, FileText } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -17,6 +16,7 @@ const BillComparisonContainer = ({ bill }: BillComparisonContainerProps) => {
   const [summarizing, setSummarizing] = useState(false);
   const [summary, setSummary] = useState<string | null>(null);
   const [summaryError, setSummaryError] = useState<string | null>(null);
+  const [showFallbackMessage, setShowFallbackMessage] = useState(false);
   
   // Limit versions to improve performance and prevent browser crashes
   const safeVersions = bill.versions ? 
@@ -35,15 +35,30 @@ const BillComparisonContainer = ({ bill }: BillComparisonContainerProps) => {
 
     setSummarizing(true);
     setSummaryError(null);
+    setShowFallbackMessage(false);
     
     try {
       // Get the first two versions to compare (typically the original and first amendment)
       const originalVersion = safeVersions[0];
       const amendedVersion = safeVersions[1];
 
-      // Format the bill versions into readable text for the API
-      const originalText = originalVersion.sections.map(s => `${s.title}: ${s.content}`).join('\n\n');
-      const amendedText = amendedVersion.sections.map(s => `${s.title}: ${s.content}`).join('\n\n');
+      // Calculate text sizes for better logging and error handling
+      const originalTextLength = originalVersion.sections.reduce((sum, s) => sum + (s.content?.length || 0), 0);
+      const amendedTextLength = amendedVersion.sections.reduce((sum, s) => sum + (s.content?.length || 0), 0);
+      const totalTextLength = originalTextLength + amendedTextLength;
+      
+      console.log(`Comparing bill versions - Original: ${originalTextLength} chars, Amended: ${amendedTextLength} chars, Total: ${totalTextLength} chars`);
+      
+      // Format the bill versions into readable text for the API, filtering out empty content
+      const originalText = originalVersion.sections
+        .filter(s => s.content?.trim())
+        .map(s => `${s.title}: ${s.content}`)
+        .join('\n\n');
+      
+      const amendedText = amendedVersion.sections
+        .filter(s => s.content?.trim())
+        .map(s => `${s.title}: ${s.content}`)
+        .join('\n\n');
 
       // Call the Edge Function to get a summary of the differences
       const { data, error } = await supabase.functions.invoke('summarize-bill-changes', {
@@ -68,18 +83,29 @@ const BillComparisonContainer = ({ bill }: BillComparisonContainerProps) => {
       }
 
       setSummary(data.summary);
+      setShowFallbackMessage(false);
     } catch (error) {
       console.error("Error generating summary:", error);
       
       const errorMessage = error instanceof Error ? error.message : String(error);
+      let userFriendlyMessage = "Unable to generate a detailed summary at this time.";
+      
+      // Check if it's a timeout/CPU error or other issue
+      if (errorMessage.includes("exceeded") || 
+          errorMessage.includes("timeout") || 
+          errorMessage.includes("time limit") ||
+          errorMessage.includes("CPU") ||
+          errorMessage.includes("large")) {
+        // It's likely a size/timeout issue
+        setShowFallbackMessage(true);
+        userFriendlyMessage += " The bill text is too large for our automatic comparison tool.";
+      } else {
+        // Other error
+        userFriendlyMessage += " Please try again later.";
+      }
       
       // Set a user-friendly error message
-      setSummaryError(
-        "Unable to generate a detailed summary at this time. " +
-        "The bill may be too large for automated comparison. " +
-        "Please compare the versions manually below."
-      );
-      
+      setSummaryError(userFriendlyMessage);
       toast.error(`Summary generation failed: ${errorMessage}`);
     } finally {
       setSummarizing(false);
@@ -122,10 +148,25 @@ const BillComparisonContainer = ({ bill }: BillComparisonContainerProps) => {
                 <Skeleton className="h-4 w-[85%]" />
               </div>
             ) : summaryError ? (
-              <div className="text-sm bg-red-50 border border-red-200 rounded p-3 flex items-start gap-3">
-                <AlertCircle className="h-5 w-5 text-red-500 flex-shrink-0" />
-                <p className="text-red-700">{summaryError}</p>
-              </div>
+              <>
+                <div className="text-sm bg-red-50 border border-red-200 rounded p-3 flex items-start gap-3">
+                  <AlertCircle className="h-5 w-5 text-red-500 flex-shrink-0" />
+                  <p className="text-red-700">{summaryError}</p>
+                </div>
+                
+                {showFallbackMessage && (
+                  <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded">
+                    <h4 className="font-medium text-blue-800 mb-2 flex items-center">
+                      <FileText className="h-4 w-4 mr-1 inline" /> Alternative Approach
+                    </h4>
+                    <p className="text-sm text-blue-700">
+                      This bill has extensive text that exceeds our automated comparison limits. 
+                      Please use the visual comparison tools below to manually review changes between versions.
+                      The "Side by Side" view may be more effective for comparing large sections.
+                    </p>
+                  </div>
+                )}
+              </>
             ) : summary ? (
               <div className="text-sm text-gray-700 whitespace-pre-line">
                 {summary}
