@@ -96,19 +96,6 @@ const TextContentDisplay = ({ content, isHtml }: TextContentDisplayProps) => {
     return content.substring(0, 500) + "...";
   };
 
-  // Utility function to safely filter and convert DOM nodes for React
-  const safelyDomToReact = (nodes: ChildNode[] | DOMNode[] | null | undefined): React.ReactNode => {
-    if (!nodes) return null;
-    
-    const filteredNodes = Array.from(nodes).filter(node => {
-      // Filter out Comment nodes and other non-element nodes that might cause issues
-      return !(node instanceof Comment);
-    });
-    
-    // Cast filtered nodes to DOMNode[] which is what domToReact expects
-    return domToReact(filteredNodes as DOMNode[]);
-  };
-
   // Custom options for the HTML parser
   const parserOptions: HTMLReactParserOptions = {
     replace: (domNode) => {
@@ -127,7 +114,7 @@ const TextContentDisplay = ({ content, isHtml }: TextContentDisplayProps) => {
                       .filter((cell: any) => cell.name === 'td' || cell.name === 'th')
                       .map((cell: any, i) => (
                         <TableHead key={i}>
-                          {cell.children && safelyDomToReact(cell.children)}
+                          {cell.children && domToReact(Array.from(cell.children).filter(child => !(child instanceof Comment)))}
                         </TableHead>
                       ))}
                   </TableRow>
@@ -143,7 +130,7 @@ const TextContentDisplay = ({ content, isHtml }: TextContentDisplayProps) => {
                         .filter((cell: any) => cell.name === 'td' || cell.name === 'th')
                         .map((cell: any, j) => (
                           <TableCell key={j}>
-                            {cell.children && safelyDomToReact(cell.children)}
+                            {cell.children && domToReact(Array.from(cell.children).filter(child => !(child instanceof Comment)))}
                           </TableCell>
                         ))}
                     </TableRow>
@@ -158,7 +145,7 @@ const TextContentDisplay = ({ content, isHtml }: TextContentDisplayProps) => {
         // Style code blocks
         return (
           <code className="px-1 py-0.5 bg-gray-100 rounded text-sm">
-            {domNode.children && safelyDomToReact(domNode.children)}
+            {domNode.children && domToReact(Array.from(domNode.children).filter(child => !(child instanceof Comment)))}
           </code>
         );
       }
@@ -167,7 +154,7 @@ const TextContentDisplay = ({ content, isHtml }: TextContentDisplayProps) => {
       if (domNode instanceof Element && domNode.name === 'font') {
         return (
           <span className="font-medium">
-            {domNode.children && safelyDomToReact(domNode.children)}
+            {domNode.children && domToReact(Array.from(domNode.children).filter(child => !(child instanceof Comment)))}
           </span>
         );
       }
