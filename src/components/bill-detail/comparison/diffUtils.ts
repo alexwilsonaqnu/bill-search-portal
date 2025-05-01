@@ -1,6 +1,7 @@
 
+import React from "react";
 import { diffWords, diffChars } from "diff";
-import { BillSection } from "@/types";
+import { BillSection, BillVersion } from "@/types";
 
 /**
  * Determines if content is HTML based on simple tag detection
@@ -24,7 +25,11 @@ export const safeContentSize = (content: string, maxLength: number = 50000) => {
 /**
  * Highlights differences between two text contents
  */
-export const renderHighlightedText = (leftContent: string, rightContent: string) => {
+export const renderHighlightedText = (leftContent: string, rightContent: string): {
+  leftHighlighted: React.ReactNode;
+  rightHighlighted: React.ReactNode;
+  hasDifferences: boolean;
+} => {
   // Only run diff on reasonably sized content to prevent performance issues
   if (leftContent.length > 50000 || rightContent.length > 50000) {
     return {
@@ -85,7 +90,7 @@ export const renderHighlightedText = (leftContent: string, rightContent: string)
 /**
  * Computes differences between sections for visual diff
  */
-export const computeSectionDiffs = (leftVersion: any, rightVersion: any) => {
+export const computeSectionDiffs = (leftVersion: BillVersion | undefined, rightVersion: BillVersion | undefined) => {
   if (!leftVersion || !rightVersion) return null;
 
   const leftSectionsMap = new Map(leftVersion.sections.map((s: BillSection) => [s.id, s]));
