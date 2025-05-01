@@ -5,7 +5,7 @@ import VersionComparison from "@/components/VersionComparison";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { RefreshCcw } from "lucide-react";
+import { RefreshCcw, AlertCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -16,6 +16,7 @@ interface BillComparisonContainerProps {
 const BillComparisonContainer = ({ bill }: BillComparisonContainerProps) => {
   const [summarizing, setSummarizing] = useState(false);
   const [summary, setSummary] = useState<string | null>(null);
+  const [summaryError, setSummaryError] = useState<string | null>(null);
   
   // Limit versions to improve performance and prevent browser crashes
   const safeVersions = bill.versions ? 
@@ -33,6 +34,8 @@ const BillComparisonContainer = ({ bill }: BillComparisonContainerProps) => {
     }
 
     setSummarizing(true);
+    setSummaryError(null);
+    
     try {
       // Get the first two versions to compare (typically the original and first amendment)
       const originalVersion = safeVersions[0];
@@ -55,19 +58,29 @@ const BillComparisonContainer = ({ bill }: BillComparisonContainerProps) => {
       });
 
       if (error) {
+        console.error("Error invoking function:", error);
         throw new Error(`Error invoking function: ${error.message}`);
       }
 
       if (data.error) {
+        console.error("Function returned error:", data.error);
         throw new Error(data.error);
       }
 
       setSummary(data.summary);
     } catch (error) {
       console.error("Error generating summary:", error);
-      toast.error(`Failed to generate summary: ${error instanceof Error ? error.message : String(error)}`);
-      // Provide a fallback summary in case of API failure
-      setSummary("Unable to generate a detailed summary at this time. Please compare the versions manually below.");
+      
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      
+      // Set a user-friendly error message
+      setSummaryError(
+        "Unable to generate a detailed summary at this time. " +
+        "The bill may be too large for automated comparison. " +
+        "Please compare the versions manually below."
+      );
+      
+      toast.error(`Summary generation failed: ${errorMessage}`);
     } finally {
       setSummarizing(false);
     }
@@ -97,7 +110,7 @@ const BillComparisonContainer = ({ bill }: BillComparisonContainerProps) => {
                 disabled={summarizing}
                 className="flex items-center gap-2"
               >
-                <RefreshCcw className="h-4 w-4" />
+                <RefreshCcw className={`h-4 w-4 ${summarizing ? 'animate-spin' : ''}`} />
                 {summarizing ? "Analyzing..." : "Generate Summary"}
               </Button>
             </div>
@@ -107,6 +120,11 @@ const BillComparisonContainer = ({ bill }: BillComparisonContainerProps) => {
                 <Skeleton className="h-4 w-full" />
                 <Skeleton className="h-4 w-[90%]" />
                 <Skeleton className="h-4 w-[85%]" />
+              </div>
+            ) : summaryError ? (
+              <div className="text-sm bg-red-50 border border-red-200 rounded p-3 flex items-start gap-3">
+                <AlertCircle className="h-5 w-5 text-red-500 flex-shrink-0" />
+                <p className="text-red-700">{summaryError}</p>
               </div>
             ) : summary ? (
               <div className="text-sm text-gray-700 whitespace-pre-line">
