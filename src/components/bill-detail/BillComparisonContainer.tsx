@@ -19,13 +19,14 @@ const BillComparisonContainer = ({ bill }: BillComparisonContainerProps) => {
   const [showFallbackMessage, setShowFallbackMessage] = useState(false);
   
   // Limit versions to improve performance and prevent browser crashes
+  // Updated: Increased from 5 to 10 versions
   const safeVersions = bill.versions ? 
-    // Only use the first 5 versions to prevent performance issues
-    bill.versions.slice(0, 5) : 
+    // Only use the first 10 versions to prevent performance issues
+    bill.versions.slice(0, 10) : 
     [];
   
   // Add a warning if we're limiting versions
-  const hasLimitedVersions = bill.versions && bill.versions.length > 5;
+  const hasLimitedVersions = bill.versions && bill.versions.length > 10;
 
   const generateSummary = async () => {
     if (!safeVersions || safeVersions.length < 2) {
@@ -118,7 +119,7 @@ const BillComparisonContainer = ({ bill }: BillComparisonContainerProps) => {
 
       {hasLimitedVersions && (
         <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-md text-amber-700 text-sm">
-          <strong>Performance Notice:</strong> Only showing the first 5 versions to prevent browser performance issues.
+          <strong>Performance Notice:</strong> Only showing the first 10 versions to prevent browser performance issues.
           This bill has {bill.versions?.length} versions total.
         </div>
       )}
