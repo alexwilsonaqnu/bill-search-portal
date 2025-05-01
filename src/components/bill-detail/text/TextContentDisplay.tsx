@@ -132,11 +132,22 @@ const TextContentDisplay = ({ content, isHtml }: TextContentDisplayProps) => {
   };
 
   // Helper function to safely filter and cast nodes for domToReact
-  const safelyFilterNodes = (nodes: Element['children']): DOMNode[] => {
+  const safelyFilterNodes = (nodes: Element['children'] | null): DOMNode[] => {
     if (!nodes) return [];
-    return Array.from(nodes).filter(node => 
-      node.type !== 'comment'
-    ) as DOMNode[];
+    
+    // Filter out comment nodes and cast to DOMNode[]
+    return Array.from(nodes)
+      .filter(node => 
+        node.type !== 'comment' && 
+        node.type !== 'directive'
+      ) as DOMNode[];
+  };
+
+  // Safe wrapper for domToReact to handle type issues
+  const safelyDomToReact = (nodes: Element['children'] | null) => {
+    if (!nodes) return null;
+    const safeNodes = safelyFilterNodes(nodes);
+    return domToReact(safeNodes);
   };
 
   // Custom options for the HTML parser
@@ -158,8 +169,8 @@ const TextContentDisplay = ({ content, isHtml }: TextContentDisplayProps) => {
                         .filter(cell => cell instanceof Element && (cell.name === 'td' || cell.name === 'th'))
                         .map((cell, i) => (
                           <TableHead key={i}>
-                            {cell instanceof Element && cell.children && 
-                              domToReact(safelyFilterNodes(cell.children))}
+                            {cell instanceof Element && 
+                              safelyDomToReact(cell.children)}
                           </TableHead>
                         ))}
                     </TableRow>
@@ -172,8 +183,8 @@ const TextContentDisplay = ({ content, isHtml }: TextContentDisplayProps) => {
                         .filter(cell => cell instanceof Element && (cell.name === 'td' || cell.name === 'th'))
                         .map((cell, j) => (
                           <TableCell key={j}>
-                            {cell instanceof Element && cell.children && 
-                              domToReact(safelyFilterNodes(cell.children))}
+                            {cell instanceof Element && 
+                              safelyDomToReact(cell.children)}
                           </TableCell>
                         ))}
                     </TableRow>
@@ -186,14 +197,14 @@ const TextContentDisplay = ({ content, isHtml }: TextContentDisplayProps) => {
           // Style code blocks
           return (
             <code className="px-1 py-0.5 bg-gray-100 rounded text-sm">
-              {domNode.children && domToReact(safelyFilterNodes(domNode.children))}
+              {safelyDomToReact(domNode.children)}
             </code>
           );
         } else if (domNode.name === 'font') {
           // Handle font tags (common in legislative documents)
           return (
             <span className="font-medium">
-              {domNode.children && domToReact(safelyFilterNodes(domNode.children))}
+              {safelyDomToReact(domNode.children)}
             </span>
           );
         }
