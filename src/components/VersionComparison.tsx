@@ -1,8 +1,9 @@
+
 import { useState, useMemo } from "react";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BillVersion, BillSection } from "@/types";
-import { diffWords } from "diff";
+import { diffWords, diffChars } from "diff";
 import TextContentDisplay from "@/components/bill-detail/text/TextContentDisplay";
 
 interface VersionComparisonProps {
@@ -111,6 +112,65 @@ const VersionComparison = ({ versions, displayMode = "side-by-side", className =
     }).filter(Boolean);
   }, [leftVersion, rightVersion, displayMode]);
 
+  // New function to highlight differences in text for side-by-side view
+  const renderHighlightedText = (leftContent: string, rightContent: string) => {
+    // Only run diff on reasonably sized content to prevent performance issues
+    if (leftContent.length > 50000 || rightContent.length > 50000) {
+      return {
+        leftHighlighted: <span>{leftContent}</span>,
+        rightHighlighted: <span>{rightContent}</span>,
+        hasDifferences: leftContent !== rightContent
+      };
+    }
+
+    // Use diffChars for character-level diff (more precise than diffWords)
+    const changes = diffChars(leftContent, rightContent);
+
+    // Process left content (removals)
+    const leftHighlighted = (
+      <span>
+        {changes.map((change, i) => {
+          if (change.removed || !change.added) {
+            return (
+              <span 
+                key={i} 
+                className={change.removed ? "bg-red-100" : ""}
+              >
+                {change.value}
+              </span>
+            );
+          }
+          return null;
+        })}
+      </span>
+    );
+
+    // Process right content (additions)
+    const rightHighlighted = (
+      <span>
+        {changes.map((change, i) => {
+          if (change.added || !change.removed) {
+            return (
+              <span 
+                key={i} 
+                className={change.added ? "bg-green-100" : ""}
+              >
+                {change.value}
+              </span>
+            );
+          }
+          return null;
+        })}
+      </span>
+    );
+
+    return { 
+      leftHighlighted,
+      rightHighlighted,
+      hasDifferences: changes.some(c => c.added || c.removed)
+    };
+  };
+
   const renderSideBySideComparison = (
     leftSections: BillSection[] = [],
     rightSections: BillSection[] = []
@@ -139,9 +199,16 @@ const VersionComparison = ({ versions, displayMode = "side-by-side", className =
       const rightIsHtml = rightSection && isHtmlContent(rightSection.content);
 
       if (leftSection && rightSection) {
-        const leftContent = safeContentSize(leftSection.content);
-        const rightContent = safeContentSize(rightSection.content);
+        const leftContent = safeContentSize(leftSection.content || "");
+        const rightContent = safeContentSize(rightSection.content || "");
         const isSameContent = leftContent === rightContent;
+
+        // Only perform diff highlighting for non-HTML content
+        let highlightedContent = { leftHighlighted: null, rightHighlighted: null, hasDifferences: !isSameContent };
+        
+        if (!leftIsHtml && !rightIsHtml && !isSameContent) {
+          highlightedContent = renderHighlightedText(leftContent, rightContent);
+        }
 
         return (
           <div key={sectionId} className="mb-8">
@@ -155,7 +222,7 @@ const VersionComparison = ({ versions, displayMode = "side-by-side", className =
                     <TextContentDisplay content={leftContent} isHtml={true} />
                   ) : (
                     <div className="p-4">
-                      <p className="whitespace-pre-wrap">{leftContent}</p>
+                      {highlightedContent.leftHighlighted || <p className="whitespace-pre-wrap">{leftContent}</p>}
                     </div>
                   )}
                 </div>
@@ -169,7 +236,7 @@ const VersionComparison = ({ versions, displayMode = "side-by-side", className =
                     <TextContentDisplay content={rightContent} isHtml={true} />
                   ) : (
                     <div className="p-4">
-                      <p className="whitespace-pre-wrap">{rightContent}</p>
+                      {highlightedContent.rightHighlighted || <p className="whitespace-pre-wrap">{rightContent}</p>}
                     </div>
                   )}
                 </div>
