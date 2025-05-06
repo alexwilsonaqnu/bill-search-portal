@@ -1,5 +1,6 @@
 
 import { Users } from "lucide-react";
+import { User } from "lucide-react";
 import { Bill } from "@/types";
 import { getSponsor, getCoSponsors } from "@/utils/billCardUtils";
 import SponsorHoverCard from "./sponsors/SponsorHoverCard";
@@ -85,7 +86,10 @@ const BillSponsors = ({ bill }: BillSponsorsProps) => {
     <div className="space-y-3">
       {sponsor && (
         <div className="text-md text-gray-700">
-          <div className="font-medium mb-1">Primary Sponsor:</div>
+          <div className="font-medium mb-1 flex items-center gap-1">
+            <User className="h-4 w-4" />
+            Primary Sponsor:
+          </div>
           <div className="pl-4">
             <SponsorHoverCard sponsorData={sponsor} getSponsorName={getSponsorName} />
           </div>
