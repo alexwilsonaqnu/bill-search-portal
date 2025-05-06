@@ -4,29 +4,23 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { toast } from "sonner";
-import { fetchBillText } from "@/services/legiscanService";
+import { fetchBillText } from "@/services/billTextService";
 import BillTextLoading from "./BillTextLoading";
 
 interface EmptyBillContentProps {
   bill: Bill;
   ilgaUrl: string | null;
-  isLoadingExternalContent: boolean;
-  fetchExternalContent: () => Promise<void>;
 }
 
-const EmptyBillContent = ({ 
-  bill,
-  ilgaUrl, 
-  isLoadingExternalContent, 
-  fetchExternalContent 
-}: EmptyBillContentProps) => {
+const EmptyBillContent = ({ bill, ilgaUrl }: EmptyBillContentProps) => {
   const [isLoading, setIsLoading] = useState(false);
 
-  // Completely remove the loading if any data suggests content exists
+  // Don't show the empty content if we have any text content
   const showEmptyContent = !bill.data || 
     (!bill.data.text_content && 
      !bill.data.full_text && 
-     (!bill.data.texts || bill.data.texts.length === 0));
+     (!bill.data.texts || bill.data.texts.length === 0) &&
+     !bill.data.text_hash);
 
   if (!showEmptyContent) return null;
 
@@ -51,7 +45,7 @@ const EmptyBillContent = ({
       <div className="text-center py-8">
         <h3 className="text-xl font-medium text-gray-700 mb-2">No Bill Text Available</h3>
         <p className="text-gray-600 mb-6">
-          The text for this bill is not currently available. The system will attempt to fetch it from LegiScan.
+          The text for this bill is not currently available. Click below to fetch it from LegiScan.
         </p>
         
         {isLoading ? (

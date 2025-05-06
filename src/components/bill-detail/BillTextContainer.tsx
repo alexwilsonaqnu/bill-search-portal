@@ -4,28 +4,57 @@ import { Bill } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import BillTextHash from "./BillTextHash";
 import BillTextContent from "./BillTextContent";
+import { fetchBillText } from "@/services/billTextService";
+import { toast } from "sonner";
+import BillTextLoading from "./BillTextLoading";
 
 interface BillTextContainerProps {
   bill: Bill;
 }
 
 const BillTextContainer = ({ bill }: BillTextContainerProps) => {
-  const [isEmpty, setIsEmpty] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
+  const [textLoaded, setTextLoaded] = useState(false);
   
+  // Always try to fetch text on mount
   useEffect(() => {
-    // Check if bill has text content
-    const hasText = bill.text && bill.text.trim().length > 0;
-    const hasVersions = bill.versions && bill.versions.length > 0 && 
-                        bill.versions[0].sections && 
-                        bill.versions[0].sections.length > 0 &&
-                        bill.versions[0].sections[0].content;
+    const loadBillText = async () => {
+      if (bill.id && !textLoaded) {
+        setIsLoading(true);
+        try {
+          await fetchBillText(bill.id);
+          setTextLoaded(true);
+          // We don't need to reload the page as the components will handle displaying the text
+        } catch (error) {
+          console.error("Error auto-loading bill text:", error);
+          // Don't show an error toast here as we'll just show the fetch button instead
+        } finally {
+          setIsLoading(false);
+        }
+      }
+    };
     
-    setIsEmpty(!hasText && !hasVersions);
-  }, [bill]);
+    loadBillText();
+  }, [bill.id, textLoaded]);
 
   const billId = bill.id;
   const textHash = bill.data?.text_hash || null;
   const externalUrl = bill.data?.text_url || null;
+  
+  const handleFetchText = async () => {
+    setIsLoading(true);
+    toast.info("Fetching bill text from LegiScan...");
+    
+    try {
+      await fetchBillText(bill.id);
+      window.location.reload();
+    } catch (error) {
+      console.error("Failed to fetch bill text:", error);
+      toast.error("Failed to fetch bill text from LegiScan");
+    } finally {
+      setIsLoading(false);
+    }
+  };
   
   return (
     <Card className="bg-white shadow-sm">
@@ -33,18 +62,27 @@ const BillTextContainer = ({ bill }: BillTextContainerProps) => {
         <CardTitle className="text-xl">Bill Text</CardTitle>
       </CardHeader>
       <CardContent>
-        {/* Always use BillTextHash which fetches from Legiscan API */}
-        {textHash ? (
+        {isLoading ? (
+          <BillTextLoading isLoading={true} onFetchText={() => {}} />
+        ) : textHash ? (
           <BillTextHash 
             textHash={textHash} 
             billId={billId} 
             externalUrl={externalUrl} 
+            autoFetch={true}
           />
         ) : (
-          <BillTextContent 
-            bill={bill}
-            externalUrl={externalUrl}
-          />
+          <>
+            <BillTextContent 
+              bill={bill}
+              externalUrl={externalUrl}
+            />
+            {!bill.text && !isLoading && (
+              <div className="mt-4">
+                <BillTextLoading isLoading={false} onFetchText={handleFetchText} />
+              </div>
+            )}
+          </>
         )}
       </CardContent>
     </Card>

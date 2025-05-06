@@ -1,9 +1,10 @@
+
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import BillChat from "./BillChat";
 import TextContentDisplay from "./text/TextContentDisplay";
 import FullScreenDialog from "./FullScreenDialog";
-import { fetchBillText } from "@/services/legiscanService";
+import { fetchBillText } from "@/services/billTextService";
 import BillTextHeader from "./BillTextHeader";
 import BillTextLoading from "./BillTextLoading";
 import BillTextError from "./BillTextError";
@@ -14,9 +15,10 @@ interface BillTextHashProps {
   textHash: string;
   billId: string;
   externalUrl?: string | null;
+  autoFetch?: boolean;
 }
 
-const BillTextHash = ({ textHash, billId, externalUrl }: BillTextHashProps) => {
+const BillTextHash = ({ textHash, billId, externalUrl, autoFetch = false }: BillTextHashProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [textContent, setTextContent] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -27,12 +29,12 @@ const BillTextHash = ({ textHash, billId, externalUrl }: BillTextHashProps) => {
   const [extractedText, setExtractedText] = useState<string | null>(null);
   const [isChatOpen, setIsChatOpen] = useState(false);
   
-  // Always fetch bill text on component mount
+  // Always try to fetch bill text on component mount if autoFetch is true
   useEffect(() => {
-    if (billId) {
+    if (billId && autoFetch && !textContent && !isLoading) {
       fetchActualText();
     }
-  }, [billId]);
+  }, [billId, autoFetch]);
   
   if (!billId) return null;
   

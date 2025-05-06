@@ -1,5 +1,9 @@
+
 import { supabase } from "@/integrations/supabase/client";
 
+/**
+ * Fetches bill text content from LegiScan
+ */
 export async function fetchBillText(billId: string) {
   try {
     console.log(`Invoking fetch-bill-text function with billId: ${billId}`);
