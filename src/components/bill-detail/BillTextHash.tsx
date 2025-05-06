@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import BillChat from "./BillChat";
 import TextContentDisplay from "./text/TextContentDisplay";
 import FullScreenDialog from "./FullScreenDialog";
-import { fetchBillText } from "@/services/billTextService";
+import { fetchBillText } from "@/services/legiscanService";
 import BillTextHeader from "./BillTextHeader";
 import BillTextLoading from "./BillTextLoading";
 import BillTextError from "./BillTextError";
@@ -15,12 +15,11 @@ interface BillTextHashProps {
   textHash: string;
   billId: string;
   externalUrl?: string | null;
-  providedText?: string | null;
 }
 
-const BillTextHash = ({ textHash, billId, externalUrl, providedText }: BillTextHashProps) => {
+const BillTextHash = ({ textHash, billId, externalUrl }: BillTextHashProps) => {
   const [isLoading, setIsLoading] = useState(false);
-  const [textContent, setTextContent] = useState<string | null>(providedText || null);
+  const [textContent, setTextContent] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isHtmlContent, setIsHtmlContent] = useState(false);
   const [isFullScreen, setIsFullScreen] = useState(false);
@@ -30,40 +29,16 @@ const BillTextHash = ({ textHash, billId, externalUrl, providedText }: BillTextH
   const [isChatOpen, setIsChatOpen] = useState(false);
   
   useEffect(() => {
-    if (providedText && !textContent) {
-      setTextContent(providedText);
-      detectContentFormat(providedText);
-    }
-  }, [providedText]);
-  
-  useEffect(() => {
     console.log(`BillTextHash component using billId: ${billId} and textHash: ${textHash}`);
   }, [billId, textHash]);
   
   useEffect(() => {
-    if (billId && !textContent && !isLoading && !providedText) {
+    if (billId) {
       fetchActualText();
     }
-  }, [billId, providedText]);
+  }, [billId]);
   
   if (!billId) return null;
-  
-  const detectContentFormat = (content: string) => {
-    if (!content) return;
-    
-    const isHtml = content.includes('<html') || 
-                 content.includes('<table') || 
-                 content.includes('<meta') || 
-                 content.includes('<style') || 
-                 content.includes('<body');
-                 
-    setIsHtmlContent(isHtml);
-    
-    const isPdf = content.includes('%PDF-') || 
-                content.includes('application/pdf');
-                
-    setIsPdfContent(isPdf);
-  };
   
   const fetchActualText = async () => {
     if (isLoading || textContent) return;
@@ -90,7 +65,13 @@ const BillTextHash = ({ textHash, billId, externalUrl, providedText }: BillTextH
         return;
       }
       
-      detectContentFormat(result.text);
+      const isHtml = result.text.includes('<html') || 
+                     result.text.includes('<table') || 
+                     result.text.includes('<meta') || 
+                     result.text.includes('<style') || 
+                     result.text.includes('<body');
+      
+      setIsHtmlContent(isHtml);
       setTextContent(result.text);
     } catch (error) {
       console.error("Error fetching bill text:", error);
