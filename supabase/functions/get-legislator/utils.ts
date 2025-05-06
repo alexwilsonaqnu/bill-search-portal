@@ -13,6 +13,7 @@ export function processOpenStatesResponse(legislator: any) {
   const emails: string[] = [];
   const phones: string[] = [];
   let officeLocation = "";
+  let district = "";
 
   // Try to extract contact info from offices
   if (Array.isArray(legislator.offices)) {
@@ -46,6 +47,17 @@ export function processOpenStatesResponse(legislator: any) {
     }
   }
   
+  // Get district information
+  if (legislator.current_role?.district) {
+    district = legislator.current_role.district;
+  } else if (legislator.district) {
+    district = legislator.district;
+  } else if (legislator.roles && legislator.roles.length > 0) {
+    district = legislator.roles[0].district || '';
+  } else if (typeof legislator.district_name === 'string') {
+    district = legislator.district_name;
+  }
+  
   // Fallback for office location
   if (!officeLocation && legislator.chamber) {
     officeLocation = legislator.chamber === 'upper' ? 'Senate' : 'House';
@@ -53,18 +65,24 @@ export function processOpenStatesResponse(legislator: any) {
 
   // Build the name object
   const nameParts = {
-    first: legislator.name?.split(' ')[0] || '',
-    middle: '',
-    last: legislator.name?.split(' ').slice(1).join(' ') || '',
-    suffix: '',
-    full: legislator.name || ''
+    first: legislator.name?.split(' ')[0] || legislator.first_name || '',
+    middle: legislator.middle_name || '',
+    last: legislator.name?.split(' ').slice(1).join(' ') || legislator.last_name || '',
+    suffix: legislator.suffix || '',
+    full: legislator.name || `${legislator.first_name || ''} ${legislator.middle_name || ''} ${legislator.last_name || ''}`.trim()
   };
+  
+  // Determine party
+  let party = legislator.party || '';
+  if (party === 'D') party = 'Democratic';
+  else if (party === 'R') party = 'Republican';
+  else if (party === 'I') party = 'Independent';
 
   return {
-    party: legislator.party || '',
+    party,
     email: emails,
     phone: phones,
-    district: legislator.current_role?.district || legislator.district || '',
+    district,
     role: legislator.current_role?.title || legislator.role || '',
     name: nameParts,
     office: officeLocation,
@@ -77,6 +95,7 @@ export function cleanNameForSearch(name: string): string {
   return name
     .replace(/^(Rep\.|Sen\.|Hon\.|Dr\.|Mr\.|Mrs\.|Ms\.|)\s+/i, '')
     .replace(/,?\s+(Jr\.|Sr\.|I|II|III|IV|MD|PhD|Esq\.?)$/i, '')
+    .replace(/\s*\([^)]*\)/g, '') // Remove anything in parentheses like (D) or (R)
     .trim();
 }
 

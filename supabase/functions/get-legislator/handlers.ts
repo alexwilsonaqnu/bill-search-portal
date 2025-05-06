@@ -29,9 +29,36 @@ export async function handleRequest(req: Request) {
   // If ID fetch failed or we only have a name, search by name
   if (sponsorName) {
     const searchResult = await searchLegislatorByName(sponsorName);
-    return createResponse(searchResult);
+    if (searchResult) {
+      return createResponse(searchResult);
+    }
   }
 
-  // If we get here, both methods failed
+  // If we get here, both methods failed - create a basic response from what we know
+  if (sponsorName) {
+    // If we have a name but no data, create a basic response with just the name
+    const nameParts = sponsorName.split(' ');
+    const firstName = nameParts[0] || '';
+    const lastName = nameParts.slice(1).join(' ') || '';
+    
+    return createResponse({
+      name: {
+        first: firstName,
+        middle: '',
+        last: lastName,
+        suffix: '',
+        full: sponsorName
+      },
+      party: '',
+      email: [],
+      phone: [],
+      district: '',
+      role: '',
+      office: '',
+      state: ''
+    });
+  }
+
+  // Absolute fallback when we have nothing
   return createResponse({ error: "Could not find legislator information" }, 404);
 }
