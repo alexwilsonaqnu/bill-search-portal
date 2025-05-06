@@ -1,6 +1,5 @@
 
 import { Users } from "lucide-react";
-import { User } from "lucide-react";
 import { Bill } from "@/types";
 import { getSponsor, getCoSponsors } from "@/utils/billCardUtils";
 import SponsorHoverCard from "./sponsors/SponsorHoverCard";
@@ -50,19 +49,6 @@ const BillSponsors = ({ bill }: BillSponsorsProps) => {
     return displayName;
   };
 
-  // Safe version of getLegislatorId that handles potential string values
-  const getLegislatorId = (sponsorData: any): string | undefined => {
-    if (!sponsorData || typeof sponsorData === 'string') {
-      return undefined;
-    }
-    
-    // Check for common legislator ID fields
-    return sponsorData.people_id?.toString() || 
-           sponsorData.id?.toString() || 
-           sponsorData.legislator_id?.toString() || 
-           undefined;
-  };
-
   const hasMoreCosponsors = () => {
     if (!bill.data) return false;
     if (!bill.data.cosponsors) return false;
@@ -98,23 +84,16 @@ const BillSponsors = ({ bill }: BillSponsorsProps) => {
   return (
     <div className="space-y-3">
       {sponsor && (
-        <div className="text-md text-gray-700">
-          <div className="font-medium mb-1 flex items-center gap-1">
-            <User className="h-4 w-4" />
-            Primary Sponsor:
-          </div>
+        <div className="text-sm text-gray-700">
+          <div className="font-medium mb-1">Primary Sponsor:</div>
           <div className="pl-4">
-            <SponsorHoverCard 
-              sponsorData={sponsor} 
-              getSponsorName={getSponsorName} 
-              legislatorId={getLegislatorId(sponsor)}
-            />
+            <SponsorHoverCard sponsorData={sponsor} getSponsorName={getSponsorName} />
           </div>
         </div>
       )}
 
       {coSponsors.length > 0 && (
-        <div className="text-md text-gray-700">
+        <div className="text-sm text-gray-700">
           <div className="font-medium mb-1 flex items-center gap-1">
             <Users className="h-4 w-4" />
             Co-sponsors:
@@ -122,11 +101,7 @@ const BillSponsors = ({ bill }: BillSponsorsProps) => {
           <div className="pl-4">
             {coSponsors.map((cosponsor, index) => (
               <div key={index}>
-                <SponsorHoverCard 
-                  sponsorData={cosponsor} 
-                  getSponsorName={getSponsorName}
-                  legislatorId={getLegislatorId(cosponsor)}
-                />
+                <SponsorHoverCard sponsorData={cosponsor} getSponsorName={getSponsorName} />
               </div>
             ))}
             {hasMoreCosponsors() && (

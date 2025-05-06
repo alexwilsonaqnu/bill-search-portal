@@ -1,26 +1,13 @@
 
 import { cn } from "@/lib/utils";
 
-interface SpinnerProps extends React.HTMLAttributes<HTMLDivElement> {
-  size?: 'sm' | 'md' | 'lg';
-}
+interface SpinnerProps extends React.HTMLAttributes<HTMLDivElement> {}
 
-export function Spinner({ className, size = 'md', ...props }: SpinnerProps) {
-  const sizeClasses = {
-    sm: "h-4 w-4",
-    md: "h-6 w-6",
-    lg: "h-8 w-8"
-  };
-  
+export function Spinner({ className, ...props }: SpinnerProps) {
   return (
     <div
-      className={cn(
-        "animate-spin border-2 border-current border-t-transparent rounded-full",
-        sizeClasses[size],
-        className
-      )}
+      className={cn("animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full", className)}
       {...props}
-      aria-label="Loading"
     />
   );
 }

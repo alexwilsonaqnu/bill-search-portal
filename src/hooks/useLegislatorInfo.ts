@@ -1,7 +1,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { useToast } from "./use-toast";
 
 interface LegislatorName {
   first: string;
@@ -22,29 +22,34 @@ export interface LegislatorInfo {
   state?: string;
 }
 
-export const useLegislatorInfo = (legislatorId?: string, sponsorName?: string) => {
+export const useLegislatorInfo = (legislatorId: string, sponsorName?: string) => {
+  const { toast } = useToast();
+  
   return useQuery({
     queryKey: ['legislator', legislatorId, sponsorName],
     queryFn: async (): Promise<LegislatorInfo | null> => {
       try {
+        console.log(`Fetching legislator info for ID: ${legislatorId}, Name: ${sponsorName || 'N/A'}`);
+        
         if (!legislatorId && !sponsorName) {
           console.warn("Missing both legislator ID and name");
           return null;
         }
         
-        console.log(`Fetching legislator info for ID: ${legislatorId || 'N/A'}, Name: ${sponsorName || 'N/A'}`);
-        
-        // Using our dedicated edge function to handle rate limiting and caching
         const { data, error } = await supabase.functions.invoke('get-legislator', {
           body: { legislatorId, sponsorName }
         });
         
         if (error) {
           console.error("Error fetching legislator info:", error);
-          throw new Error(error.message || "Failed to load legislator information");
+          toast({
+            title: "Error",
+            description: "Could not load legislator information",
+            variant: "destructive"
+          });
+          return null;
         }
         
-        // Log the response for debugging
         console.log("Legislator data received:", data);
         
         // Validate that we have the expected data format
@@ -53,9 +58,9 @@ export const useLegislatorInfo = (legislatorId?: string, sponsorName?: string) =
           return null;
         }
 
-        // Ensure email and phone are arrays for consistent handling
+        // Ensure email and phone are arrays
         const legislatorInfo: LegislatorInfo = {
-          ...data,
+          ...data as LegislatorInfo,
           email: Array.isArray(data.email) ? data.email : data.email ? [data.email] : [],
           phone: Array.isArray(data.phone) ? data.phone : data.phone ? [data.phone] : []
         };
@@ -64,12 +69,14 @@ export const useLegislatorInfo = (legislatorId?: string, sponsorName?: string) =
 
       } catch (error) {
         console.error("Error in fetchLegislatorInfo:", error);
-        // Let React Query handle the error state
-        throw error; 
+        toast({
+          title: "Error",
+          description: "Failed to load legislator information",
+          variant: "destructive"
+        });
+        return null;
       }
     },
     enabled: !!(legislatorId || sponsorName),
-    retry: 1, // Only retry once to avoid too many requests if API is rate limiting
-    staleTime: 10 * 60 * 1000, // Cache results for 10 minutes to reduce API calls
   });
 };
