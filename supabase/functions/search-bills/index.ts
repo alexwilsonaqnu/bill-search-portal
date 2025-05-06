@@ -141,6 +141,7 @@ serve(async (req) => {
             // Include sponsor directly in the top level for immediate access
             sponsor: sponsor,
             cosponsors: cosponsors,
+            versions: [],
             data: {
               ...item,
               sponsor: sponsor,
