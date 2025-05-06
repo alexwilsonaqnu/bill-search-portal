@@ -32,12 +32,32 @@ export function useBillData({ id, retryCount = 0 }: UseBillDataProps): UseBillDa
       if (!id) throw new Error("Bill ID is required");
       console.log(`Fetching bill data for ID: ${id}`);
       
+      // First check local cache
+      try {
+        const cachedBill = localStorage.getItem(`bill_${id}`);
+        if (cachedBill) {
+          const parsedBill = JSON.parse(cachedBill);
+          console.log(`Using cached bill data for ID: ${id}`);
+          return parsedBill;
+        }
+      } catch (cacheError) {
+        console.warn(`Failed to retrieve bill from cache: ${cacheError.message}`);
+      }
+      
+      // If not in cache, fetch from API
       try {
         const result = await fetchBillById(id);
         
         if (!result) {
           console.warn(`No bill found with ID: ${id}`);
           return null;
+        }
+        
+        // Cache the result
+        try {
+          localStorage.setItem(`bill_${id}`, JSON.stringify(result));
+        } catch (storageError) {
+          console.warn(`Failed to cache bill: ${storageError.message}`);
         }
         
         return result;
@@ -47,7 +67,7 @@ export function useBillData({ id, retryCount = 0 }: UseBillDataProps): UseBillDa
       }
     },
     enabled: !!id,
-    retry: 1,
+    retry: 2,
     staleTime: 5 * 60 * 1000, // 5 minutes
     refetchOnWindowFocus: false
   });

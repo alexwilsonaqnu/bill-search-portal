@@ -28,10 +28,10 @@ const BillTextContainer = ({ bill }: BillTextContainerProps) => {
         setErrorMessage(null);
         
         try {
-          await fetchBillText(bill.id);
+          console.log(`Attempting to load text for bill ID: ${bill.id}`);
+          const result = await fetchBillText(bill.id);
+          console.log("Successfully fetched bill text:", result);
           setTextLoaded(true);
-          console.log("Successfully loaded bill text");
-          // We don't need to reload the page as the components will handle displaying the text
         } catch (error) {
           console.error("Error auto-loading bill text:", error);
           setErrorMessage(error instanceof Error ? error.message : "Failed to load bill text");
@@ -43,6 +43,7 @@ const BillTextContainer = ({ bill }: BillTextContainerProps) => {
               const fallbackContent = await fallbackBillText(bill.id, bill.title);
               // Store fallback content in local storage to make it available for components
               localStorage.setItem(`bill_text_${bill.id}`, JSON.stringify(fallbackContent));
+              setTextLoaded(true);
             }
           } catch (fallbackError) {
             console.error("Failed to use fallback text:", fallbackError);

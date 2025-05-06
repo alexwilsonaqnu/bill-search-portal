@@ -99,24 +99,43 @@ serve(async (req) => {
         );
       }
 
-      // Transform the results
+      // Transform the results - Ensure we include sponsor info
       const allBills = Object.values(data.searchresult)
         .filter(item => item.bill_id) // Filter out the summary object
-        .map(item => ({
-          id: item.bill_id.toString(),
-          title: item.title || `${item.bill_number}`,
-          description: item.description || item.title || '',
-          status: item.status || '',
-          lastUpdated: item.last_action_date || '',
-          sessionName: item.session?.session_name || 'Unknown Session',
-          sessionYear: item.session?.year_start || '',
-          changes: [{
-            id: 'last_action',
-            description: item.last_action || '',
-            details: item.last_action_date || ''
-          }],
-          data: item,
-        }));
+        .map(item => {
+          // Extract sponsor information
+          const sponsorData = item.sponsors || {};
+          const sponsor = sponsorData.primary || 
+                        (Array.isArray(sponsorData) && sponsorData.length > 0 ? sponsorData[0] : null) ||
+                        null;
+                        
+          const cosponsors = sponsorData.cosponsors || 
+                           (Array.isArray(sponsorData) && sponsorData.length > 1 ? sponsorData.slice(1) : []) ||
+                           [];
+                        
+          return {
+            id: item.bill_id.toString(),
+            title: item.title || `${item.bill_number}`,
+            description: item.description || item.title || '',
+            status: item.status || '',
+            lastUpdated: item.last_action_date || '',
+            sessionName: item.session?.session_name || 'Unknown Session',
+            sessionYear: item.session?.year_start || '',
+            changes: [{
+              id: 'last_action',
+              description: item.last_action || '',
+              details: item.last_action_date || ''
+            }],
+            data: {
+              ...item,
+              sponsor: sponsor,
+              sponsors: { 
+                primary: sponsor,
+                cosponsors: cosponsors
+              }
+            },
+          };
+        });
 
       // Handle pagination
       const totalCount = allBills.length;

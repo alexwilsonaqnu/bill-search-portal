@@ -15,25 +15,32 @@ interface BillCardProps {
 }
 
 const BillCard = ({ bill, className = "", animationDelay }: BillCardProps) => {
-  // For debugging sponsor data
-  console.log("Bill sponsors in card:", {
-    id: bill.id,
-    sponsor: bill.data?.sponsor || bill.data?.sponsors?.primary,
-    cosponsors: bill.data?.cosponsors || bill.data?.sponsors?.cosponsors
-  });
+  // Process bill data to ensure we have sponsor information accessible
+  const processedBill = {
+    ...bill,
+    // Ensure any data from search API is properly structured
+    data: bill.data ? {
+      ...bill.data,
+      // If sponsor is nested in other fields, bring it up to the main level
+      sponsor: bill.data.sponsor || 
+              (bill.data.sponsors?.primary ? bill.data.sponsors.primary : null) ||
+              (Array.isArray(bill.data.sponsors) && bill.data.sponsors.length > 0 ? 
+                bill.data.sponsors[0] : null)
+    } : {}
+  };
 
   return (
     <Card 
       className={`bill-card overflow-hidden animate-fade-up hover:shadow-md transition-all ${className}`}
       style={animationDelay ? { animationDelay } : undefined}
     >
-      <BillCardHeader bill={bill} />
+      <BillCardHeader bill={processedBill} />
       <CardContent>
-        <BillSummary bill={bill} />
-        <BillAction bill={bill} />
-        <BillContentPreview bill={bill} />
-        <BillSponsors bill={bill} />
-        <BillFooter bill={bill} />
+        <BillSummary bill={processedBill} />
+        <BillAction bill={processedBill} />
+        <BillContentPreview bill={processedBill} />
+        <BillSponsors bill={processedBill} />
+        <BillFooter bill={processedBill} />
       </CardContent>
     </Card>
   );
