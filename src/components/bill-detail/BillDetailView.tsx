@@ -3,7 +3,6 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { ChevronLeft } from "lucide-react";
 import { Bill } from "@/types";
-import Navbar from "@/components/Navbar";
 import BillDetailToolbar from "./BillDetailToolbar";
 import BillOverview from "./BillOverview";
 import BillComparisonContainer from "./BillComparisonContainer";
@@ -70,9 +69,7 @@ const BillDetailView = ({ bill }: BillDetailViewProps) => {
 
   return (
     <div className="min-h-screen bg-gray-50 page-transition-wrapper w-full">
-      <Navbar />
-      
-      <div className="max-w-6xl mx-auto pt-28 pb-20 px-6">
+      <div className="max-w-6xl mx-auto pb-20 px-6">
         <div className="mb-4">
           <Link to="/" className="inline-flex items-center text-gray-600 hover:text-gray-900 transition-colors">
             <ChevronLeft className="h-4 w-4 mr-1" />

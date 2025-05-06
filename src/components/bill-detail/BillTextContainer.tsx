@@ -6,7 +6,7 @@ import BillTextHash from "./BillTextHash";
 import BillTextContent from "./BillTextContent";
 import { fetchBillText } from "@/services/billTextService";
 import { fallbackBillText } from "@/services/billTextService";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/use-toast";
 import BillTextLoading from "./BillTextLoading";
 
 interface BillTextContainerProps {
@@ -89,15 +89,26 @@ const BillTextContainer = ({ bill }: BillTextContainerProps) => {
   const handleFetchText = async () => {
     setIsLoading(true);
     setErrorMessage(null);
-    toast.info("Fetching bill text from LegiScan...");
+    toast({
+      title: "Fetching bill text",
+      description: "Loading text from LegiScan..."
+    });
     
     try {
       await fetchBillText(bill.id);
       setTextLoaded(true);
-      toast.success("Successfully loaded bill text");
+      toast({
+        title: "Success",
+        description: "Successfully loaded bill text",
+        variant: "default"
+      });
     } catch (error) {
       console.error("Failed to fetch bill text:", error);
-      toast.error("Failed to fetch bill text from LegiScan");
+      toast({
+        title: "Error",
+        description: "Failed to fetch bill text from LegiScan",
+        variant: "destructive"
+      });
       setErrorMessage(error instanceof Error ? error.message : "Failed to load bill text");
       
       // Use fallback text after manual fetch fails

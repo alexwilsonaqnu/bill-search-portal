@@ -6,19 +6,26 @@ import Navbar from "@/components/Navbar";
 import BillDetailView from "./BillDetailView";
 import BillDetailLoading from "./BillDetailLoading";
 import BillDetailError from "./BillDetailError";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/use-toast";
+import { fetchBillText } from "@/services/legiscan";
 
 const BillFetchWrapper = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [retryCount, setRetryCount] = useState(0);
   const [isApiDown, setIsApiDown] = useState(false);
+  const [billText, setBillText] = useState<string | null>(null);
+  const [isLoadingText, setIsLoadingText] = useState(false);
   
   // Handle the case where ID is not provided
   useEffect(() => {
     if (!id) {
       navigate("/");
-      toast.error("Missing bill ID");
+      toast({
+        title: "Error",
+        description: "Missing bill ID",
+        variant: "destructive"
+      });
     }
   }, [id, navigate]);
   
@@ -32,6 +39,38 @@ const BillFetchWrapper = () => {
     id,
     retryCount // Pass retry count to force refetch on retry
   });
+
+  // Fetch bill text when bill data is loaded
+  useEffect(() => {
+    const loadBillText = async () => {
+      if (bill && id && !billText && !isLoadingText) {
+        try {
+          setIsLoadingText(true);
+          console.log(`Fetching bill text for bill ID: ${id}`);
+          
+          const textResult = await fetchBillText(id);
+          
+          if (textResult) {
+            console.log("Successfully loaded bill text");
+            setBillText(textResult.text || null);
+            
+            // Update the bill object with the text content
+            if (textResult.text) {
+              bill.text = textResult.text;
+            }
+          }
+        } catch (error) {
+          console.error("Error loading bill text:", error);
+          // Don't show a toast here as it could be annoying
+          // The component will handle displaying fallback content
+        } finally {
+          setIsLoadingText(false);
+        }
+      }
+    };
+    
+    loadBillText();
+  }, [bill, id, billText, isLoadingText]);
   
   // Detect API down condition
   useEffect(() => {
@@ -55,7 +94,11 @@ const BillFetchWrapper = () => {
   const handleRetry = () => {
     setRetryCount(prev => prev + 1);
     setIsApiDown(false);
-    toast.info("Retrying...");
+    setBillText(null);
+    toast({
+      title: "Retrying",
+      description: "Attempting to reload bill data..."
+    });
   };
 
   const handleGoBack = () => {

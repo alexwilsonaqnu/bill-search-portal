@@ -1,7 +1,5 @@
 
-// Export all legiscan services from this index file
-export * from './fetchBill';
-export * from './fetchHistory';
-export * from './fetchText';
-export * from './fetchVersions';
-export * from './dataProcessing';
+export { fetchBillById } from "./fetchBill";
+export { fetchBillHistory } from "./fetchHistory";
+export { fetchBillVersions } from "./fetchVersions";
+export { fetchBillText } from "./fetchText";

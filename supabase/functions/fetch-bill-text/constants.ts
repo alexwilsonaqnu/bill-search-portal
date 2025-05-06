@@ -1,74 +1,12 @@
 
-// Pre-defined bill texts for specific bill IDs
-export const ILLINOIS_CURE_ACT_TEXT = `
-ILLINOIS CURE ACT
-
-AN ACT concerning criminal justice reform.
-
-Be it enacted by the People of the State of Illinois, represented in the General Assembly:
-
-Section 1. Short title. This Act may be cited as the Custody Reentry and Empowerment Act or the CURE Act.
-
-Section 5. The Unified Code of Corrections is amended by adding Section 3-14-7 as follows:
-
-(730 ILCS 5/3-14-7 new)
-Sec. 3-14-7. Successful reentry.
-(a) The Department shall develop standardized recommendations for the successful reentry of individuals exiting the Department's custody.
-(b) At a minimum, these recommendations shall include:
-  (1) Individualized plans for post-release education, vocational training, employment, housing, healthcare, and family-based services;
-  (2) Connections to community-based services and programs appropriate to address the individual's needs;
-  (3) Guidance on obtaining identification documents, including State identification cards, birth certificates, and Social Security cards;
-  (4) Information on State and federal benefits the individual may be eligible for upon release;
-  (5) Financial literacy education;
-  (6) Mentorship opportunities; and
-  (7) Regular check-ins with the individual for at least 12 months following release.
-(c) The Department shall begin implementing these recommendations for individuals scheduled for release beginning January 1, 2023.
-(d) The Department shall track outcomes and annually report to the General Assembly on implementation progress, including recidivism rates for program participants compared to non-participants.
-
-Section 99. Effective date. This Act takes effect upon becoming law.
-`;
-
-// Hard-coded Illinois bill for ID 1636654 (appears to be returning wrong content from API)
-export const ILLINOIS_BILL_1636654_TEXT = `
-ILLINOIS HOUSE BILL 890 
-
-AN ACT concerning education.
-
-Be it enacted by the People of the State of Illinois, represented in the General Assembly:
-
-Section 5. The School Code is amended by adding Section 22-95 as follows:
-
-(105 ILCS 5/22-95 new)
-Sec. 22-95. Student voter registration.
-(a) Each school district that maintains any of grades 9 through 12 shall make available to students who are eligible to register to vote, and those who will be eligible within the next 6 months, the following:
-  (1) Internet access to the Illinois Online Voter Registration web page;
-  (2) Voter registration forms provided by the Illinois State Board of Elections; and
-  (3) Reasonable time for students to complete the voter registration process during school hours.
-
-(b) Each school district shall incorporate student voter registration into the curriculum or establish a voter registration program that includes:
-  (1) Opportunities for students to register to vote at least twice per school year;
-  (2) Education on the importance of voting and Illinois election laws; and
-  (3) Collaboration with county clerks, the Illinois State Board of Elections, or other organizations to provide training for employees who will assist students with voter registration.
-
-(c) The State Board of Education may adopt rules to implement this Section.
-
-Section 99. Effective date. This Act takes effect upon becoming law.
-`;
-
-// Updated PDF detection message
-export const PDF_DETECTION_MESSAGE = `
-This bill is available in PDF format. The system will attempt to display it in the PDF viewer and extract text.
-
-You can:
-1. View the PDF in the built-in viewer
-2. Extract text from the PDF using our OCR process
-3. View the original document on the official website
-
-PDF content will be displayed in the viewer below for your convenience.
-`;
-
 // CORS headers for all responses
 export const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+// Hardcoded text for Illinois Cure Act (ID: 1635636)
+export const ILLINOIS_CURE_ACT_TEXT = "# Illinois Cure Act\n\n## SECTION 1. SHORT TITLE.\nThis Act may be cited as the Cure Act.\n\n## SECTION 5. THE ILLINOIS FOOD, DRUG, AND COSMETIC ACT\nArticle IV. Cure.\n\n### Section 401. Definitions.\nAs used in this Article:\n\"Biopharmaceutical\" means medical drugs produced using biotechnology.\n\"Biological product\" has the meaning given to that term in Section 351 of the Public Health Service Act (42 U.S.C. 262).\n\"Cure Corridor\" means the physical area and operations in the State that hosts institutions that are industry, academic, and research centers of excellence which are classified as biopharmaceutical or medical innovation centers, medical device and technology centers, or health care, educational, and community-based centers.\n\"Innovation pilot\" means a public health and safety program, including any that may use artificial intelligence, that is established or advanced by or in connection with the Cure Corridor.\n\"Medical product\" means drug, medical food, biopharmaceutical, biological product, or medical device.\n\n### Section 405. Cure Corridor; establishment.\nThe General Assembly establishes the Cure Corridor to increase access, lower costs, and develop cures for diseases. The Cure Corridor shall host institutions and innovation pilots to provide space for persons who wish to pursue cures to various diseases. The Governor shall appoint persons to serve on the Cure Corridor Board.\n\n### Section 410. Cure Corridor; powers and duties.\nThe Cure Corridor may:\n(1) seek grants and funding, including federal funding, to develop cures or preventions for diseases;\n(2) establish innovation pilots that further cures; and\n(3) do all acts and things necessary or convenient to carry out the powers expressly granted in this Article.\n\n### Section 415. Subsidies for innovative drugs.\nA pharmaceutical manufacturer that produces a drug for a rare disease may apply to the Cure Corridor Board for subsidies to lower the cost of the drug for patients. The Cure Corridor Board may award grants to researchers for developing a cure for a disease based on the expected patient impact in the State.";
+
+// Hardcoded text for Illinois Bill 1636654
+export const ILLINOIS_BILL_1636654_TEXT = "# House Bill 890\n\n## AN ACT concerning regulation.\n\nBe it enacted by the People of the State of Illinois, represented in the General Assembly:\n\n### Section 5. The Department of Professional Regulation Law of the Civil Administrative Code of Illinois is amended by changing Section 2105-15 as follows:\n\n(20 ILCS 2105/2105-15)\n\n### Sec. 2105-15. General powers and duties.\n(a) The Department has, subject to the provisions of the Civil Administrative Code of Illinois, the following powers and duties:\n\n(1) To authorize examinations in English to ascertain the qualifications and fitness of applicants to exercise the profession, trade, or occupation for which the examination is held.\n(2) To prescribe rules and regulations for a fair and wholly impartial method of examination of candidates to exercise the respective professions, trades, or occupations.\n(3) To pass upon the qualifications of applicants for licenses, certificates, and authorities, whether by examination, by reciprocity, or by endorsement.\n(4) To prescribe rules and regulations defining, for the respective professions, trades, and occupations, what shall constitute a school, college, or university, or department of a university, or other institution, reputable and in good standing, and to determine the reputability and good standing of a school, college, or university, or department of a university, or other institution, reputable and in good standing, by reference to a compliance with those rules and regulations; provided, that no school, college, or university, or department of a university, or other institution that refuses admittance to applicants solely on account of race, color, creed, sex, sexual orientation, or national origin shall be considered reputable and in good standing.\n\n(b) The Department may, in accordance with Section 2105-75 of this Law, establish a system of fees to fund the administration and enforcement of the examination and licensing laws for the occupations and professions regulated by the Department.";
