@@ -1,6 +1,6 @@
 
-import { useEffect, useState } from "react";
-import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
+import { useState } from "react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useLegislatorInfo } from "@/hooks/useLegislatorInfo";
 import SponsorContactInfo from "./SponsorContactInfo";
 import { MapPin } from "lucide-react";
@@ -15,46 +15,13 @@ interface SponsorHoverCardProps {
 
 const SponsorHoverCard = ({ sponsorData, getSponsorName, legislatorId }: SponsorHoverCardProps) => {
   const sponsorName = getSponsorName(sponsorData);
-  const [isHovering, setIsHovering] = useState(false);
-  const [loadDelay, setLoadDelay] = useState<NodeJS.Timeout | null>(null);
+  const [isOpen, setIsOpen] = useState(false);
   
-  // Only enable the query when hovering, with a small delay to prevent unnecessary API calls
+  // Only fetch data when the popover is opened
   const { data: legislatorInfo, isLoading, error } = useLegislatorInfo(
-    isHovering ? legislatorId : undefined, 
-    isHovering ? sponsorName : undefined
+    isOpen ? legislatorId : undefined, 
+    isOpen ? sponsorName : undefined
   );
-  
-  // Handle hover events with delay
-  const handleHoverStart = () => {
-    // Clear any existing delay
-    if (loadDelay) clearTimeout(loadDelay);
-    
-    // Set a delay before triggering the data load
-    const delay = setTimeout(() => {
-      setIsHovering(true);
-    }, 300); // 300ms delay before loading data
-    
-    setLoadDelay(delay);
-  };
-  
-  const handleHoverEnd = () => {
-    // Clear the delay if exists
-    if (loadDelay) {
-      clearTimeout(loadDelay);
-      setLoadDelay(null);
-    }
-    // Don't immediately disable the query to avoid flicker if user re-hovers quickly
-    setTimeout(() => {
-      setIsHovering(false);
-    }, 1000);
-  };
-  
-  // Clean up on unmount
-  useEffect(() => {
-    return () => {
-      if (loadDelay) clearTimeout(loadDelay);
-    };
-  }, [loadDelay]);
 
   // If we don't have a legislator ID or name, use a simpler tooltip
   if (!legislatorId && !sponsorName) {
@@ -73,21 +40,17 @@ const SponsorHoverCard = ({ sponsorData, getSponsorName, legislatorId }: Sponsor
   }
   
   return (
-    <HoverCard openDelay={300} closeDelay={200}>
-      <HoverCardTrigger 
+    <Popover open={isOpen} onOpenChange={setIsOpen}>
+      <PopoverTrigger 
         className="cursor-pointer hover:text-blue-600 transition-colors"
-        onMouseEnter={handleHoverStart}
-        onMouseLeave={handleHoverEnd}
-        onFocus={handleHoverStart}
-        onBlur={handleHoverEnd}
       >
         {sponsorName}
-      </HoverCardTrigger>
-      <HoverCardContent className="w-80">
+      </PopoverTrigger>
+      <PopoverContent className="w-80 p-4">
         <div className="space-y-2">
           <h4 className="text-sm font-semibold">{legislatorInfo?.name?.full || sponsorName}</h4>
           
-          {isHovering && isLoading ? (
+          {isLoading ? (
             <div className="flex items-center justify-center py-4">
               <Spinner className="h-6 w-6 text-blue-600" />
             </div>
@@ -119,8 +82,8 @@ const SponsorHoverCard = ({ sponsorData, getSponsorName, legislatorId }: Sponsor
             <p className="text-sm text-gray-500">No legislator information available</p>
           )}
         </div>
-      </HoverCardContent>
-    </HoverCard>
+      </PopoverContent>
+    </Popover>
   );
 };
 
