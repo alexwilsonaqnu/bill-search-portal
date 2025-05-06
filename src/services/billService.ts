@@ -4,9 +4,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { processResults } from "@/utils/billProcessingUtils";
 import { fetchBillById as fetchBillFromLegiscan } from "./legiscanService";
 
-// Simple cache for search results
+// More efficient cache for search results with longer TTL
 const searchCache = new Map<string, { data: SearchResults; timestamp: number }>();
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+const CACHE_TTL = 15 * 60 * 1000; // 15 minutes - increased from 5 minutes
 
 /**
  * Fetches bills using LegiScan search API
@@ -20,7 +20,7 @@ export async function fetchBills(
   try {
     console.log(`Searching bills with query: "${query}", page: ${page}, sessionId: ${sessionId}`);
     
-    // If no search query, return empty results
+    // If no search query, return empty results immediately
     if (!query) {
       return { bills: [], currentPage: page, totalPages: 0, totalItems: 0 };
     }
@@ -35,40 +35,62 @@ export async function fetchBills(
       return cached.data;
     }
 
-    // Make sure we only use the LegiScan API through our edge function
-    const { data, error } = await supabase.functions.invoke('search-bills', {
-      body: { query, page, pageSize, sessionId }
-    });
+    // Set a timeout to prevent UI from hanging too long
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
 
-    if (error) {
-      console.error("Error searching bills:", error);
-      toast.error("Failed to search bills. Please try again later.");
-      return { bills: [], currentPage: page, totalPages: 0, totalItems: 0 };
-    }
-    
-    console.log("Search response:", data);
-    
-    let result: SearchResults;
-    
-    // Process the search results
-    if (data && data.bills && typeof data.currentPage === 'number' && typeof data.totalPages === 'number') {
-      // We have proper pagination from the API, use it directly
-      result = data;
-    } else if (data && data.bills) {
-      // Otherwise, process the results locally with our pagination logic
-      result = processResults(data.bills, query, page, pageSize);
-    } else {
-      result = { bills: [], currentPage: page, totalPages: 0, totalItems: 0 };
-    }
+    try {
+      // Call the edge function with a timeout
+      const { data, error } = await supabase.functions.invoke('search-bills', {
+        body: { query, page, pageSize, sessionId },
+        signal: controller.signal
+      });
 
-    // Cache the result
-    searchCache.set(cacheKey, { data: result, timestamp: Date.now() });
-    
-    return result;
+      // Clear timeout
+      clearTimeout(timeoutId);
+
+      if (error) {
+        console.error("Error searching bills:", error);
+        throw new Error(error.message || "Failed to search bills");
+      }
+      
+      if (data?.error) {
+        console.error("API returned error:", data.error);
+        throw new Error(data.error);
+      }
+      
+      let result: SearchResults;
+      
+      // Process the search results
+      if (data && data.bills && typeof data.currentPage === 'number' && typeof data.totalPages === 'number') {
+        // We have proper pagination from the API, use it directly
+        result = data;
+      } else if (data && data.bills) {
+        // Otherwise, process the results locally with our pagination logic
+        result = processResults(data.bills, query, page, pageSize);
+      } else {
+        result = { bills: [], currentPage: page, totalPages: 0, totalItems: 0 };
+      }
+
+      // Cache the result
+      searchCache.set(cacheKey, { data: result, timestamp: Date.now() });
+      
+      return result;
+    } catch (error) {
+      // Clear timeout if there was an error
+      clearTimeout(timeoutId);
+      
+      if (error.name === 'AbortError') {
+        throw new Error("Search request timed out after 10 seconds");
+      }
+      throw error;
+    }
     
   } catch (error) {
     console.error("Error in fetchBills:", error);
-    toast.error("Failed to fetch bills. Please try again later.");
+    toast.error("Failed to fetch bills", {
+      description: error.message || "Please try again later"
+    });
     return { bills: [], currentPage: page, totalPages: 0, totalItems: 0 };
   }
 }

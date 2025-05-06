@@ -28,10 +28,12 @@ const Index = () => {
     enabled,
     staleTime: 5 * 60 * 1000, // 5 minutes
     retry: 1, // Only retry once to avoid hammering failing API
-    onError: () => {
-      toast.error("Error searching for bills", {
-        description: "There was a problem connecting to LegiScan. Please try again later."
-      });
+    meta: {
+      onError: () => {
+        toast.error("Error searching for bills", {
+          description: "There was a problem connecting to LegiScan. Please try again later."
+        });
+      }
     }
   });
 

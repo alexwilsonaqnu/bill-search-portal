@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 
@@ -46,9 +45,9 @@ serve(async (req) => {
     const { query, page = 1, pageSize = 10, sessionId } = params;
     console.log(`Searching LegiScan for: "${query}", page: ${page}, pageSize: ${pageSize}, sessionId: ${sessionId}`);
 
-    // Set a timeout to prevent long-running requests
+    // Set a shorter timeout to prevent long-running requests
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 15000);
+    const timeout = setTimeout(() => controller.abort(), 6000); // Reduced from 15s to 6s
 
     try {
       // Build the LegiScan search URL - adding state=IL to filter for Illinois only
@@ -74,7 +73,7 @@ serve(async (req) => {
         throw new Error(`LegiScan API returned status: ${data.status || 'Unknown'}`);
       }
 
-      // Transform the results - but don't fetch additional details to improve performance
+      // Transform the results - but keep it simple and fast
       const allBills = data.searchresult && typeof data.searchresult === 'object' 
         ? Object.values(data.searchresult)
             .filter(item => item.bill_id) // Filter out the summary object
@@ -92,9 +91,6 @@ serve(async (req) => {
                 details: item.last_action_date || ''
               }],
               data: item,
-              // These fields will be populated later if needed
-              text: '',
-              versions: []
             }))
         : [];
 
@@ -104,8 +100,6 @@ serve(async (req) => {
       const endIndex = startIndex + pageSize;
       const paginatedBills = allBills.slice(startIndex, endIndex);
       const totalPages = Math.ceil(totalCount / pageSize);
-
-      console.log(`Paginating results: ${paginatedBills.length} bills for page ${page} of ${totalPages}`);
 
       return new Response(
         JSON.stringify({
@@ -126,7 +120,7 @@ serve(async (req) => {
       clearTimeout(timeout);
       
       if (error.name === 'AbortError') {
-        throw new Error('Request timed out after 15 seconds');
+        throw new Error('Request timed out after 6 seconds');
       }
       throw error;
     }
