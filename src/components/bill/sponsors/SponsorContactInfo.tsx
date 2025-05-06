@@ -13,7 +13,11 @@ const SponsorContactInfo = ({ emails, phones }: SponsorContactInfoProps) => {
   // Return null if no contact info available
   if (!emails?.length && !phones?.length) {
     console.log("No contact info to display");
-    return null;
+    return (
+      <div className="text-sm text-gray-500 italic mt-2">
+        No contact information available
+      </div>
+    );
   }
 
   return (

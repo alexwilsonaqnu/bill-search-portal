@@ -58,7 +58,14 @@ export const useLegislatorInfo = (legislatorId: string, sponsorName?: string) =>
           return null;
         }
 
-        return data as LegislatorInfo;
+        // Ensure email and phone are arrays
+        const legislatorInfo: LegislatorInfo = {
+          ...data as LegislatorInfo,
+          email: Array.isArray(data.email) ? data.email : [],
+          phone: Array.isArray(data.phone) ? data.phone : []
+        };
+
+        return legislatorInfo;
 
       } catch (error) {
         console.error("Error in fetchLegislatorInfo:", error);

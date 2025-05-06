@@ -91,7 +91,7 @@ async function fetchLegislatorById(legislatorId: string) {
   }
 
   try {
-    const response = await fetch(`https://v3.openstates.org/people/${legislatorId}`, {
+    const response = await fetch(`https://v3.openstates.org/people/${legislatorId}?include=offices`, {
       headers: {
         "X-API-Key": OPENSTATES_API_KEY,
       },
@@ -163,10 +163,11 @@ function processOpenStatesResponse(legislator: any) {
   if (!legislator) return null;
 
   // Extract emails and phones from all offices
-  const emails = [];
-  const phones = [];
+  const emails: string[] = [];
+  const phones: string[] = [];
   let officeLocation = "";
 
+  // Try to extract contact info from offices
   if (Array.isArray(legislator.offices)) {
     for (const office of legislator.offices) {
       if (office.email && !emails.includes(office.email)) {
@@ -180,12 +181,34 @@ function processOpenStatesResponse(legislator: any) {
       }
     }
   }
+  
+  // Fallback for older OpenStates API format
+  if (emails.length === 0 && legislator.email) {
+    if (Array.isArray(legislator.email)) {
+      emails.push(...legislator.email);
+    } else if (typeof legislator.email === 'string') {
+      emails.push(legislator.email);
+    }
+  }
+  
+  if (phones.length === 0 && legislator.phone) {
+    if (Array.isArray(legislator.phone)) {
+      phones.push(...legislator.phone);
+    } else if (typeof legislator.phone === 'string') {
+      phones.push(legislator.phone);
+    }
+  }
+  
+  // Fallback for office location
+  if (!officeLocation && legislator.chamber) {
+    officeLocation = legislator.chamber === 'upper' ? 'Senate' : 'House';
+  }
 
   // Build the name object
   const nameParts = {
-    first: legislator.name.split(' ')[0] || '',
+    first: legislator.name?.split(' ')[0] || '',
     middle: '',
-    last: legislator.name.split(' ').slice(1).join(' ') || '',
+    last: legislator.name?.split(' ').slice(1).join(' ') || '',
     suffix: '',
     full: legislator.name || ''
   };
@@ -194,10 +217,10 @@ function processOpenStatesResponse(legislator: any) {
     party: legislator.party || '',
     email: emails,
     phone: phones,
-    district: legislator.current_role?.district || '',
-    role: legislator.current_role?.title || '',
+    district: legislator.current_role?.district || legislator.district || '',
+    role: legislator.current_role?.title || legislator.role || '',
     name: nameParts,
     office: officeLocation,
-    state: legislator.current_role?.state || ''
+    state: legislator.current_role?.state || legislator.state || ''
   };
 }
