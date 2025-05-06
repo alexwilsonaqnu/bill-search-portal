@@ -11,7 +11,6 @@ import BillNotificationSignup from "./BillNotificationSignup";
 import BillTextContainer from "./BillTextContainer";
 import KeyInsightsCard from "./KeyInsightsCard";
 import ChatToggle from "./ChatToggle";
-import BillChat from "./BillChat";
 
 interface BillDetailViewProps {
   bill: Bill;
@@ -84,18 +83,6 @@ const BillDetailView = ({ bill }: BillDetailViewProps) => {
           </div>
         </div>
       </div>
-
-      {/* Chat Toggle Button */}
-      <div className="fixed bottom-4 left-4 z-10">
-        <ChatToggle onClick={toggleChat} isOpen={isChatOpen} />
-      </div>
-
-      {/* Chat Interface */}
-      <BillChat 
-        billText={bill.data?.text} 
-        isOpen={isChatOpen} 
-        onClose={toggleChat} 
-      />
     </div>
   );
 };
