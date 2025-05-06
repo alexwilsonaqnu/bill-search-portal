@@ -1,13 +1,15 @@
 
-import { Change } from "@/types";
+import { Bill, Change } from "@/types";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { format, parse, isValid } from "date-fns";
 
 interface BillHistoryViewProps {
-  changes: Change[];
+  bill: Bill;
 }
 
-const BillHistoryView = ({ changes }: BillHistoryViewProps) => {
+const BillHistoryView = ({ bill }: BillHistoryViewProps) => {
+  const changes = bill.changes || [];
+  
   if (!changes || changes.length === 0) {
     return (
       <div className="p-4 bg-gray-50 rounded-lg text-gray-500 text-center">

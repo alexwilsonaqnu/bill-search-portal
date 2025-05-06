@@ -2,18 +2,26 @@
 import { useState } from "react";
 import { ExternalLink, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Bill } from "@/types";
 
 interface BillResourceLinksProps {
-  ilgaUrl: string | null;
-  isLoadingExternalContent: boolean;
-  fetchExternalContent: () => Promise<void>;
+  bill: Bill;
 }
 
-const BillResourceLinks = ({ 
-  ilgaUrl, 
-  isLoadingExternalContent, 
-  fetchExternalContent 
-}: BillResourceLinksProps) => {
+const BillResourceLinks = ({ bill }: BillResourceLinksProps) => {
+  const [isLoadingExternalContent, setIsLoadingExternalContent] = useState(false);
+  
+  // Extract the ILGA URL from the bill data
+  const ilgaUrl = bill.data?.text_url || bill.data?.state_link || null;
+  
+  const fetchExternalContent = async () => {
+    setIsLoadingExternalContent(true);
+    // Implementation would go here
+    setTimeout(() => {
+      setIsLoadingExternalContent(false);
+    }, 1000);
+  };
+  
   if (!ilgaUrl) return null;
   
   return (
