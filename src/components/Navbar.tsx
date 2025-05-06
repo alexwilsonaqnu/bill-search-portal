@@ -10,7 +10,7 @@ const Navbar = () => {
           className="inline-block transition-transform duration-300 hover:scale-105"
           aria-label="Billinois Home"
         >
-          <h1 className="text-4xl font-bold logo-text billinois-logo">Billinois</h1>
+          {/* Logo removed from here */}
         </Link>
       </div>
     </header>
