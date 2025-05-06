@@ -17,9 +17,7 @@ const HeaderSection = ({ query, onSearch, isLoading = false }: HeaderSectionProp
         {format(new Date(), "MMMM d, yyyy")}
       </div>
       
-      <h1 className="text-5xl md:text-7xl font-bold mb-8 billinois-logo text-brand-primary">
-        Billinois
-      </h1>
+      {/* Logo removed from here to prevent duplication with navbar */}
       
       <div className="mx-auto max-w-xl">
         <SearchBar 
