@@ -17,7 +17,7 @@ const SponsorContactInfo = ({ emails, phones }: SponsorContactInfoProps) => {
   }
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-2 mt-2">
       {emails && emails.length > 0 && (
         <div className="text-sm">
           <div className="font-medium flex items-center gap-1">
@@ -38,7 +38,7 @@ const SponsorContactInfo = ({ emails, phones }: SponsorContactInfoProps) => {
         </div>
       )}
       {phones && phones.length > 0 && (
-        <div className="text-sm">
+        <div className="text-sm mt-2">
           <div className="font-medium flex items-center gap-1">
             <Phone className="h-4 w-4" />
             Phone:
@@ -61,4 +61,3 @@ const SponsorContactInfo = ({ emails, phones }: SponsorContactInfoProps) => {
 };
 
 export default SponsorContactInfo;
-

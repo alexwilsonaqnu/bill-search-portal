@@ -11,31 +11,33 @@ interface LegislatorName {
   full: string;
 }
 
-interface LegislatorInfo {
+export interface LegislatorInfo {
   party: string;
   email: string[];
   phone: string[];
   district: string;
   role: string;
   name: LegislatorName;
+  office?: string;
+  state?: string;
 }
 
-export const useLegislatorInfo = (legislatorId: string) => {
+export const useLegislatorInfo = (legislatorId: string, sponsorName?: string) => {
   const { toast } = useToast();
   
   return useQuery({
-    queryKey: ['legislator', legislatorId],
+    queryKey: ['legislator', legislatorId, sponsorName],
     queryFn: async (): Promise<LegislatorInfo | null> => {
       try {
-        console.log(`Fetching legislator info for ID: ${legislatorId}`);
+        console.log(`Fetching legislator info for ID: ${legislatorId}, Name: ${sponsorName || 'N/A'}`);
         
-        if (!legislatorId) {
-          console.warn("Missing legislator ID");
+        if (!legislatorId && !sponsorName) {
+          console.warn("Missing both legislator ID and name");
           return null;
         }
         
         const { data, error } = await supabase.functions.invoke('get-legislator', {
-          body: { legislatorId }
+          body: { legislatorId, sponsorName }
         });
         
         if (error) {
@@ -68,6 +70,6 @@ export const useLegislatorInfo = (legislatorId: string) => {
         return null;
       }
     },
-    enabled: !!legislatorId,
+    enabled: !!(legislatorId || sponsorName),
   });
 };

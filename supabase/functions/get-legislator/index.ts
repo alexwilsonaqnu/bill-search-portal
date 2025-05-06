@@ -1,103 +1,203 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
 
-const LEGISCAN_API_KEY = Deno.env.get('LEGISCAN_API_KEY');
-
+// CORS headers for cross-origin requests
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-serve(async (req) => {
-  // Handle CORS preflight requests
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+// Handle CORS preflight requests
+const handleCors = (req: Request) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders, status: 204 });
   }
+  return null;
+};
+
+// Handle the requests
+serve(async (req) => {
+  // Handle CORS
+  const corsResponse = handleCors(req);
+  if (corsResponse) return corsResponse;
 
   try {
-    const { legislatorId } = await req.json();
+    // Parse the request body
+    const { legislatorId, sponsorName } = await req.json();
     
-    if (!legislatorId) {
+    if (!legislatorId && !sponsorName) {
       return new Response(
-        JSON.stringify({ 
-          error: 'Missing legislator ID',
-          message: 'Legislator ID is required' 
-        }),
+        JSON.stringify({ error: "Either legislatorId or sponsorName is required" }),
         { 
-          status: 400,
-          headers: {
-            'Content-Type': 'application/json',
-            ...corsHeaders
-          }
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 400 
         }
       );
     }
 
-    console.log(`Fetching legislator details for ID: ${legislatorId}`);
-    
-    // Call LegiScan API to get legislator details
-    const url = `https://api.legiscan.com/?key=${LEGISCAN_API_KEY}&op=getPerson&id=${legislatorId}`;
-    
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error(`LegiScan API error: ${response.status} ${response.statusText}`);
-    }
+    console.log(`Processing request for legislator: ${legislatorId || 'N/A'}, Name: ${sponsorName || 'N/A'}`);
 
-    const data = await response.json();
-    
-    if (data.status !== 'OK' || !data.person) {
-      console.error('Invalid response from LegiScan:', data);
-      throw new Error('Failed to retrieve legislator information');
-    }
-
-    // Extract the legislator data
-    const legislator = data.person;
-
-    // Build contact info
-    const contactInfo = {
-      party: legislator.party || 'Unknown',
-      // LegiScan API doesn't provide direct email/phone info in getPerson
-      // We'll need to consider if we want to get this from a different source
-      email: [], 
-      phone: [],
-      district: legislator.district || '',
-      role: legislator.role || '',
-      name: {
-        first: legislator.first_name || '',
-        middle: legislator.middle_name || '',
-        last: legislator.last_name || '',
-        suffix: legislator.suffix || '',
-        full: legislator.name || ''
-      }
-    };
-
-    console.log("Extracted legislator info:", JSON.stringify(contactInfo, null, 2));
-    
-    return new Response(
-      JSON.stringify(contactInfo),
-      {
-        headers: {
-          'Content-Type': 'application/json',
-          ...corsHeaders
+    // If we have a legislator ID, try to fetch directly by ID first
+    if (legislatorId) {
+      try {
+        const directResult = await fetchLegislatorById(legislatorId);
+        if (directResult) {
+          return new Response(JSON.stringify(directResult), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
         }
+      } catch (error) {
+        console.error("Error fetching by ID:", error);
+        // Continue to name search if ID fetch fails
+      }
+    }
+
+    // If ID fetch failed or we only have a name, search by name
+    if (sponsorName) {
+      const searchResult = await searchLegislatorByName(sponsorName);
+      return new Response(JSON.stringify(searchResult), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // If we get here, both methods failed
+    return new Response(
+      JSON.stringify({ error: "Could not find legislator information" }),
+      { 
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 404 
       }
     );
 
   } catch (error) {
-    console.error('Error in get-legislator function:', error);
+    console.error("Error processing request:", error);
     return new Response(
-      JSON.stringify({ 
-        error: error.message,
-        message: 'Failed to fetch legislator information' 
-      }),
-      {
-        status: 500,
-        headers: {
-          'Content-Type': 'application/json',
-          ...corsHeaders
-        }
+      JSON.stringify({ error: "Internal server error" }),
+      { 
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 500 
       }
     );
   }
 });
+
+// Fetch legislator by ID from OpenStates API
+async function fetchLegislatorById(legislatorId: string) {
+  const OPENSTATES_API_KEY = Deno.env.get("OPENSTATES_API_KEY");
+  
+  if (!OPENSTATES_API_KEY) {
+    console.error("OpenStates API key not configured");
+    throw new Error("OpenStates API key not configured");
+  }
+
+  try {
+    const response = await fetch(`https://v3.openstates.org/people/${legislatorId}`, {
+      headers: {
+        "X-API-Key": OPENSTATES_API_KEY,
+      },
+    });
+
+    if (!response.ok) {
+      console.error(`Error response from OpenStates API: ${response.status}`);
+      return null;
+    }
+
+    const data = await response.json();
+    return processOpenStatesResponse(data);
+  } catch (error) {
+    console.error("Error fetching from OpenStates:", error);
+    return null;
+  }
+}
+
+// Search legislator by name from OpenStates API
+async function searchLegislatorByName(name: string) {
+  const OPENSTATES_API_KEY = Deno.env.get("OPENSTATES_API_KEY");
+  
+  if (!OPENSTATES_API_KEY) {
+    console.error("OpenStates API key not configured");
+    throw new Error("OpenStates API key not configured");
+  }
+
+  try {
+    // Clean up the name for search - remove titles, suffixes, etc.
+    const searchName = name
+      .replace(/^(Rep\.|Sen\.|Hon\.|Dr\.|Mr\.|Mrs\.|Ms\.|)\s+/i, '')
+      .replace(/,?\s+(Jr\.|Sr\.|I|II|III|IV|MD|PhD|Esq\.?)$/i, '')
+      .trim();
+
+    console.log(`Searching for legislator with name: ${searchName}`);
+
+    const response = await fetch(`https://v3.openstates.org/people?name=${encodeURIComponent(searchName)}&include=offices`, {
+      headers: {
+        "X-API-Key": OPENSTATES_API_KEY,
+      },
+    });
+
+    if (!response.ok) {
+      console.error(`Error response from OpenStates API: ${response.status}`);
+      return null;
+    }
+
+    const data = await response.json();
+    
+    // Debug the results
+    console.log(`Search returned ${data.results?.length || 0} results`);
+    
+    if (!data.results || data.results.length === 0) {
+      return null;
+    }
+
+    // Find best match
+    // For simplicity, just take the first result for now
+    // In a production app, you might want to implement better matching logic
+    return processOpenStatesResponse(data.results[0]);
+  } catch (error) {
+    console.error("Error searching OpenStates:", error);
+    return null;
+  }
+}
+
+// Process and format OpenStates API response
+function processOpenStatesResponse(legislator: any) {
+  if (!legislator) return null;
+
+  // Extract emails and phones from all offices
+  const emails = [];
+  const phones = [];
+  let officeLocation = "";
+
+  if (Array.isArray(legislator.offices)) {
+    for (const office of legislator.offices) {
+      if (office.email && !emails.includes(office.email)) {
+        emails.push(office.email);
+      }
+      if (office.phone && !phones.includes(office.phone)) {
+        phones.push(office.phone);
+      }
+      if (office.name && !officeLocation) {
+        officeLocation = office.name;
+      }
+    }
+  }
+
+  // Build the name object
+  const nameParts = {
+    first: legislator.name.split(' ')[0] || '',
+    middle: '',
+    last: legislator.name.split(' ').slice(1).join(' ') || '',
+    suffix: '',
+    full: legislator.name || ''
+  };
+
+  return {
+    party: legislator.party || '',
+    email: emails,
+    phone: phones,
+    district: legislator.current_role?.district || '',
+    role: legislator.current_role?.title || '',
+    name: nameParts,
+    office: officeLocation,
+    state: legislator.current_role?.state || ''
+  };
+}
