@@ -103,16 +103,28 @@ serve(async (req) => {
       const allBills = Object.values(data.searchresult)
         .filter(item => item.bill_id) // Filter out the summary object
         .map(item => {
-          // Extract sponsor information
-          const sponsorData = item.sponsors || {};
-          const sponsor = sponsorData.primary || 
-                        (Array.isArray(sponsorData) && sponsorData.length > 0 ? sponsorData[0] : null) ||
-                        null;
-                        
-          const cosponsors = sponsorData.cosponsors || 
-                           (Array.isArray(sponsorData) && sponsorData.length > 1 ? sponsorData.slice(1) : []) ||
-                           [];
-                        
+          // Extract all sponsor information carefully
+          let sponsor = null;
+          let cosponsors = [];
+          
+          // Handle different possible structures of sponsor data
+          if (item.sponsors) {
+            if (typeof item.sponsors === 'object' && !Array.isArray(item.sponsors)) {
+              // Handle case where sponsors is an object
+              if (item.sponsors.primary) {
+                sponsor = item.sponsors.primary;
+              }
+              if (Array.isArray(item.sponsors.cosponsors)) {
+                cosponsors = item.sponsors.cosponsors;
+              }
+            } else if (Array.isArray(item.sponsors) && item.sponsors.length > 0) {
+              // Handle case where sponsors is an array
+              sponsor = item.sponsors[0];
+              cosponsors = item.sponsors.slice(1);
+            }
+          }
+
+          // Construct the bill object with sponsor information prominently included
           return {
             id: item.bill_id.toString(),
             title: item.title || `${item.bill_number}`,
@@ -126,9 +138,13 @@ serve(async (req) => {
               description: item.last_action || '',
               details: item.last_action_date || ''
             }],
+            // Include sponsor directly in the top level for immediate access
+            sponsor: sponsor,
+            cosponsors: cosponsors,
             data: {
               ...item,
               sponsor: sponsor,
+              cosponsors: cosponsors,
               sponsors: { 
                 primary: sponsor,
                 cosponsors: cosponsors

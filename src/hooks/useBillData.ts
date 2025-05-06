@@ -32,24 +32,21 @@ export function useBillData({ id, retryCount = 0 }: UseBillDataProps): UseBillDa
       if (!id) throw new Error("Bill ID is required");
       console.log(`Fetching bill data for ID: ${id}`);
       
-      // First check local cache
-      try {
-        const cachedBill = localStorage.getItem(`bill_${id}`);
-        if (cachedBill) {
-          const parsedBill = JSON.parse(cachedBill);
-          console.log(`Using cached bill data for ID: ${id}`);
-          return parsedBill;
-        }
-      } catch (cacheError) {
-        console.warn(`Failed to retrieve bill from cache: ${cacheError.message}`);
-      }
-      
-      // If not in cache, fetch from API
+      // Always attempt to fetch fresh data first
       try {
         const result = await fetchBillById(id);
         
         if (!result) {
           console.warn(`No bill found with ID: ${id}`);
+          
+          // If no result, check local cache before giving up
+          const cachedBill = localStorage.getItem(`bill_${id}`);
+          if (cachedBill) {
+            const parsedBill = JSON.parse(cachedBill);
+            console.log(`Using cached bill data for ID: ${id}`);
+            return parsedBill;
+          }
+          
           return null;
         }
         
@@ -63,6 +60,19 @@ export function useBillData({ id, retryCount = 0 }: UseBillDataProps): UseBillDa
         return result;
       } catch (error) {
         console.error(`Error fetching bill data: ${error.message}`);
+        
+        // If API fetch fails, check local cache
+        try {
+          const cachedBill = localStorage.getItem(`bill_${id}`);
+          if (cachedBill) {
+            const parsedBill = JSON.parse(cachedBill);
+            console.log(`Using cached bill data for ID: ${id} after fetch failure`);
+            return parsedBill;
+          }
+        } catch (cacheError) {
+          console.warn(`Failed to retrieve bill from cache: ${cacheError.message}`);
+        }
+        
         throw error;
       }
     },

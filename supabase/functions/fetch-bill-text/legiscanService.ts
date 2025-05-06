@@ -1,3 +1,4 @@
+
 import { corsHeaders } from "./constants.ts";
 import { createErrorResponse } from "./billHandlers.ts";
 
@@ -132,6 +133,7 @@ async function fetchWithRetry(url: string, retries = 2, backoff = 1500) {
 
 /**
  * Decode base64 text content
+ * This is a more robust implementation that handles various edge cases
  */
 export function decodeBase64Text(base64Content: string) {
   // First, handle URL-safe base64

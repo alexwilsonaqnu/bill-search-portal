@@ -4,7 +4,7 @@ import { Bill } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import BillTextHash from "./BillTextHash";
 import BillTextContent from "./BillTextContent";
-import { fetchBillText } from "@/services/legiscan";
+import { fetchBillText } from "@/services/billTextService";
 import { fallbackBillText } from "@/services/billTextService";
 import { toast } from "sonner";
 import BillTextLoading from "./BillTextLoading";
@@ -22,8 +22,23 @@ const BillTextContainer = ({ bill }: BillTextContainerProps) => {
   
   // Always try to fetch text on mount
   useEffect(() => {
+    // First check if we've already cached the text content
+    const checkCachedText = () => {
+      try {
+        const cachedText = localStorage.getItem(`bill_text_${bill.id}`);
+        if (cachedText) {
+          console.log(`Using cached bill text for ID: ${bill.id}`);
+          setTextLoaded(true);
+          return true;
+        }
+      } catch (e) {
+        console.warn("Error retrieving text from cache:", e);
+      }
+      return false;
+    };
+
     const loadBillText = async () => {
-      if (bill.id && !textLoaded && retries < MAX_RETRIES) {
+      if (bill.id && !textLoaded && retries < MAX_RETRIES && !checkCachedText()) {
         setIsLoading(true);
         setErrorMessage(null);
         
@@ -31,6 +46,14 @@ const BillTextContainer = ({ bill }: BillTextContainerProps) => {
           console.log(`Attempting to load text for bill ID: ${bill.id}`);
           const result = await fetchBillText(bill.id);
           console.log("Successfully fetched bill text:", result);
+          
+          // Cache the successful result
+          try {
+            localStorage.setItem(`bill_text_${bill.id}`, JSON.stringify(result));
+          } catch (storageError) {
+            console.warn(`Failed to cache bill text: ${storageError}`);
+          }
+          
           setTextLoaded(true);
         } catch (error) {
           console.error("Error auto-loading bill text:", error);

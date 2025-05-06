@@ -18,14 +18,22 @@ const BillCard = ({ bill, className = "", animationDelay }: BillCardProps) => {
   // Process bill data to ensure we have sponsor information accessible
   const processedBill = {
     ...bill,
+    // Ensure sponsor is properly exposed at the top level
+    sponsor: bill.sponsor || null,
+    cosponsors: bill.cosponsors || [],
     // Ensure any data from search API is properly structured
     data: bill.data ? {
       ...bill.data,
-      // If sponsor is nested in other fields, bring it up to the main level
-      sponsor: bill.data.sponsor || 
+      // Ensure sponsor data is properly structured
+      sponsor: bill.sponsor || bill.data.sponsor || 
               (bill.data.sponsors?.primary ? bill.data.sponsors.primary : null) ||
               (Array.isArray(bill.data.sponsors) && bill.data.sponsors.length > 0 ? 
-                bill.data.sponsors[0] : null)
+                bill.data.sponsors[0] : null),
+      // Ensure cosponsors data is properly structured
+      cosponsors: bill.cosponsors || bill.data.cosponsors ||
+                 (bill.data.sponsors?.cosponsors ? bill.data.sponsors.cosponsors : []) ||
+                 (Array.isArray(bill.data.sponsors) && bill.data.sponsors.length > 1 ? 
+                   bill.data.sponsors.slice(1) : [])
     } : {}
   };
 
