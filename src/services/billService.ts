@@ -21,6 +21,7 @@ export async function fetchBills(
       return { bills: [], currentPage: page, totalPages: 0, totalItems: 0 };
     }
 
+    // Make sure we only use the LegiScan API through our edge function
     const { data, error } = await supabase.functions.invoke('search-bills', {
       body: { query, page, pageSize, sessionId }
     });
@@ -31,12 +32,15 @@ export async function fetchBills(
       return { bills: [], currentPage: page, totalPages: 0, totalItems: 0 };
     }
     
-    // If we have proper pagination from the API, use it
+    console.log("Search response:", data);
+    
+    // Process the search results
     if (data && data.bills && typeof data.currentPage === 'number' && typeof data.totalPages === 'number') {
+      // We have proper pagination from the API, use it directly
       return data;
     } else if (data && data.bills) {
       // Otherwise, process the results locally with our pagination logic
-      return processResults(data.bills, "", page, pageSize);
+      return processResults(data.bills, query, page, pageSize);
     }
 
     return { bills: [], currentPage: page, totalPages: 0, totalItems: 0 };

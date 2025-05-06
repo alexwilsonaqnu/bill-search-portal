@@ -1,7 +1,6 @@
 
 import React from 'react';
 import { Button } from "@/components/ui/button";
-import { ChevronDown } from "lucide-react";
 
 interface ShowMoreButtonProps {
   onClick: () => void;
@@ -10,13 +9,12 @@ interface ShowMoreButtonProps {
 const ShowMoreButton = ({ onClick }: ShowMoreButtonProps) => {
   return (
     <Button 
-      variant="outline" 
+      variant="ghost" 
       size="sm" 
-      className="mt-4 flex items-center gap-1" 
+      className="mt-2" 
       onClick={onClick}
     >
-      <ChevronDown className="h-4 w-4" />
-      View Full Text
+      Show Full Text
     </Button>
   );
 };

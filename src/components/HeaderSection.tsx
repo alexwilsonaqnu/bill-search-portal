@@ -6,9 +6,10 @@ import SearchBar from "@/components/SearchBar";
 interface HeaderSectionProps {
   query: string;
   onSearch: (query: string) => void;
+  isLoading?: boolean;
 }
 
-const HeaderSection = ({ query, onSearch }: HeaderSectionProps) => {
+const HeaderSection = ({ query, onSearch, isLoading }: HeaderSectionProps) => {
   return (
     <div className="text-center mb-16">
       <div className="hidden md:block absolute top-20 left-6 text-gray-500 text-sm">
@@ -20,7 +21,11 @@ const HeaderSection = ({ query, onSearch }: HeaderSectionProps) => {
       </h1>
       
       <div className="mx-auto max-w-xl">
-        <SearchBar initialQuery={query} onSearch={onSearch} />
+        <SearchBar 
+          initialQuery={query} 
+          onSearch={onSearch} 
+          isLoading={isLoading}
+        />
       </div>
     </div>
   );
