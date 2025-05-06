@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Bill } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -26,23 +25,13 @@ const KeyInsightsCard = ({ bill }: KeyInsightsCardProps) => {
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Newsworthy score section */}
-        <div className="flex justify-between items-center">
+        <div className="flex justify-center items-center">
           <div className="flex items-center">
             <div className="border border-green-300 rounded-md p-4 bg-white text-center">
               <p className="text-4xl font-bold text-green-500">{newsworthyScore}</p>
               <p className="text-sm text-green-500">Newsworthy</p>
             </div>
           </div>
-          <Button 
-            variant="outline" 
-            size="sm"
-            className="flex items-center gap-1 text-xs"
-          >
-            <span className="w-4 h-4 rounded-full bg-blue-500 flex items-center justify-center text-white">
-              i
-            </span>
-            Adjust scoring criteria
-          </Button>
         </div>
         
         {/* Tab buttons - Updated to use smaller size and better layout */}

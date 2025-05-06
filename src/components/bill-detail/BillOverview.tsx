@@ -25,7 +25,7 @@ const BillOverview = ({ bill }: BillOverviewProps) => {
               {bill.title}
             </p>
           </div>
-          
+          <h3 className="font-semibold mb-2">Description</h3>
           <p className="text-gray-700">
             {description}
           </p>
