@@ -18,6 +18,14 @@ const BillOverview = ({ bill }: BillOverviewProps) => {
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
+          {/* Add bill title */}
+          <div className="mb-4">
+            <h3 className="font-semibold mb-2">Title</h3>
+            <p className="text-gray-700">
+              {bill.title}
+            </p>
+          </div>
+          
           <p className="text-gray-700">
             {description}
           </p>
