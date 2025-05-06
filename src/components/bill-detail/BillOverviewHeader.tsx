@@ -44,11 +44,8 @@ const BillOverviewHeader = ({
       <div className="space-y-6">
         <BillBasicInfo bill={bill} />
         
-        <BillResourceLinks 
-          ilgaUrl={ilgaUrl} 
-          isLoadingExternalContent={isLoadingExternalContent}
-          fetchExternalContent={fetchExternalContent}
-        />
+        {/* Updated to pass bill prop instead of individual props */}
+        <BillResourceLinks bill={bill} />
         
         <BillTextHash 
           textHash={textHash} 
@@ -56,7 +53,8 @@ const BillOverviewHeader = ({
           externalUrl={ilgaUrl} 
         />
         
-        <BillHistoryView changes={bill.changes} />
+        {/* Updated to pass bill prop instead of changes */}
+        <BillHistoryView bill={bill} />
       </div>
     </Card>
   );
