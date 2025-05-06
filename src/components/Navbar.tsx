@@ -8,10 +8,9 @@ const Navbar = () => {
         <Link 
           to="/"
           className="inline-block transition-transform duration-300 hover:scale-105"
+          aria-label="Billinois Home"
         >
-          <h1 className="text-4xl font-bold billinois-logo">
-            Billinois
-          </h1>
+          <h1 className="text-4xl font-bold billinois-logo">Billinois</h1>
         </Link>
       </div>
     </header>
