@@ -1,3 +1,4 @@
+
 import { Bill, SearchResults } from "@/types";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -30,6 +31,8 @@ export async function fetchBills(
       toast.error("Failed to search bills. Please try again later.");
       return { bills: [], currentPage: page, totalPages: 0, totalItems: 0 };
     }
+    
+    console.log("Search response:", data);
     
     // If we have proper pagination from the API, use it
     if (data && data.bills && typeof data.currentPage === 'number' && typeof data.totalPages === 'number') {

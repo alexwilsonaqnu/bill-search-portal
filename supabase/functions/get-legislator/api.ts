@@ -1,6 +1,36 @@
 
 import { corsHeaders, processOpenStatesResponse, cleanNameForSearch } from "./utils.ts";
 
+// Simple memory cache
+const legislatorCache = new Map();
+const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
+
+// Implements exponential backoff for retries
+async function fetchWithBackoff(url: string, options: RequestInit, retries = 3, delay = 1000): Promise<Response> {
+  try {
+    const response = await fetch(url, options);
+    
+    if (response.status === 429 && retries > 0) {
+      // Get retry-after header or use exponential backoff
+      const retryAfter = response.headers.get('retry-after');
+      const waitTime = retryAfter ? parseInt(retryAfter) * 1000 : delay;
+      
+      console.log(`Rate limited (429), retrying after ${waitTime}ms. Retries left: ${retries}`);
+      await new Promise(resolve => setTimeout(resolve, waitTime));
+      return fetchWithBackoff(url, options, retries - 1, delay * 2);
+    }
+    
+    return response;
+  } catch (error) {
+    if (retries > 0) {
+      console.error(`Fetch error: ${error.message}. Retrying...`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+      return fetchWithBackoff(url, options, retries - 1, delay * 2);
+    }
+    throw error;
+  }
+}
+
 // Get API key or throw an error if not configured
 export function getApiKey(): string {
   const OPENSTATES_API_KEY = Deno.env.get("OPENSTATES_API_KEY") || Deno.env.get("OPEN_STATES_API_KEY");
@@ -13,16 +43,46 @@ export function getApiKey(): string {
   return OPENSTATES_API_KEY;
 }
 
+// Check cache first before making API request
+function getCachedLegislator(cacheKey: string): any | null {
+  if (legislatorCache.has(cacheKey)) {
+    const { data, timestamp } = legislatorCache.get(cacheKey);
+    const now = Date.now();
+    
+    if (now - timestamp < CACHE_TTL) {
+      console.log(`Cache hit for: ${cacheKey}`);
+      return data;
+    } else {
+      // Remove expired cache entry
+      legislatorCache.delete(cacheKey);
+    }
+  }
+  return null;
+}
+
+// Set cache for legislator data
+function setCachedLegislator(cacheKey: string, data: any): void {
+  legislatorCache.set(cacheKey, {
+    data,
+    timestamp: Date.now()
+  });
+  console.log(`Cached legislator: ${cacheKey}`);
+}
+
 // Fetch legislator by ID from OpenStates API
 export async function fetchLegislatorById(legislatorId: string) {
+  const cacheKey = `id-${legislatorId}`;
+  const cachedData = getCachedLegislator(cacheKey);
+  if (cachedData) return cachedData;
+
   const OPENSTATES_API_KEY = getApiKey();
 
   try {
-    const response = await fetch(`https://v3.openstates.org/people/${legislatorId}?include=offices`, {
+    const response = await fetchWithBackoff(`https://v3.openstates.org/people/${legislatorId}?include=offices`, {
       headers: {
         "X-API-Key": OPENSTATES_API_KEY,
       },
-    });
+    }, 2);
 
     if (!response.ok) {
       console.error(`Error response from OpenStates API: ${response.status}`);
@@ -30,7 +90,9 @@ export async function fetchLegislatorById(legislatorId: string) {
     }
 
     const data = await response.json();
-    return processOpenStatesResponse(data);
+    const processed = processOpenStatesResponse(data);
+    setCachedLegislator(cacheKey, processed);
+    return processed;
   } catch (error) {
     console.error("Error fetching from OpenStates:", error);
     return null;
@@ -39,19 +101,21 @@ export async function fetchLegislatorById(legislatorId: string) {
 
 // Search legislator by name from OpenStates API
 export async function searchLegislatorByName(name: string) {
+  const cleanedName = cleanNameForSearch(name);
+  const cacheKey = `name-${cleanedName}`;
+  const cachedData = getCachedLegislator(cacheKey);
+  if (cachedData) return cachedData;
+
   const OPENSTATES_API_KEY = getApiKey();
 
   try {
-    // Clean up the name for search
-    const searchName = cleanNameForSearch(name);
+    console.log(`Searching for legislator with name: ${cleanedName}`);
 
-    console.log(`Searching for legislator with name: ${searchName}`);
-
-    const response = await fetch(`https://v3.openstates.org/people?name=${encodeURIComponent(searchName)}&include=offices`, {
+    const response = await fetchWithBackoff(`https://v3.openstates.org/people?name=${encodeURIComponent(cleanedName)}&include=offices`, {
       headers: {
         "X-API-Key": OPENSTATES_API_KEY,
       },
-    });
+    }, 2);
 
     if (!response.ok) {
       console.error(`Error response from OpenStates API: ${response.status}`);
@@ -73,7 +137,9 @@ export async function searchLegislatorByName(name: string) {
     }
 
     // Find best match - for simplicity, just take the first result
-    return processOpenStatesResponse(data.results[0]);
+    const processed = processOpenStatesResponse(data.results[0]);
+    setCachedLegislator(cacheKey, processed);
+    return processed;
   } catch (error) {
     console.error("Error searching OpenStates:", error);
     return createEnhancedLegislatorFromName(name);

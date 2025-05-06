@@ -17,24 +17,32 @@ const Index = () => {
   
   const { dbStatus, storageStatus, availableBuckets } = useSupabaseStatus();
   
-  const { data, isLoading, error, refetch } = useQuery({
+  const { data, isLoading, error, refetch, isFetching } = useQuery({
     queryKey: ["bills", query, currentPage],
     queryFn: () => fetchBills(query, currentPage),
     staleTime: 5 * 60 * 1000, // 5 minutes
     placeholderData: (previousData) => previousData,
     enabled: !!query, // Only fetch when there's a search query
+    retry: 2,
+    retryDelay: (attempt) => Math.min(attempt * 1000, 3000), // Exponential backoff with max 3s
   });
 
   console.log("Index page - Search status:", {
     query,
     isLoading,
+    isFetching,
     hasError: !!error,
     resultsCount: data?.bills?.length || 0,
     totalResults: data?.totalItems || 0,
   });
 
   const handleSearch = (newQuery: string) => {
-    setSearchParams({ q: newQuery, page: "1" });
+    if (newQuery.trim() === query) {
+      // If same query, force refetch
+      refetch();
+    } else {
+      setSearchParams({ q: newQuery, page: "1" });
+    }
   };
 
   const handlePageChange = (page: number) => {
@@ -47,6 +55,8 @@ const Index = () => {
     refetch();
   };
 
+  const isSearching = isLoading || isFetching;
+
   return (
     <div className="min-h-screen bg-gray-50 relative page-transition-wrapper">
       <Navbar />
@@ -57,26 +67,44 @@ const Index = () => {
           onSearch={handleSearch} 
         />
         
-        {!query && !isLoading && (
+        {!query && !isSearching && (
           <div className="text-center text-gray-500 mt-8">
             Enter a search term to find bills
           </div>
         )}
 
-        {query && !isLoading && data?.bills && data.bills.length > 0 && (
+        {query && isSearching && (
+          <div className="text-center text-gray-500 mt-8">
+            Searching for bills with "{query}"...
+          </div>
+        )}
+
+        {query && !isSearching && data?.bills && data.bills.length > 0 && (
           <div className="mb-4 text-sm text-gray-500">
             Found {data.totalItems} results for "{query}"
           </div>
         )}
 
-        {query && !isLoading && (!data?.bills || data.bills.length === 0) && (
+        {query && !isSearching && (!data?.bills || data.bills.length === 0) && (
           <div className="text-center text-gray-500 mt-8">
             No bills found for "{query}"
           </div>
         )}
 
+        {error && !isSearching && (
+          <div className="text-center text-red-500 mt-8">
+            Error searching for bills. Please try again.
+            <button 
+              onClick={handleRetry}
+              className="block mx-auto mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+            >
+              Retry Search
+            </button>
+          </div>
+        )}
+
         <BillsList 
-          isLoading={isLoading}
+          isLoading={isSearching}
           billsToShow={data?.bills}
           data={data}
           error={error}
