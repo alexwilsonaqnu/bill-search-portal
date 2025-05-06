@@ -11,6 +11,8 @@ export interface Bill {
   versions: BillVersion[];
   changes: Change[];
   data?: any;
+  sponsor?: any; // Add sponsor property
+  cosponsors?: any[]; // Add cosponsors property
 }
 
 export interface BillVersion {
