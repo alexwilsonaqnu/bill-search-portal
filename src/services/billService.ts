@@ -1,3 +1,4 @@
+
 import { Bill, SearchResults } from "@/types";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -40,10 +41,9 @@ export async function fetchBills(
     const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
 
     try {
-      // Call the edge function with a timeout
+      // Call the edge function without passing the signal parameter
       const { data, error } = await supabase.functions.invoke('search-bills', {
-        body: { query, page, pageSize, sessionId },
-        signal: controller.signal
+        body: { query, page, pageSize, sessionId }
       });
 
       // Clear timeout
