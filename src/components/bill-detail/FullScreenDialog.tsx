@@ -5,6 +5,7 @@ import { Minimize } from "lucide-react";
 import PdfViewer from "./pdf/PdfViewer";
 import ExtractedTextDisplay from "./pdf/ExtractedTextDisplay";
 import PdfFallbackDisplay from "./pdf/PdfFallbackDisplay";
+import TextContentDisplay from "./text/TextContentDisplay";
 
 interface FullScreenDialogProps {
   isOpen: boolean;
@@ -68,18 +69,11 @@ const FullScreenDialog = ({
           </div>
         ) : (
           /* Regular Content in Full Screen */
-          isHtmlContent ? (
-            <div className="bg-white p-4 rounded-md overflow-auto h-[75vh] border shadow-sm">
-              <div 
-                dangerouslySetInnerHTML={{ __html: textContent || "" }}
-                className="prose max-w-none"
-              />
-            </div>
-          ) : (
-            <div className="whitespace-pre-wrap bg-gray-50 p-4 rounded-md text-sm font-mono overflow-auto h-[75vh] border">
-              {textContent}
-            </div>
-          )
+          <TextContentDisplay 
+            content={textContent || ""} 
+            isHtml={isHtmlContent} 
+            isFullScreen={true}
+          />
         )}
       </DialogContent>
     </Dialog>
