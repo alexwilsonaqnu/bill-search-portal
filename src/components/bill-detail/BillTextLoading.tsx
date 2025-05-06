@@ -5,9 +5,10 @@ import { Button } from "@/components/ui/button";
 interface BillTextLoadingProps {
   isLoading: boolean;
   onFetchText: () => void;
+  errorMessage?: string | null;
 }
 
-const BillTextLoading = ({ isLoading, onFetchText }: BillTextLoadingProps) => {
+const BillTextLoading = ({ isLoading, onFetchText, errorMessage }: BillTextLoadingProps) => {
   return (
     <>
       {isLoading ? (
@@ -23,8 +24,11 @@ const BillTextLoading = ({ isLoading, onFetchText }: BillTextLoadingProps) => {
             size="sm"
             className="mt-2"
           >
-            {isLoading ? "Loading..." : "Load Bill Text"}
+            {isLoading ? "Loading..." : errorMessage ? "Retry Loading Text" : "Load Bill Text"}
           </Button>
+          <p className="text-xs text-gray-500 mt-1">
+            Click to fetch the bill text from LegiScan
+          </p>
         </div>
       )}
     </>

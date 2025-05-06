@@ -37,9 +37,43 @@ serve(async (req) => {
     if (billId === '1636654') {
       return handleIllinoisBill1636654();
     }
+    
+    // Check if Legiscan API key is available
+    if (!LEGISCAN_API_KEY) {
+      return createErrorResponse(
+        'Legiscan API key is not configured',
+        'The system is not properly configured to fetch bill text. Please contact the administrator.',
+        null,
+        500
+      );
+    }
 
-    // For all other bills, fetch from Legiscan API with improved handling
-    return await fetchFromLegiscan(billId, LEGISCAN_API_KEY);
+    // For all other bills, fetch from Legiscan API with improved handling and timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
+    
+    try {
+      const response = await fetchFromLegiscan(billId, LEGISCAN_API_KEY);
+      clearTimeout(timeoutId);
+      return response;
+    } catch (error) {
+      clearTimeout(timeoutId);
+      console.error(`Error fetching from LegiScan API: ${error.message}`);
+      
+      // Check if we aborted due to timeout
+      if (error.name === 'AbortError') {
+        return createErrorResponse(
+          'Request timeout',
+          'The request to LegiScan timed out. Please try again later.',
+          { billId }
+        );
+      }
+      
+      return createErrorResponse(
+        error.message || 'Unknown error occurred',
+        'Failed to fetch the bill text. The LegiScan API may be temporarily unavailable.'
+      );
+    }
     
   } catch (error) {
     console.error('Error in fetch-bill-text function:', error);
