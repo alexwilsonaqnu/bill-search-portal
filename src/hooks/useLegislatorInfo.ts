@@ -61,8 +61,8 @@ export const useLegislatorInfo = (legislatorId: string, sponsorName?: string) =>
         // Ensure email and phone are arrays
         const legislatorInfo: LegislatorInfo = {
           ...data as LegislatorInfo,
-          email: Array.isArray(data.email) ? data.email : [],
-          phone: Array.isArray(data.phone) ? data.phone : []
+          email: Array.isArray(data.email) ? data.email : data.email ? [data.email] : [],
+          phone: Array.isArray(data.phone) ? data.phone : data.phone ? [data.phone] : []
         };
 
         return legislatorInfo;

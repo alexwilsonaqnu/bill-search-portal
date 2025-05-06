@@ -7,10 +7,9 @@ interface SponsorContactInfoProps {
 }
 
 const SponsorContactInfo = ({ emails, phones }: SponsorContactInfoProps) => {
-  // Debug output
   console.log("SponsorContactInfo received:", { emails, phones });
   
-  // Return null if no contact info available
+  // Return a message if no contact info available
   if (!emails?.length && !phones?.length) {
     console.log("No contact info to display");
     return (

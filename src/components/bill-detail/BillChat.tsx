@@ -19,6 +19,11 @@ const BillChat = ({ content, billText, isOpen, onClose }: ChatProps & { isOpen: 
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  // If not open or no content, return null to hide the chat
+  if (!isOpen || !billContent) {
+    return null;
+  }
+
   const handleSendMessage = async () => {
     if (!inputMessage.trim() || !billContent) return;
     
@@ -71,9 +76,6 @@ const BillChat = ({ content, billText, isOpen, onClose }: ChatProps & { isOpen: 
       setIsLoading(false);
     }
   };
-
-  // Don't render anything if not open or no content
-  if (!billContent || !isOpen) return null;
 
   return (
     <div className="fixed bottom-4 left-4 w-[350px] h-[calc(100vh-2rem)] max-h-[calc(100vh-2rem)] bg-white border rounded-lg shadow-lg flex flex-col z-50"> 
