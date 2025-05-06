@@ -18,11 +18,26 @@ serve(async (req) => {
   if (corsResponse) return corsResponse;
 
   try {
-    return await handleRequest(req);
+    // Add timeout to prevent hanging requests
+    const timeoutPromise = new Promise<Response>((_, reject) => {
+      setTimeout(() => {
+        reject(new Error("Request timeout after 8 seconds"));
+      }, 8000);
+    });
+
+    // Race the actual request against the timeout
+    return await Promise.race([
+      handleRequest(req),
+      timeoutPromise
+    ]);
   } catch (error) {
     console.error("Error processing request:", error);
     return new Response(
-      JSON.stringify({ error: "Internal server error" }),
+      JSON.stringify({ 
+        error: "Internal server error", 
+        message: error.message || "Unknown error",
+        success: false
+      }),
       { 
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 500 

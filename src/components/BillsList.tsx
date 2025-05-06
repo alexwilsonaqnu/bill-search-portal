@@ -3,6 +3,8 @@ import React from "react";
 import BillCard from "@/components/BillCard";
 import Pagination from "@/components/Pagination";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Spinner } from "@/components/ui/spinner";
 import { Bill } from "@/types";
 
 interface BillsListProps {
@@ -31,11 +33,26 @@ const BillsList = ({
     return (
       <div className="space-y-4 mt-8">
         {[1, 2, 3].map((i) => (
-          <div 
+          <Skeleton 
             key={i} 
-            className="h-40 rounded-lg bg-gray-100 animate-pulse-light"
+            className="h-40 rounded-lg"
           />
         ))}
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-10 bg-gray-50 rounded-lg mt-8">
+        <p className="text-red-500 mb-4">Error searching for bills. Please try again.</p>
+        <Button 
+          onClick={onRetry}
+          variant="default"
+          className="mx-auto"
+        >
+          Retry Search
+        </Button>
       </div>
     );
   }

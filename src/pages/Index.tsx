@@ -1,10 +1,10 @@
 
-import { useState } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
+import { toast } from "sonner";
 import Navbar from "@/components/Navbar";
 import { fetchBills } from "@/services/billService";
-import { toast } from "sonner";
 import HeaderSection from "@/components/HeaderSection";
 import BillsList from "@/components/BillsList";
 import { useSupabaseStatus } from "@/hooks/useSupabaseStatus";
@@ -14,51 +14,62 @@ const Index = () => {
   const query = searchParams.get("q") || "";
   const pageParam = searchParams.get("page");
   const currentPage = pageParam ? parseInt(pageParam) : 1;
+  const [isSearchInitiated, setIsSearchInitiated] = useState(!!query);
   
-  const { dbStatus, storageStatus, availableBuckets } = useSupabaseStatus();
+  const { dbStatus, storageStatus } = useSupabaseStatus();
+  
+  // Only fetch when there's a search query AND search is initiated
+  // This prevents auto-fetch on component mount with existing query param
+  const enabled = !!query && isSearchInitiated;
   
   const { data, isLoading, error, refetch, isFetching } = useQuery({
     queryKey: ["bills", query, currentPage],
     queryFn: () => fetchBills(query, currentPage),
+    enabled,
     staleTime: 5 * 60 * 1000, // 5 minutes
-    placeholderData: (previousData) => previousData,
-    enabled: !!query, // Only fetch when there's a search query
-    retry: 2,
-    retryDelay: (attempt) => Math.min(attempt * 1000, 3000), // Exponential backoff with max 3s
+    retry: 1, // Only retry once to avoid hammering failing API
+    onError: () => {
+      toast.error("Error searching for bills", {
+        description: "There was a problem connecting to LegiScan. Please try again later."
+      });
+    }
   });
 
-  console.log("Index page - Search status:", {
-    query,
-    isLoading,
-    isFetching,
-    hasError: !!error,
-    resultsCount: data?.bills?.length || 0,
-    totalResults: data?.totalItems || 0,
-  });
+  // Clear isSearchInitiated flag when query changes from URL
+  useEffect(() => {
+    if (!query) {
+      setIsSearchInitiated(false);
+    }
+  }, [query]);
 
-  const handleSearch = (newQuery: string) => {
+  const handleSearch = useCallback((newQuery: string) => {
+    if (!newQuery.trim()) return;
+    
+    // Set search initiated flag to trigger the query
+    setIsSearchInitiated(true);
+    
     if (newQuery.trim() === query) {
       // If same query, force refetch
       refetch();
     } else {
       setSearchParams({ q: newQuery, page: "1" });
     }
-  };
+  }, [query, refetch, setSearchParams]);
 
-  const handlePageChange = (page: number) => {
+  const handlePageChange = useCallback((page: number) => {
     setSearchParams({ q: query, page: page.toString() });
     window.scrollTo({ top: 0, behavior: "smooth" });
-  };
+  }, [query, setSearchParams]);
 
-  const handleRetry = () => {
+  const handleRetry = useCallback(() => {
     toast.info("Retrying search...");
     refetch();
-  };
+  }, [refetch]);
 
   const isSearching = isLoading || isFetching;
 
   return (
-    <div className="min-h-screen bg-gray-50 relative page-transition-wrapper">
+    <div className="min-h-screen bg-gray-50 relative">
       <Navbar />
       
       <div className="max-w-5xl mx-auto pt-28 pb-20 px-6">
@@ -74,9 +85,14 @@ const Index = () => {
           </div>
         )}
 
-        {query && isSearching && (
-          <div className="text-center text-gray-500 mt-8">
-            Searching for bills with "{query}"...
+        {query && !isSearchInitiated && (
+          <div className="text-center mt-8">
+            <button 
+              onClick={() => handleSearch(query)}
+              className="px-4 py-2 bg-brand-primary text-white rounded-md hover:bg-brand-primary/90 transition-colors"
+            >
+              Search for "{query}"
+            </button>
           </div>
         )}
 
@@ -86,21 +102,9 @@ const Index = () => {
           </div>
         )}
 
-        {query && !isSearching && (!data?.bills || data.bills.length === 0) && (
+        {query && isSearchInitiated && !isSearching && (!data?.bills || data.bills.length === 0) && (
           <div className="text-center text-gray-500 mt-8">
             No bills found for "{query}"
-          </div>
-        )}
-
-        {error && !isSearching && (
-          <div className="text-center text-red-500 mt-8">
-            Error searching for bills. Please try again.
-            <button 
-              onClick={handleRetry}
-              className="block mx-auto mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
-            >
-              Retry Search
-            </button>
           </div>
         )}
 
