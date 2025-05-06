@@ -24,44 +24,68 @@ const HtmlContentParser = ({ htmlContent }: HtmlContentParserProps) => {
   const safelyDomToReact = (nodes: Element['children'] | null) => {
     if (!nodes) return null;
     const safeNodes = safelyFilterNodes(nodes);
-    return domToReact(safeNodes);
+    return domToReact(safeNodes, parserOptions);
   };
 
   // Custom options for the HTML parser
   const parserOptions: HTMLReactParserOptions = {
     replace: (domNode) => {
       if (domNode instanceof Element) {
+        // Handle style tags - preserve them but don't render in DOM
+        if (domNode.name === 'style') {
+          return <></>;
+        }
+        
+        // Handle tables with responsive design
         if (domNode.name === 'table') {
           // Add responsive table wrapper and styling
           const tableRows = Array.from(domNode.children || [])
-            .filter(child => child instanceof Element && child.name === 'tr');
+            .filter(child => child instanceof Element && 
+                   (child.name === 'tr' || child.name === 'tbody' || child.name === 'thead'));
+          
+          // Extract rows from nested tbody/thead if present
+          let allRows: Element[] = [];
+          tableRows.forEach(row => {
+            if (row instanceof Element) {
+              if (row.name === 'tr') {
+                allRows.push(row);
+              } else if ((row.name === 'tbody' || row.name === 'thead') && row.children) {
+                allRows = allRows.concat(
+                  Array.from(row.children)
+                    .filter(child => child instanceof Element && child.name === 'tr') as Element[]
+                );
+              }
+            }
+          });
+
+          if (allRows.length === 0) {
+            return null;
+          }
 
           return (
             <div className="overflow-x-auto mb-4">
               <Table>
                 <TableHeader>
-                  {tableRows.length > 0 && tableRows[0] instanceof Element && (
+                  {allRows.length > 0 && allRows[0] instanceof Element && (
                     <TableRow>
-                      {Array.from(tableRows[0].children || [])
+                      {Array.from(allRows[0].children || [])
                         .filter(cell => cell instanceof Element && (cell.name === 'td' || cell.name === 'th'))
                         .map((cell, i) => (
-                          <TableHead key={i}>
-                            {cell instanceof Element && 
-                              safelyDomToReact(cell.children)}
+                          <TableHead key={i} className="whitespace-nowrap">
+                            {cell instanceof Element && safelyDomToReact(cell.children)}
                           </TableHead>
                         ))}
                     </TableRow>
                   )}
                 </TableHeader>
                 <TableBody>
-                  {tableRows.slice(1).map((row, i) => (
+                  {allRows.slice(1).map((row, i) => (
                     <TableRow key={i}>
                       {row instanceof Element && Array.from(row.children || [])
                         .filter(cell => cell instanceof Element && (cell.name === 'td' || cell.name === 'th'))
                         .map((cell, j) => (
                           <TableCell key={j}>
-                            {cell instanceof Element && 
-                              safelyDomToReact(cell.children)}
+                            {cell instanceof Element && safelyDomToReact(cell.children)}
                           </TableCell>
                         ))}
                     </TableRow>
@@ -70,10 +94,13 @@ const HtmlContentParser = ({ htmlContent }: HtmlContentParserProps) => {
               </Table>
             </div>
           );
-        } else if (domNode.name === 'code') {
+        } else if (domNode.name === 'meta') {
+          // Skip meta tags
+          return <></>;
+        } else if (domNode.name === 'code' || domNode.name === 'pre') {
           // Style code blocks
           return (
-            <code className="px-1 py-0.5 bg-gray-100 rounded text-sm">
+            <code className="px-1 py-0.5 bg-gray-100 rounded text-sm block whitespace-pre-wrap font-mono">
               {safelyDomToReact(domNode.children)}
             </code>
           );
@@ -84,6 +111,27 @@ const HtmlContentParser = ({ htmlContent }: HtmlContentParserProps) => {
               {safelyDomToReact(domNode.children)}
             </span>
           );
+        } else if (domNode.name === 's') {
+          // Strikethrough text (deletions in bills)
+          return (
+            <span className="line-through text-red-700">
+              {safelyDomToReact(domNode.children)}
+            </span>
+          );
+        } else if (domNode.name === 'u') {
+          // Underline text (additions in bills)
+          return (
+            <span className="underline text-green-700">
+              {safelyDomToReact(domNode.children)}
+            </span>
+          );
+        } else if (domNode.name === 'center') {
+          // Centered text (often section headers)
+          return (
+            <div className="text-center font-semibold py-2">
+              {safelyDomToReact(domNode.children)}
+            </div>
+          );
         }
       }
       
@@ -91,9 +139,14 @@ const HtmlContentParser = ({ htmlContent }: HtmlContentParserProps) => {
     }
   };
 
+  // If the content is very basic HTML, enhance it with basic styling
+  const enhancedContent = htmlContent.includes('<style') 
+    ? htmlContent 
+    : `<div class="bill-text-content">${htmlContent}</div>`;
+
   return (
     <>
-      <style>{`
+      <style jsx global>{`
         .bill-text-content {
           font-family: system-ui, -apple-system, sans-serif;
         }
@@ -114,13 +167,10 @@ const HtmlContentParser = ({ htmlContent }: HtmlContentParserProps) => {
           margin-bottom: 1rem;
           line-height: 1.5;
         }
-        .bill-text-content table {
-          border-collapse: collapse;
-          width: 100%;
-        }
         .bill-text-content td, .bill-text-content th {
           border: 1px solid #e5e7eb;
           padding: 8px;
+          vertical-align: top;
         }
         .bill-text-content pre {
           white-space: pre-wrap;
@@ -130,8 +180,19 @@ const HtmlContentParser = ({ htmlContent }: HtmlContentParserProps) => {
           padding: 0.5em;
           border-radius: 4px;
         }
+        .bill-text-content s {
+          color: #991b1b;
+        }
+        .bill-text-content u {
+          color: #166534;
+        }
+        .bill-text-content center {
+          font-weight: 600;
+        }
       `}</style>
-      {parse(htmlContent, parserOptions)}
+      <div className="bill-content-wrapper">
+        {parse(enhancedContent, parserOptions)}
+      </div>
     </>
   );
 };

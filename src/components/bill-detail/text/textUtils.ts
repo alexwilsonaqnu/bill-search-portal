@@ -5,8 +5,17 @@
 
 // Function to clean up HTML content
 export const cleanHtmlContent = (htmlContent: string) => {
-  // Remove the raw HTML tags from display if they appear to be unprocessed
-  if (htmlContent.includes('<table') && htmlContent.includes('<tr') && htmlContent.includes('<td')) {
+  if (!htmlContent) return '';
+  
+  // If the content is a complete HTML document, return it as is
+  if (htmlContent.includes('<!DOCTYPE') || 
+      htmlContent.includes('<html>') ||
+      htmlContent.includes('<body>')) {
+    return htmlContent;
+  }
+  
+  // Check for legislative document patterns (tables with legislative content)
+  if (htmlContent.includes('<table') && (htmlContent.includes('<tr') || htmlContent.includes('SECTION'))) {
     try {
       // Extract meaningful content from the HTML
       const extractedText = extractMeaningfulContent(htmlContent);
@@ -20,10 +29,9 @@ export const cleanHtmlContent = (htmlContent: string) => {
     }
   }
   
-  // Remove excess whitespace between tags
+  // Remove excess whitespace between tags for better display
   const cleanedContent = htmlContent
     .replace(/>\s+</g, '><')
-    .replace(/\s+/g, ' ')
     .trim();
   
   return `
@@ -35,17 +43,24 @@ export const cleanHtmlContent = (htmlContent: string) => {
 
 // Extract meaningful content from complex HTML
 export const extractMeaningfulContent = (htmlContent: string) => {
-  // This is a simple extraction that tries to find text content
+  // First check if this is Illinois legislation which has a specific format
+  if (htmlContent.includes('ilga.gov') || 
+      htmlContent.includes('General Assembly') || 
+      htmlContent.includes('Illinois Compiled Statutes')) {
+    return extractIllinoisLegislation(htmlContent);
+  }
+  
+  // This is a general extraction that tries to find text content
   // while removing most of the HTML structure
   
   // Check for specific bill headers and content
-  const billNumberMatch = htmlContent.match(/HB\d+|SB\d+/);
+  const billNumberMatch = htmlContent.match(/HB\d+|SB\d+|HR\d+|SR\d+/);
   const billNumber = billNumberMatch ? billNumberMatch[0] : "";
   
-  const synopsisMatch = htmlContent.match(/SYNOPSIS AS INTRODUCED:(.*?)(?:<\/td>|<\/code>)/is);
+  const synopsisMatch = htmlContent.match(/SYNOPSIS AS INTRODUCED:(.*?)(?:<\/td>|<\/code>|<\/p>)/is);
   const synopsis = synopsisMatch ? synopsisMatch[1].replace(/<\/?[^>]+(>|$)/g, "") : "";
   
-  const actContentMatch = htmlContent.match(/AN ACT concerning(.*?)(?:<\/td>|<\/code>)/is);
+  const actContentMatch = htmlContent.match(/AN ACT concerning(.*?)(?:<\/td>|<\/code>|<\/p>|\.)/is);
   const actContent = actContentMatch ? actContentMatch[1].replace(/<\/?[^>]+(>|$)/g, "") : "";
   
   // Extract any other text content that seems important
@@ -64,10 +79,37 @@ export const extractMeaningfulContent = (htmlContent: string) => {
   
   // Formatted output
   return `
-    <h2 class="text-lg font-bold mb-4">${billNumber}</h2>
+    ${billNumber ? `<h2 class="text-lg font-bold mb-4">${billNumber}</h2>` : ''}
     ${synopsis ? `<div class="mb-4"><h3 class="font-medium">SYNOPSIS</h3><p>${synopsis}</p></div>` : ''}
     ${actContent ? `<div class="mb-4"><h3 class="font-medium">ACT CONTENT</h3><p>${actContent}</p></div>` : ''}
     ${importantLines ? `<div class="mb-4"><h3 class="font-medium">BILL TEXT</h3><p>${importantLines}</p></div>` : ''}
+  `;
+};
+
+// Extract Illinois legislation content
+const extractIllinoisLegislation = (htmlContent: string) => {
+  // Clean up the HTML and extract meaningful sections
+  const cleanHtml = htmlContent
+    .replace(/&nbsp;/g, ' ')
+    .replace(/\r\n/g, '\n');
+    
+  // Extract bill number
+  const billNumberMatch = cleanHtml.match(/([HS][BR]\d+)/i);
+  const billNumber = billNumberMatch ? billNumberMatch[1] : '';
+  
+  // Extract sponsor
+  const sponsorMatch = cleanHtml.match(/Filed with the Clerk by(.*?)(?:<\/|,|\.|$)/is);
+  const sponsor = sponsorMatch ? sponsorMatch[1].trim() : '';
+  
+  // Format as clean HTML
+  return `
+    <div class="bill-legislation">
+      ${billNumber ? `<h2>${billNumber}</h2>` : ''}
+      ${sponsor ? `<p><strong>Filed by:</strong> ${sponsor}</p>` : ''}
+      <div class="bill-content">
+        ${cleanHtml}
+      </div>
+    </div>
   `;
 };
 
