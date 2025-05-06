@@ -42,12 +42,7 @@ export const useLegislatorInfo = (legislatorId: string, sponsorName?: string) =>
         
         if (error) {
           console.error("Error fetching legislator info:", error);
-          toast({
-            title: "Error",
-            description: "Could not load legislator information",
-            variant: "destructive"
-          });
-          return null;
+          throw new Error(error.message || "Failed to load legislator information");
         }
         
         console.log("Legislator data received:", data);
@@ -69,14 +64,11 @@ export const useLegislatorInfo = (legislatorId: string, sponsorName?: string) =>
 
       } catch (error) {
         console.error("Error in fetchLegislatorInfo:", error);
-        toast({
-          title: "Error",
-          description: "Failed to load legislator information",
-          variant: "destructive"
-        });
-        return null;
+        throw error; // Let React Query handle the error state
       }
     },
     enabled: !!(legislatorId || sponsorName),
+    retry: 1, // Only retry once to avoid too many requests if API is rate limiting
+    staleTime: 5 * 60 * 1000, // Cache results for 5 minutes
   });
 };

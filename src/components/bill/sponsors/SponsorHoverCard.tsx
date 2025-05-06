@@ -3,6 +3,7 @@ import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/h
 import { useLegislatorInfo } from "@/hooks/useLegislatorInfo";
 import SponsorContactInfo from "./SponsorContactInfo";
 import { MapPin } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 
 interface SponsorHoverCardProps {
   sponsorData: any;
@@ -30,9 +31,14 @@ const SponsorHoverCard = ({ sponsorData, getSponsorName }: SponsorHoverCardProps
       <HoverCardContent className="w-80">
         <div className="space-y-2">
           <h4 className="text-sm font-semibold">{legislatorInfo?.name?.full || sponsorName}</h4>
-          {isLoading && <p className="text-sm text-gray-500">Loading legislator info...</p>}
-          {error && <p className="text-sm text-red-500">Error loading legislator info</p>}
-          {legislatorInfo && (
+          
+          {isLoading ? (
+            <div className="flex items-center justify-center py-4">
+              <Spinner className="h-6 w-6 text-blue-600" />
+            </div>
+          ) : error ? (
+            <p className="text-sm text-red-500">Error loading legislator info</p>
+          ) : legislatorInfo ? (
             <>
               <p className="text-sm text-gray-600">
                 Party: {legislatorInfo.party === 'D' ? 'Democratic' : 
@@ -54,6 +60,8 @@ const SponsorHoverCard = ({ sponsorData, getSponsorName }: SponsorHoverCardProps
                 phones={legislatorInfo.phone}
               />
             </>
+          ) : (
+            <p className="text-sm text-gray-500">No legislator information available</p>
           )}
         </div>
       </HoverCardContent>
