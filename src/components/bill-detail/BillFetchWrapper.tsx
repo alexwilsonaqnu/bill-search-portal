@@ -1,5 +1,4 @@
 
-// Update the fetch wrapper component to handle API outages
 import { useNavigate, useParams } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { useBillData } from "@/hooks/useBillData";
@@ -7,7 +6,6 @@ import Navbar from "@/components/Navbar";
 import BillDetailView from "./BillDetailView";
 import BillDetailLoading from "./BillDetailLoading";
 import BillDetailError from "./BillDetailError";
-import { fetchBillById } from "@/services/billService";
 import { toast } from "sonner";
 
 const BillFetchWrapper = () => {
@@ -39,9 +37,14 @@ const BillFetchWrapper = () => {
   useEffect(() => {
     if (error) {
       const errorMsg = error.message || "";
+      
+      // Check for common error patterns that indicate API issues
       if (errorMsg.includes("timeout") || 
           errorMsg.includes("timed out") ||
-          errorMsg.includes("Edge Function returned a non-2xx")) {
+          errorMsg.includes("Edge Function returned") || 
+          errorMsg.includes("network") ||
+          errorMsg.includes("API") ||
+          errorMsg.includes("unavailable")) {
         setIsApiDown(true);
       }
     } else {
@@ -85,7 +88,7 @@ const BillFetchWrapper = () => {
             error={new Error("Bill not found")} 
             onRetry={handleRetry} 
             onGoBack={handleGoBack} 
-            isApiDown={isApiDown}
+            isApiDown={false}
           />
         )}
       </div>

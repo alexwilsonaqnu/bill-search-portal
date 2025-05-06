@@ -1,16 +1,15 @@
-
 import { Bill, SearchResults } from "@/types";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { processResults } from "@/utils/billProcessingUtils";
 import { fetchBillById as fetchBillFromLegiscan } from "@/services/legiscan";
 
-// More efficient cache for search results with longer TTL
+// Simple cache for search results
 const searchCache = new Map<string, { data: SearchResults; timestamp: number }>();
-const CACHE_TTL = 15 * 60 * 1000; // 15 minutes - increased from 5 minutes
+const CACHE_TTL = 15 * 60 * 1000; // 15 minutes
 
 /**
- * Fetches bills using LegiScan search API with improved error handling
+ * Fetches bills using LegiScan search API with simplified error handling
  */
 export async function fetchBills(
   query: string = "",
@@ -37,76 +36,86 @@ export async function fetchBills(
     }
 
     // Call the edge function with a timeout
-    try {
-      // Call the edge function with a longer timeout
-      const fetchPromise = supabase.functions.invoke('search-bills', {
-        body: { query, page, pageSize, sessionId }
+    const fetchPromise = supabase.functions.invoke('search-bills', {
+      body: { query, page, pageSize, sessionId }
+    });
+    
+    // Set our own timeout to handle unresponsive function
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error("Search request timed out after 15 seconds")), 15000);
+    });
+    
+    const { data, error } = await Promise.race([fetchPromise, timeoutPromise]) as any;
+
+    if (error) {
+      console.error("Error searching bills:", error);
+      
+      // Show user-friendly toast
+      toast.error("Search service unavailable", {
+        description: "We're having trouble connecting to the bill search service. Please try again later."
       });
       
-      // Set our own timeout to handle unresponsive function
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error("Search request timed out after 20 seconds")), 20000);
-      });
-      
-      const { data, error } = await Promise.race([fetchPromise, timeoutPromise]) as any;
-
-      if (error) {
-        console.error("Error searching bills:", error);
-        throw new Error(error.message || "Failed to search bills");
-      }
-      
-      if (data?.error) {
-        console.error("API returned error:", data.error);
-        throw new Error(data.error);
-      }
-      
-      let result: SearchResults;
-      
-      // Process the search results
-      if (data && data.bills && typeof data.currentPage === 'number' && typeof data.totalPages === 'number') {
-        // We have proper pagination from the API, use it directly
-        result = data;
-      } else if (data && data.bills) {
-        // Otherwise, process the results locally with our pagination logic
-        result = processResults(data.bills, query, page, pageSize);
-      } else {
-        result = { bills: [], currentPage: page, totalPages: 0, totalItems: 0 };
-      }
-
-      // Cache the result
-      searchCache.set(cacheKey, { data: result, timestamp: Date.now() });
-      
-      return result;
-    } catch (error) {
-      // Include more specific error handling
-      if (error.message?.includes("timeout") || error.message?.includes("timed out")) {
-        toast.error("Search request timed out", {
-          description: "The LegiScan API is taking too long to respond. Please try again later or try a different search term."
-        });
-      } else if (error.message?.includes("Edge Function returned a non-2xx")) {
-        toast.error("Search service error", {
-          description: "The bill search service is currently unavailable. Please try again later."
-        });
-      }
-      
-      console.error("Error in fetchBills:", error);
-      throw error;
+      return { bills: [], currentPage: page, totalPages: 0, totalItems: 0 };
     }
+    
+    if (data?.error) {
+      console.error("API returned error:", data.error);
+      
+      // Check if API is down
+      if (data.apiDown) {
+        toast.error("LegiScan API Unavailable", {
+          description: "The external bill information service is currently unavailable. Please try again later."
+        });
+      } else {
+        toast.error("Search error", {
+          description: data.error || "Failed to search bills"
+        });
+      }
+      
+      return { bills: [], currentPage: page, totalPages: 0, totalItems: 0 };
+    }
+    
+    let result: SearchResults;
+    
+    // Process the search results
+    if (data && data.bills && typeof data.currentPage === 'number' && typeof data.totalPages === 'number') {
+      // We have proper pagination from the API, use it directly
+      result = data;
+    } else if (data && data.bills) {
+      // Otherwise, process the results locally with our pagination logic
+      result = processResults(data.bills, query, page, pageSize);
+    } else {
+      result = { bills: [], currentPage: page, totalPages: 0, totalItems: 0 };
+    }
+
+    // Cache the result
+    searchCache.set(cacheKey, { data: result, timestamp: Date.now() });
+    
+    return result;
     
   } catch (error) {
     console.error("Error in fetchBills:", error);
-    toast.error("Failed to fetch bills", {
-      description: error.message || "Please try again later"
-    });
+    
+    // Show appropriate error based on error type
+    if (error.message?.includes("timeout") || error.message?.includes("timed out")) {
+      toast.error("Search service timeout", {
+        description: "The search service is taking too long to respond. Please try again later."
+      });
+    } else {
+      toast.error("Failed to search bills", {
+        description: "Please try again later"
+      });
+    }
+    
     return { bills: [], currentPage: page, totalPages: 0, totalItems: 0 };
   }
 }
 
-// Cache for bill details with longer expiration
+// Simple cache for bill details
 const billCache = new Map<string, { data: Bill; timestamp: number }>();
 
 /**
- * Fetches a bill by ID from LegiScan API with improved error handling
+ * Fetches a bill by ID - simplified version
  */
 export async function fetchBillById(id: string): Promise<Bill | null> {
   try {
@@ -136,16 +145,10 @@ export async function fetchBillById(id: string): Promise<Bill | null> {
   } catch (error) {
     console.error(`Error fetching bill ${id}:`, error);
     
-    // Show more specific error message to the user
-    if (error.message?.includes("timeout") || error.message?.includes("timed out")) {
-      toast.error(`Bill information unavailable`, {
-        description: "The LegiScan API is taking too long to respond. Please try again later."
-      });
-    } else {
-      toast.error(`Error fetching bill ${id}`, {
-        description: "Unable to load bill information at this time"
-      });
-    }
+    // Show user-friendly error message
+    toast.error(`Bill information unavailable`, {
+      description: "Unable to load bill information at this time. Please try again later."
+    });
     
     throw error;
   }
