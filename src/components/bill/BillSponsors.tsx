@@ -1,9 +1,10 @@
-
+import { useEffect } from "react";
 import { Users } from "lucide-react";
 import { User } from "lucide-react";
 import { Bill } from "@/types";
 import { getSponsor, getCoSponsors } from "@/utils/billCardUtils";
 import SponsorHoverCard from "./sponsors/SponsorHoverCard";
+import { preloadLegislatorData } from "@/services/legislatorService";
 
 interface BillSponsorsProps {
   bill: Bill;
@@ -12,6 +13,19 @@ interface BillSponsorsProps {
 const BillSponsors = ({ bill }: BillSponsorsProps) => {
   const sponsor = getSponsor(bill);
   const coSponsors = getCoSponsors(bill);
+
+  // Preload sponsor data when the component mounts
+  useEffect(() => {
+    if (sponsor) {
+      // Start with primary sponsor first
+      preloadLegislatorData([sponsor]);
+    }
+    
+    // Then preload co-sponsors (limited to first 5 to avoid too many requests)
+    if (coSponsors.length > 0) {
+      preloadLegislatorData(coSponsors.slice(0, 5));
+    }
+  }, [bill.id]);
 
   const getSponsorName = (sponsorData: any): string => {
     if (typeof sponsorData === 'string') return sponsorData;
