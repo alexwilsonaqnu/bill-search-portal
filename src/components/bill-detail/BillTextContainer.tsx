@@ -4,7 +4,8 @@ import { Bill } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import BillTextHash from "./BillTextHash";
 import BillTextContent from "./BillTextContent";
-import { fetchBillText, fallbackBillText } from "@/services/billTextService";
+import { fetchBillText } from "@/services/legiscan";
+import { fallbackBillText } from "@/services/billTextService";
 import { toast } from "sonner";
 import BillTextLoading from "./BillTextLoading";
 

@@ -9,9 +9,10 @@ import { Maximize } from "lucide-react";
 interface BillTextContentProps {
   bill: Bill;
   externalUrl?: string | null;
+  errorMessage?: string | null;
 }
 
-const BillTextContent = ({ bill, externalUrl }: BillTextContentProps) => {
+const BillTextContent = ({ bill, externalUrl, errorMessage }: BillTextContentProps) => {
   const [isFullScreen, setIsFullScreen] = useState(false);
   
   // Extract text content from the bill
@@ -43,6 +44,12 @@ const BillTextContent = ({ bill, externalUrl }: BillTextContentProps) => {
           <Maximize className="h-4 w-4" /> Full Screen
         </Button>
       </div>
+      
+      {errorMessage && (
+        <div className="mb-4 text-sm text-red-600">
+          {errorMessage}
+        </div>
+      )}
       
       <TextContentDisplay 
         content={textContent}

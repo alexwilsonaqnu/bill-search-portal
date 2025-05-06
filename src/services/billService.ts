@@ -1,9 +1,8 @@
-
 import { Bill, SearchResults } from "@/types";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { processResults } from "@/utils/billProcessingUtils";
-import { fetchBillById as fetchBillFromLegiscan } from "./legiscanService";
+import { fetchBillById as fetchBillFromLegiscan } from "@/services/legiscan";
 
 // More efficient cache for search results with longer TTL
 const searchCache = new Map<string, { data: SearchResults; timestamp: number }>();

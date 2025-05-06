@@ -1,7 +1,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { Bill } from "@/types";
-import { fetchBillById, fetchBillHistory, fetchBillVersions } from "@/services/legiscanService";
+import { fetchBillById, fetchBillHistory, fetchBillVersions } from "@/services/legiscan";
 import { toast } from "sonner";
 
 interface UseBillDataProps {
