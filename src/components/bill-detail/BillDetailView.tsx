@@ -92,7 +92,7 @@ const BillDetailView = ({ bill }: BillDetailViewProps) => {
 
       {/* Chat Interface */}
       <BillChat 
-        billText={bill.content || bill.data?.text} 
+        billText={bill.data?.text} 
         isOpen={isChatOpen} 
         onClose={toggleChat} 
       />
