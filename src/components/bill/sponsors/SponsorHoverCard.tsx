@@ -8,13 +8,13 @@ import { Spinner } from "@/components/ui/spinner";
 interface SponsorHoverCardProps {
   sponsorData: any;
   getSponsorName: (sponsor: any) => string;
+  legislatorId?: string;
 }
 
-const SponsorHoverCard = ({ sponsorData, getSponsorName }: SponsorHoverCardProps) => {
-  const legislatorId = sponsorData.people_id || sponsorData.id;
+const SponsorHoverCard = ({ sponsorData, getSponsorName, legislatorId }: SponsorHoverCardProps) => {
   const sponsorName = getSponsorName(sponsorData);
   
-  const { data: legislatorInfo, isLoading, error } = useLegislatorInfo(legislatorId, sponsorName);
+  const { data: legislatorInfo, isLoading, error } = useLegislatorInfo(legislatorId || '', sponsorName);
   
   console.log("SponsorHoverCard for legislator:", legislatorId, { 
     sponsorName,

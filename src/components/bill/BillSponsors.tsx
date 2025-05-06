@@ -50,6 +50,12 @@ const BillSponsors = ({ bill }: BillSponsorsProps) => {
     return displayName;
   };
 
+  // Helper function to safely extract legislator ID
+  const getLegislatorId = (sponsorData: string | Record<string, any>): string | undefined => {
+    if (typeof sponsorData === 'string') return undefined;
+    return sponsorData.people_id || sponsorData.id || undefined;
+  };
+
   const hasMoreCosponsors = () => {
     if (!bill.data) return false;
     if (!bill.data.cosponsors) return false;
@@ -91,7 +97,11 @@ const BillSponsors = ({ bill }: BillSponsorsProps) => {
             Primary Sponsor:
           </div>
           <div className="pl-4">
-            <SponsorHoverCard sponsorData={sponsor} getSponsorName={getSponsorName} />
+            <SponsorHoverCard 
+              sponsorData={sponsor} 
+              getSponsorName={getSponsorName} 
+              legislatorId={getLegislatorId(sponsor)}
+            />
           </div>
         </div>
       )}
@@ -105,7 +115,11 @@ const BillSponsors = ({ bill }: BillSponsorsProps) => {
           <div className="pl-4">
             {coSponsors.map((cosponsor, index) => (
               <div key={index}>
-                <SponsorHoverCard sponsorData={cosponsor} getSponsorName={getSponsorName} />
+                <SponsorHoverCard 
+                  sponsorData={cosponsor} 
+                  getSponsorName={getSponsorName} 
+                  legislatorId={getLegislatorId(cosponsor)}
+                />
               </div>
             ))}
             {hasMoreCosponsors() && (
