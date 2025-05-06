@@ -45,30 +45,33 @@ const KeyInsightsCard = ({ bill }: KeyInsightsCardProps) => {
           </Button>
         </div>
         
-        {/* Tab buttons */}
-        <div className="flex space-x-2">
+        {/* Tab buttons - Updated to use smaller size and better layout */}
+        <div className="flex flex-wrap gap-2">
           <Button
             variant={activeTab === "sponsors" ? "default" : "outline"}
-            className={activeTab === "sponsors" ? "bg-[#35B7CD] hover:bg-[#2A9BB0]" : ""}
+            size="sm"
+            className={`${activeTab === "sponsors" ? "bg-[#35B7CD] hover:bg-[#2A9BB0]" : ""} px-2`}
             onClick={() => setActiveTab("sponsors")}
           >
-            <Users className="h-4 w-4 mr-2" />
+            <Users className="h-3 w-3 mr-1" />
             Sponsors
           </Button>
           <Button
             variant={activeTab === "passPercent" ? "default" : "outline"}
-            className={activeTab === "passPercent" ? "bg-[#35B7CD] hover:bg-[#2A9BB0]" : ""}
+            size="sm"
+            className={`${activeTab === "passPercent" ? "bg-[#35B7CD] hover:bg-[#2A9BB0]" : ""} px-2`}
             onClick={() => setActiveTab("passPercent")}
           >
-            <Percent className="h-4 w-4 mr-2" />
+            <Percent className="h-3 w-3 mr-1" />
             Pass %
           </Button>
           <Button
             variant={activeTab === "history" ? "default" : "outline"}
-            className={activeTab === "history" ? "bg-[#35B7CD] hover:bg-[#2A9BB0]" : ""}
+            size="sm"
+            className={`${activeTab === "history" ? "bg-[#35B7CD] hover:bg-[#2A9BB0]" : ""} px-2`}
             onClick={() => setActiveTab("history")}
           >
-            <History className="h-4 w-4 mr-2" />
+            <History className="h-3 w-3 mr-1" />
             History
           </Button>
         </div>
