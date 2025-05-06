@@ -76,7 +76,7 @@ const BillChat = ({ content, billText, isOpen, onClose }: ChatProps & { isOpen: 
   if (!billContent || !isOpen) return null;
 
   return (
-    <div className="fixed bottom-4 left-4 w-[350px] h-[calc(100vh-2rem)] max-h-[calc(100vh-2rem)] bg-white border rounded-lg shadow-lg flex flex-col"> 
+    <div className="fixed bottom-4 left-4 w-[350px] h-[calc(100vh-2rem)] max-h-[calc(100vh-2rem)] bg-white border rounded-lg shadow-lg flex flex-col z-50"> 
       <ChatHeader onClose={onClose} />
       <ChatMessages 
         messages={messages}
