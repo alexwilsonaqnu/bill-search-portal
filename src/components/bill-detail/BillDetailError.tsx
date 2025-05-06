@@ -1,34 +1,84 @@
 
-import { Link } from "react-router-dom";
-import { AlertCircle } from "lucide-react";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import Navbar from "@/components/Navbar";
+import { AlertTriangle, ArrowLeft, RefreshCw } from "lucide-react";
 
 interface BillDetailErrorProps {
-  id?: string;
+  error: Error | null;
+  onRetry: () => void;
+  onGoBack: () => void;
+  isApiDown?: boolean; // New prop to identify API availability issues
 }
 
-const BillDetailError = ({ id }: BillDetailErrorProps) => {
+const BillDetailError = ({ error, onRetry, onGoBack, isApiDown = false }: BillDetailErrorProps) => {
+  const errorMessage = error?.message || "Unknown error";
+  
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Navbar />
-      <div className="max-w-6xl mx-auto pt-28 pb-20 px-6 text-center animate-fade-in">
-        <div className="flex flex-col items-center justify-center">
-          <AlertCircle className="h-16 w-16 text-red-500 mb-4" />
-          <h2 className="text-2xl font-semibold mb-4">Bill Not Found</h2>
-          <p className="mb-6">
-            We couldn't find bill {id} in our database. This might be due to:
-          </p>
-          <ul className="list-disc text-left mb-6 max-w-md">
-            <li className="mb-2">The bill ID you entered is incorrect</li>
-            <li className="mb-2">The bill hasn't been uploaded to our system yet</li>
-            <li className="mb-2">There was an error connecting to the data source</li>
-          </ul>
-          <Link to="/">
-            <Button>Return to Bill Search</Button>
-          </Link>
-        </div>
+    <div className="space-y-6 max-w-3xl mx-auto">
+      <div className="flex justify-between items-center">
+        <h1 className="text-2xl font-semibold text-gray-800">Bill Details</h1>
+        
+        <Button variant="outline" size="sm" onClick={onGoBack} className="flex items-center">
+          <ArrowLeft className="h-4 w-4 mr-1" />
+          Back to Search
+        </Button>
       </div>
+      
+      <Alert variant="destructive" className="border-red-200 bg-red-50">
+        <AlertTriangle className="h-5 w-5 text-red-600" />
+        <AlertTitle className="text-red-800 font-medium">
+          {isApiDown ? "LegiScan API Unavailable" : "Failed to load bill"}
+        </AlertTitle>
+        <AlertDescription className="text-red-700 mt-2">
+          {isApiDown ? (
+            <div className="space-y-2">
+              <p>We're currently experiencing issues connecting to the LegiScan bill information service.</p>
+              <p>This is likely a temporary issue with the external API service. Please try again later.</p>
+            </div>
+          ) : (
+            <p>{errorMessage}</p>
+          )}
+        </AlertDescription>
+        
+        <div className="mt-4 flex space-x-3">
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={onRetry}
+            className="bg-white border-red-200 text-red-700 hover:bg-red-50"
+          >
+            <RefreshCw className="h-4 w-4 mr-1" />
+            Try again
+          </Button>
+          
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={onGoBack}
+            className="bg-white border-red-200 text-red-700 hover:bg-red-50"
+          >
+            <ArrowLeft className="h-4 w-4 mr-1" />
+            Go back
+          </Button>
+        </div>
+      </Alert>
+      
+      {isApiDown && (
+        <div className="bg-white p-6 rounded-lg border shadow-sm">
+          <h2 className="text-lg font-medium mb-2 text-gray-800">Why is this happening?</h2>
+          <p className="text-gray-600 mb-4">
+            This application relies on the LegiScan API to retrieve bill information. 
+            When the API is temporarily unavailable or experiencing high traffic, 
+            we may not be able to retrieve the requested bill details.
+          </p>
+          <h3 className="font-medium text-gray-800 mb-1">What you can do:</h3>
+          <ul className="list-disc list-inside text-gray-600 space-y-1">
+            <li>Try again in a few minutes</li>
+            <li>Check if you have the correct bill ID</li>
+            <li>Return to the search page and try a different search</li>
+          </ul>
+        </div>
+      )}
     </div>
   );
 };

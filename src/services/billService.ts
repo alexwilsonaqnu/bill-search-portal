@@ -1,3 +1,4 @@
+
 import { Bill, SearchResults } from "@/types";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,7 +10,7 @@ const searchCache = new Map<string, { data: SearchResults; timestamp: number }>(
 const CACHE_TTL = 15 * 60 * 1000; // 15 minutes - increased from 5 minutes
 
 /**
- * Fetches bills using LegiScan search API
+ * Fetches bills using LegiScan search API with improved error handling
  */
 export async function fetchBills(
   query: string = "",
@@ -35,18 +36,19 @@ export async function fetchBills(
       return cached.data;
     }
 
-    // Set a timeout to prevent UI from hanging too long
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
-
+    // Call the edge function with a timeout
     try {
-      // Call the edge function without passing the signal parameter
-      const { data, error } = await supabase.functions.invoke('search-bills', {
+      // Call the edge function with a longer timeout
+      const fetchPromise = supabase.functions.invoke('search-bills', {
         body: { query, page, pageSize, sessionId }
       });
-
-      // Clear timeout
-      clearTimeout(timeoutId);
+      
+      // Set our own timeout to handle unresponsive function
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error("Search request timed out after 20 seconds")), 20000);
+      });
+      
+      const { data, error } = await Promise.race([fetchPromise, timeoutPromise]) as any;
 
       if (error) {
         console.error("Error searching bills:", error);
@@ -76,12 +78,18 @@ export async function fetchBills(
       
       return result;
     } catch (error) {
-      // Clear timeout if there was an error
-      clearTimeout(timeoutId);
-      
-      if (error.name === 'AbortError') {
-        throw new Error("Search request timed out after 10 seconds");
+      // Include more specific error handling
+      if (error.message?.includes("timeout") || error.message?.includes("timed out")) {
+        toast.error("Search request timed out", {
+          description: "The LegiScan API is taking too long to respond. Please try again later or try a different search term."
+        });
+      } else if (error.message?.includes("Edge Function returned a non-2xx")) {
+        toast.error("Search service error", {
+          description: "The bill search service is currently unavailable. Please try again later."
+        });
       }
+      
+      console.error("Error in fetchBills:", error);
       throw error;
     }
     
@@ -94,11 +102,11 @@ export async function fetchBills(
   }
 }
 
-// Cache for bill details
+// Cache for bill details with longer expiration
 const billCache = new Map<string, { data: Bill; timestamp: number }>();
 
 /**
- * Fetches a bill by ID from LegiScan API
+ * Fetches a bill by ID from LegiScan API with improved error handling
  */
 export async function fetchBillById(id: string): Promise<Bill | null> {
   try {
@@ -127,7 +135,28 @@ export async function fetchBillById(id: string): Promise<Bill | null> {
     return bill;
   } catch (error) {
     console.error(`Error fetching bill ${id}:`, error);
-    toast.error(`Error fetching bill ${id}`);
+    
+    // Show more specific error message to the user
+    if (error.message?.includes("timeout") || error.message?.includes("timed out")) {
+      toast.error(`Bill information unavailable`, {
+        description: "The LegiScan API is taking too long to respond. Please try again later."
+      });
+    } else {
+      toast.error(`Error fetching bill ${id}`, {
+        description: "Unable to load bill information at this time"
+      });
+    }
+    
     throw error;
   }
+}
+
+/**
+ * Clear cached data - useful for debugging or manual refresh
+ */
+export function clearCache() {
+  searchCache.clear();
+  billCache.clear();
+  console.log("Cache cleared");
+  toast.success("Search cache cleared");
 }

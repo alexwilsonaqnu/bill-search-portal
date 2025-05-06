@@ -4,10 +4,12 @@ import { useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import Navbar from "@/components/Navbar";
-import { fetchBills } from "@/services/billService";
+import { fetchBills, clearCache } from "@/services/billService";
 import HeaderSection from "@/components/HeaderSection";
 import BillsList from "@/components/BillsList";
 import { useSupabaseStatus } from "@/hooks/useSupabaseStatus";
+import { Button } from "@/components/ui/button";
+import { RefreshCw } from "lucide-react";
 
 const Index = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -15,6 +17,7 @@ const Index = () => {
   const pageParam = searchParams.get("page");
   const currentPage = pageParam ? parseInt(pageParam) : 1;
   const [isSearchInitiated, setIsSearchInitiated] = useState(!!query);
+  const [isApiDown, setIsApiDown] = useState(false);
   
   const { dbStatus, storageStatus } = useSupabaseStatus();
   
@@ -27,18 +30,26 @@ const Index = () => {
     queryFn: () => fetchBills(query, currentPage),
     enabled,
     staleTime: 5 * 60 * 1000, // 5 minutes
-    retry: 1, // Only retry once to avoid hammering failing API
+    retry: 2, // Try up to 2 retries (3 total attempts) to avoid hammering failing API
+    retryDelay: attempt => Math.min(attempt > 1 ? 3000 : 1000, 8000), // Wait longer between retries
     meta: {
-      onError: (error) => {
-        // Enhanced error messaging based on specific error types
-        if (error.message?.includes("timeout") || error.message?.includes("timed out")) {
-          toast.error("Search request timed out", {
-            description: "The LegiScan API is taking too long to respond. Please try again later or try a different search term."
-          });
+      onSettled: (data, error) => {
+        if (error) {
+          // Detect if it's an API down situation
+          if (error.message?.includes("timeout") || error.message?.includes("timed out") || 
+              error.message?.includes("Edge Function returned a non-2xx")) {
+            setIsApiDown(true);
+            toast.error("LegiScan API appears to be down", {
+              description: "The bill search service is currently experiencing issues. Please try again later."
+            });
+          } else {
+            setIsApiDown(false);
+            toast.error("Error searching for bills", {
+              description: error.message || "Please try again later"
+            });
+          }
         } else {
-          toast.error("Error searching for bills", {
-            description: "There was a problem connecting to LegiScan. Please try again later."
-          });
+          setIsApiDown(false);
         }
       }
     }
@@ -48,6 +59,7 @@ const Index = () => {
   useEffect(() => {
     if (!query) {
       setIsSearchInitiated(false);
+      setIsApiDown(false);
     }
   }, [query]);
 
@@ -56,6 +68,7 @@ const Index = () => {
     
     // Set search initiated flag to trigger the query
     setIsSearchInitiated(true);
+    setIsApiDown(false);
     
     if (newQuery.trim() === query) {
       // If same query, force refetch
@@ -71,7 +84,9 @@ const Index = () => {
   }, [query, setSearchParams]);
 
   const handleRetry = useCallback(() => {
+    clearCache(); // Clear the cache before retrying
     toast.info("Retrying search...");
+    setIsApiDown(false);
     refetch();
   }, [refetch]);
 
@@ -96,12 +111,25 @@ const Index = () => {
 
         {query && !isSearchInitiated && (
           <div className="text-center mt-8">
-            <button 
+            <Button 
               onClick={() => handleSearch(query)}
               className="px-4 py-2 bg-brand-primary text-white rounded-md hover:bg-brand-primary/90 transition-colors"
             >
               Search for "{query}"
-            </button>
+            </Button>
+          </div>
+        )}
+
+        {isApiDown && (
+          <div className="mt-8 p-4 bg-amber-50 border border-amber-200 rounded-md">
+            <div className="text-amber-800 text-sm mb-3">
+              <p className="font-medium mb-1">The LegiScan API appears to be unavailable</p>
+              <p>We're having trouble connecting to the bill search service. This may be a temporary issue.</p>
+            </div>
+            <Button variant="outline" size="sm" onClick={handleRetry} className="border-amber-300">
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Try again
+            </Button>
           </div>
         )}
 
@@ -111,7 +139,7 @@ const Index = () => {
           </div>
         )}
 
-        {query && isSearchInitiated && !isSearching && (!data?.bills || data.bills.length === 0) && (
+        {query && isSearchInitiated && !isSearching && (!data?.bills || data.bills.length === 0) && !isApiDown && (
           <div className="text-center text-gray-500 mt-8">
             No bills found for "{query}"
           </div>

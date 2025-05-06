@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 interface UseBillDataProps {
   id: string | undefined;
+  retryCount?: number; // Added to force refetch when retry is clicked
 }
 
 interface UseBillDataResult {
@@ -18,8 +19,8 @@ interface UseBillDataResult {
 /**
  * Custom hook to fetch bill data by ID from LegiScan API
  */
-export function useBillData({ id }: UseBillDataProps): UseBillDataResult {
-  console.log(`useBillData hook received ID: ${id}`);
+export function useBillData({ id, retryCount = 0 }: UseBillDataProps): UseBillDataResult {
+  console.log(`useBillData hook received ID: ${id}, retryCount: ${retryCount}`);
   
   // Determine if it's a numeric ID for better logging and handling
   const isNumeric = id && /^\d+$/.test(id);
@@ -33,22 +34,29 @@ export function useBillData({ id }: UseBillDataProps): UseBillDataResult {
     error: billError, 
     isError: isBillError 
   } = useQuery({
-    queryKey: ["bill", id],
+    queryKey: ["bill", id, retryCount], // Include retryCount to force refetch
     queryFn: async () => {
       if (!id) throw new Error("Bill ID is required");
       console.log(`Fetching bill data for ID: ${id}`);
-      const result = await fetchBillById(id);
       
-      if (!result) {
-        console.warn(`No bill found with ID: ${id}`);
-        // Instead of throwing, return null so we can handle this in the UI
-        return null;
+      try {
+        const result = await fetchBillById(id);
+        
+        if (!result) {
+          console.warn(`No bill found with ID: ${id}`);
+          // Instead of throwing, return null so we can handle this in the UI
+          return null;
+        }
+        
+        return result;
+      } catch (error) {
+        // Add specific error handling
+        console.error(`Error fetching bill data: ${error.message}`);
+        throw error;
       }
-      
-      return result;
     },
     enabled: !!id,
-    retry: 2,
+    retry: 1,
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false
   });
@@ -58,13 +66,14 @@ export function useBillData({ id }: UseBillDataProps): UseBillDataResult {
     data: historyData,
     isLoading: isHistoryLoading
   } = useQuery({
-    queryKey: ["bill-history", id],
+    queryKey: ["bill-history", id, retryCount], // Include retryCount
     queryFn: async () => {
       if (!id) return [];
       return await fetchBillHistory(id);
     },
     enabled: !!id && !!billData,
-    staleTime: 5 * 60 * 1000
+    staleTime: 5 * 60 * 1000,
+    retry: 1
   });
 
   // Fetch bill versions separately
@@ -72,13 +81,14 @@ export function useBillData({ id }: UseBillDataProps): UseBillDataResult {
     data: versionsData,
     isLoading: isVersionsLoading
   } = useQuery({
-    queryKey: ["bill-versions", id],
+    queryKey: ["bill-versions", id, retryCount], // Include retryCount
     queryFn: async () => {
       if (!id) return [];
       return await fetchBillVersions(id);
     },
     enabled: !!id && !!billData,
-    staleTime: 5 * 60 * 1000
+    staleTime: 5 * 60 * 1000,
+    retry: 1
   });
 
   // Combine bill data with history and versions
