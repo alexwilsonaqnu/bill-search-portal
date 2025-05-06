@@ -1,4 +1,5 @@
 
-import { useToast, toast } from "sonner";
+import { toast } from "sonner";
 
-export { useToast, toast };
+// Re-export toast
+export { toast };

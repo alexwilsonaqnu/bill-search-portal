@@ -3,7 +3,7 @@ import { Bill } from "@/types";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/use-toast";
 import { fetchBillText, fallbackBillText } from "@/services/billTextService";
 import BillTextLoading from "./BillTextLoading";
 
@@ -28,16 +28,16 @@ const EmptyBillContent = ({ bill, ilgaUrl }: EmptyBillContentProps) => {
   const fetchLegiscanText = async () => {
     setIsLoading(true);
     setError(null);
-    toast.info("Fetching bill text from LegiScan...");
+    toast("Fetching bill text from LegiScan...");
     
     try {
       await fetchBillText(bill.id);
-      toast.success("Successfully loaded bill text");
+      toast("Successfully loaded bill text");
       window.location.reload();
     } catch (error) {
       console.error("Failed to fetch bill text:", error);
       const errorMessage = error instanceof Error ? error.message : String(error);
-      toast.error("Failed to fetch bill text from LegiScan");
+      toast("Failed to fetch bill text from LegiScan");
       setError(errorMessage);
       
       // Use fallback text after API failure
@@ -45,7 +45,7 @@ const EmptyBillContent = ({ bill, ilgaUrl }: EmptyBillContentProps) => {
         console.log("Using fallback bill text after API failure");
         const fallbackContent = await fallbackBillText(bill.id, bill.title);
         localStorage.setItem(`bill_text_${bill.id}`, JSON.stringify(fallbackContent));
-        toast.success("Loaded fallback bill content");
+        toast("Loaded fallback bill content");
         window.location.reload();
       } catch (fallbackError) {
         console.error("Failed to use fallback text:", fallbackError);

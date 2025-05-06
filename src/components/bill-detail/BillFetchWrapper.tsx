@@ -21,10 +21,8 @@ const BillFetchWrapper = () => {
   useEffect(() => {
     if (!id) {
       navigate("/");
-      toast({
-        title: "Error",
-        description: "Missing bill ID",
-        variant: "destructive"
+      toast("Missing bill ID", { 
+        description: "Bill ID is required to view details"
       });
     }
   }, [id, navigate]);
@@ -95,8 +93,7 @@ const BillFetchWrapper = () => {
     setRetryCount(prev => prev + 1);
     setIsApiDown(false);
     setBillText(null);
-    toast({
-      title: "Retrying",
+    toast("Retrying", {
       description: "Attempting to reload bill data..."
     });
   };
