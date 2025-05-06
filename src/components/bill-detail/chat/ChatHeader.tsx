@@ -7,9 +7,9 @@ interface ChatHeaderProps {
 
 const ChatHeader = ({ onClose }: ChatHeaderProps) => {
   return (
-    <div className="border-b p-4 flex items-center justify-between">
+    <div className="border-b p-4 flex items-center justify-between bg-gray-50">
       <div className="flex items-center gap-2">
-        <MessageSquare className="h-5 w-5" />
+        <MessageSquare className="h-5 w-5 text-blue-600" />
         <h3 className="font-semibold">Chat with the Bill</h3>
       </div>
       <button 

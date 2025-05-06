@@ -13,20 +13,20 @@ const BillChat = ({ billText, isOpen, onClose }: ChatProps & { isOpen: boolean; 
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
-  // Use billText directly since we don't need content property anymore
-  const billContent = billText || "";
+  // Check if there's actual content in the billText
+  const hasBillContent = billText && billText.trim().length > 0;
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // If not open or no content, return null to hide the chat
+  // If not open, return null to hide the chat
   if (!isOpen) {
     return null;
   }
 
   const handleSendMessage = async () => {
-    if (!inputMessage.trim() || !billContent) return;
+    if (!inputMessage.trim() || !hasBillContent) return;
     
     const userMessage: Message = { role: "user", content: inputMessage };
     setMessages(prev => [...prev, userMessage]);
@@ -44,10 +44,13 @@ const BillChat = ({ billText, isOpen, onClose }: ChatProps & { isOpen: boolean; 
         content: inputMessage,
       });
 
+      console.log("Sending request to chat-with-bill with text length:", 
+                 billText ? billText.length : 0);
+
       const { data, error } = await supabase.functions.invoke('chat-with-bill', {
         body: { 
           messages: apiMessages,
-          billText: billContent 
+          billText: billText 
         }
       });
 
@@ -78,11 +81,10 @@ const BillChat = ({ billText, isOpen, onClose }: ChatProps & { isOpen: boolean; 
     }
   };
 
-  // Even if there's no content, we'll show an empty chat UI with a message
   return (
     <div className="fixed bottom-4 left-4 w-[350px] h-[calc(100vh-2rem)] max-h-[calc(100vh-2rem)] bg-white border rounded-lg shadow-lg flex flex-col z-50"> 
       <ChatHeader onClose={onClose} />
-      {!billContent ? (
+      {!hasBillContent ? (
         <div className="flex-1 flex items-center justify-center p-4 text-center text-gray-500">
           <p>No bill content available for chat.</p>
         </div>

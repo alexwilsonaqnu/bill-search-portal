@@ -30,8 +30,43 @@ const BillDetailView = ({ bill }: BillDetailViewProps) => {
     `(Last updated: ${new Date(bill.lastUpdated).toLocaleDateString()})` : 
     "";
 
+  // Extract bill text from various possible locations in the bill object
+  const getBillText = () => {
+    if (bill.text && bill.text.trim().length > 0) {
+      return bill.text;
+    }
+    
+    if (bill.data?.text && bill.data.text.trim().length > 0) {
+      return bill.data.text;
+    }
+    
+    if (bill.data?.bill?.text && bill.data.bill.text.trim().length > 0) {
+      return bill.data.bill.text;
+    }
+    
+    // Check versions
+    if (bill.versions && bill.versions.length > 0) {
+      const versionWithContent = bill.versions.find(v => 
+        v.sections && v.sections.length > 0 && v.sections[0].content
+      );
+      if (versionWithContent && versionWithContent.sections[0].content) {
+        return versionWithContent.sections[0].content;
+      }
+    }
+    
+    // Check if there's description or title as fallback
+    if (bill.description || bill.title) {
+      return `${bill.title || ''}\n\n${bill.description || ''}`.trim();
+    }
+    
+    return "";
+  };
+
+  const billText = getBillText();
+
   const toggleChat = () => {
     console.log("Toggle chat clicked, current state:", isChatOpen);
+    console.log("Bill text available:", billText ? "Yes" : "No");
     setIsChatOpen(prev => !prev);
   };
 
@@ -93,7 +128,7 @@ const BillDetailView = ({ bill }: BillDetailViewProps) => {
 
       {/* Chat Interface */}
       <BillChat 
-        billText={bill.data?.text} 
+        billText={billText} 
         isOpen={isChatOpen} 
         onClose={toggleChat} 
       />

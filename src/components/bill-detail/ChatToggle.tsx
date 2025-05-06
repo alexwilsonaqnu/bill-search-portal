@@ -10,9 +10,9 @@ interface ChatToggleProps {
 const ChatToggle = ({ onClick, isOpen }: ChatToggleProps) => {
   return (
     <Button
-      variant="outline"
+      variant={isOpen ? "secondary" : "default"}
       size="sm"
-      className="bg-white shadow-md hover:bg-gray-50 flex items-center"
+      className={`shadow-md flex items-center ${isOpen ? 'bg-gray-100 hover:bg-gray-200' : 'bg-blue-600 hover:bg-blue-700 text-white'}`}
       onClick={onClick}
       aria-label={isOpen ? "Close chat" : "Chat with bill"}
     >
