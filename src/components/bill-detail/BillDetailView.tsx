@@ -65,8 +65,6 @@ const BillDetailView = ({ bill }: BillDetailViewProps) => {
   const billText = getBillText();
 
   const toggleChat = () => {
-    console.log("Toggle chat clicked, current state:", isChatOpen);
-    console.log("Bill text available:", billText ? "Yes" : "No");
     setIsChatOpen(prev => !prev);
   };
 
@@ -122,16 +120,20 @@ const BillDetailView = ({ bill }: BillDetailViewProps) => {
       </div>
 
       {/* Chat Toggle Button */}
-      <div className="fixed bottom-4 left-4 z-10">
-        <ChatToggle onClick={toggleChat} isOpen={isChatOpen} />
-      </div>
+      {billText && (
+        <div className="fixed bottom-4 left-4 z-10">
+          <ChatToggle onClick={toggleChat} isOpen={isChatOpen} />
+        </div>
+      )}
 
       {/* Chat Interface */}
-      <BillChat 
-        billText={billText} 
-        isOpen={isChatOpen} 
-        onClose={toggleChat} 
-      />
+      {billText && (
+        <BillChat 
+          billText={billText} 
+          isOpen={isChatOpen} 
+          onClose={toggleChat} 
+        />
+      )}
     </div>
   );
 };

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import BillChat from "./BillChat";
@@ -28,10 +27,7 @@ const BillTextHash = ({ textHash, billId, externalUrl }: BillTextHashProps) => {
   const [extractedText, setExtractedText] = useState<string | null>(null);
   const [isChatOpen, setIsChatOpen] = useState(false);
   
-  useEffect(() => {
-    console.log(`BillTextHash component using billId: ${billId} and textHash: ${textHash}`);
-  }, [billId, textHash]);
-  
+  // Always fetch bill text on component mount
   useEffect(() => {
     if (billId) {
       fetchActualText();
@@ -41,7 +37,7 @@ const BillTextHash = ({ textHash, billId, externalUrl }: BillTextHashProps) => {
   if (!billId) return null;
   
   const fetchActualText = async () => {
-    if (isLoading || textContent) return;
+    if (isLoading) return;
     
     setIsLoading(true);
     setError(null);
