@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 
@@ -45,13 +46,16 @@ serve(async (req) => {
     const { query, page = 1, pageSize = 10, sessionId } = params;
     console.log(`Searching LegiScan for: "${query}", page: ${page}, pageSize: ${pageSize}, sessionId: ${sessionId}`);
 
-    // Set a shorter timeout to prevent long-running requests
+    // Set a more reasonable timeout to prevent long-running requests
+    // Increased from 6s to 12s to give more time for LegiScan API to respond
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 6000); // Reduced from 15s to 6s
+    const timeout = setTimeout(() => controller.abort(), 12000); // Increased to 12 seconds
 
     try {
       // Build the LegiScan search URL - adding state=IL to filter for Illinois only
       const url = `https://api.legiscan.com/?key=${LEGISCAN_API_KEY}&op=search&state=IL${sessionId ? `&masterlist=${sessionId}` : ''}&query=${encodeURIComponent(query)}`;
+      
+      console.log("Making request to LegiScan API (hiding API key)");
       
       // Make the fetch request with timeout
       const response = await fetch(url, { 
@@ -120,7 +124,7 @@ serve(async (req) => {
       clearTimeout(timeout);
       
       if (error.name === 'AbortError') {
-        throw new Error('Request timed out after 6 seconds');
+        throw new Error('Request timed out after 12 seconds');
       }
       throw error;
     }

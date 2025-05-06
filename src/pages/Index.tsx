@@ -29,10 +29,17 @@ const Index = () => {
     staleTime: 5 * 60 * 1000, // 5 minutes
     retry: 1, // Only retry once to avoid hammering failing API
     meta: {
-      onError: () => {
-        toast.error("Error searching for bills", {
-          description: "There was a problem connecting to LegiScan. Please try again later."
-        });
+      onError: (error) => {
+        // Enhanced error messaging based on specific error types
+        if (error.message?.includes("timeout") || error.message?.includes("timed out")) {
+          toast.error("Search request timed out", {
+            description: "The LegiScan API is taking too long to respond. Please try again later or try a different search term."
+          });
+        } else {
+          toast.error("Error searching for bills", {
+            description: "There was a problem connecting to LegiScan. Please try again later."
+          });
+        }
       }
     }
   });
