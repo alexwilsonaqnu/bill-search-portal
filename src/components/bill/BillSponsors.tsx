@@ -84,7 +84,7 @@ const BillSponsors = ({ bill }: BillSponsorsProps) => {
   return (
     <div className="space-y-3">
       {sponsor && (
-        <div className="text-sm text-gray-700">
+        <div className="text-md text-gray-700">
           <div className="font-medium mb-1">Primary Sponsor:</div>
           <div className="pl-4">
             <SponsorHoverCard sponsorData={sponsor} getSponsorName={getSponsorName} />
@@ -93,7 +93,7 @@ const BillSponsors = ({ bill }: BillSponsorsProps) => {
       )}
 
       {coSponsors.length > 0 && (
-        <div className="text-sm text-gray-700">
+        <div className="text-md text-gray-700">
           <div className="font-medium mb-1 flex items-center gap-1">
             <Users className="h-4 w-4" />
             Co-sponsors:
