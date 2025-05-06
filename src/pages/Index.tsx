@@ -29,21 +29,9 @@ const Index = () => {
     staleTime: 5 * 60 * 1000, // 5 minutes
     retry: 1, // Only retry once to avoid hammering failing API
     meta: {
-      onError: (err) => {
-        let errorMsg = "There was a problem connecting to LegiScan. Please try again later.";
-        
-        // Check for timeout error
-        if (err instanceof Error && err.message && err.message.includes("timeout")) {
-          errorMsg = "The search request timed out. The service might be experiencing high traffic or the query is too broad.";
-        }
-        
-        // Check for edge function error
-        if (err instanceof Error && err.message && err.message.includes("Edge Function")) {
-          errorMsg = "Connection to search service failed. Please try again in a moment.";
-        }
-        
+      onError: () => {
         toast.error("Error searching for bills", {
-          description: errorMsg
+          description: "There was a problem connecting to LegiScan. Please try again later."
         });
       }
     }

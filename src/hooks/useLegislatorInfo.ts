@@ -1,9 +1,9 @@
 
 import { useQuery } from "@tanstack/react-query";
-import { fetchLegislatorInfo } from "@/services/legislatorService";
+import { fetchLegislatorInfo, LegislatorInfo } from "@/services/legislatorService";
 
-// Re-export the type using the correct TypeScript syntax
-export type { LegislatorInfo } from "@/services/legislatorService";
+// Use 'export type' instead of just 'export' for types when isolatedModules is enabled
+export type { LegislatorInfo };
 
 export const useLegislatorInfo = (legislatorId?: string, sponsorName?: string) => {
   return useQuery({

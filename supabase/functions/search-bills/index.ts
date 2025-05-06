@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 
@@ -46,33 +45,13 @@ serve(async (req) => {
     const { query, page = 1, pageSize = 10, sessionId } = params;
     console.log(`Searching LegiScan for: "${query}", page: ${page}, pageSize: ${pageSize}, sessionId: ${sessionId}`);
 
-    // Return empty results if no query is provided
-    if (!query || query.trim() === '') {
-      return new Response(
-        JSON.stringify({
-          bills: [],
-          totalItems: 0,
-          currentPage: page,
-          totalPages: 0
-        }),
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            ...corsHeaders
-          }
-        }
-      );
-    }
-
-    // Set a longer timeout to prevent long-running requests
+    // Set a shorter timeout to prevent long-running requests
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 15000); // Increased from 6s to 15s
+    const timeout = setTimeout(() => controller.abort(), 6000); // Reduced from 15s to 6s
 
     try {
       // Build the LegiScan search URL - adding state=IL to filter for Illinois only
       const url = `https://api.legiscan.com/?key=${LEGISCAN_API_KEY}&op=search&state=IL${sessionId ? `&masterlist=${sessionId}` : ''}&query=${encodeURIComponent(query)}`;
-      
-      console.log(`Making request to LegiScan API (hiding API key)`);
       
       // Make the fetch request with timeout
       const response = await fetch(url, { 
@@ -141,11 +120,10 @@ serve(async (req) => {
       clearTimeout(timeout);
       
       if (error.name === 'AbortError') {
-        throw new Error('Request timed out after 15 seconds. The LegiScan API may be experiencing delays.');
+        throw new Error('Request timed out after 6 seconds');
       }
       throw error;
     }
-    
   } catch (error) {
     console.error('Error in search-bills function:', error);
     return new Response(
