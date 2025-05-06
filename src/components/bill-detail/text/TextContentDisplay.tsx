@@ -15,8 +15,7 @@ const TextContentDisplay = ({ content, isHtml }: TextContentDisplayProps) => {
   const [showFullText, setShowFullText] = useState(false);
   
   // Get the display text with proper truncation
-  const displayText = showFullText ? content : 
-    (content.length > 500 ? content.substring(0, 500) + "..." : content);
+  const displayText = getDisplayText(content, isHtml, showFullText);
   
   // Detect if content is Markdown when not explicitly HTML
   const contentType = isHtml ? 'html' : detectContentType(content);
