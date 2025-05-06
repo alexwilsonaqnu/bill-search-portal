@@ -65,6 +65,7 @@ const Index = () => {
         <HeaderSection 
           query={query} 
           onSearch={handleSearch} 
+          isLoading={isSearching}
         />
         
         {!query && !isSearching && (

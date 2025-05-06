@@ -69,23 +69,32 @@ function setCachedLegislator(cacheKey: string, data: any): void {
   console.log(`Cached legislator: ${cacheKey}`);
 }
 
-// Fetch legislator by ID from OpenStates API
+// Fetch legislator by ID from OpenStates API with improved error handling
 export async function fetchLegislatorById(legislatorId: string) {
+  if (!legislatorId) return null;
+  
   const cacheKey = `id-${legislatorId}`;
   const cachedData = getCachedLegislator(cacheKey);
   if (cachedData) return cachedData;
 
-  const OPENSTATES_API_KEY = getApiKey();
-
   try {
+    const OPENSTATES_API_KEY = getApiKey();
+
+    // Use backoff mechanism to handle rate limiting
     const response = await fetchWithBackoff(`https://v3.openstates.org/people/${legislatorId}?include=offices`, {
       headers: {
         "X-API-Key": OPENSTATES_API_KEY,
       },
-    }, 2);
+    }, 2, 1000);
 
     if (!response.ok) {
       console.error(`Error response from OpenStates API: ${response.status}`);
+      
+      // For 429 (Too Many Requests) errors, return a fallback object
+      if (response.status === 429) {
+        return createFallbackLegislator(legislatorId);
+      }
+      
       return null;
     }
 
@@ -95,35 +104,33 @@ export async function fetchLegislatorById(legislatorId: string) {
     return processed;
   } catch (error) {
     console.error("Error fetching from OpenStates:", error);
-    return null;
+    return createFallbackLegislator(legislatorId);
   }
 }
 
-// Search legislator by name from OpenStates API
+// Search legislator by name from OpenStates API with improved caching
 export async function searchLegislatorByName(name: string) {
+  if (!name) return null;
+  
   const cleanedName = cleanNameForSearch(name);
   const cacheKey = `name-${cleanedName}`;
   const cachedData = getCachedLegislator(cacheKey);
   if (cachedData) return cachedData;
 
-  const OPENSTATES_API_KEY = getApiKey();
-
   try {
     console.log(`Searching for legislator with name: ${cleanedName}`);
+    const OPENSTATES_API_KEY = getApiKey();
 
     const response = await fetchWithBackoff(`https://v3.openstates.org/people?name=${encodeURIComponent(cleanedName)}&include=offices`, {
       headers: {
         "X-API-Key": OPENSTATES_API_KEY,
       },
-    }, 2);
+    }, 2, 1000);
 
     if (!response.ok) {
       console.error(`Error response from OpenStates API: ${response.status}`);
       // If we hit a rate limit, return a basic legislator object
-      if (response.status === 429) {
-        return createEnhancedLegislatorFromName(name);
-      }
-      return null;
+      return createEnhancedLegislatorFromName(name);
     }
 
     const data = await response.json();
@@ -146,6 +153,26 @@ export async function searchLegislatorByName(name: string) {
   }
 }
 
+// Create a fallback legislator object when we can't fetch by ID
+function createFallbackLegislator(legislatorId: string) {
+  return {
+    name: {
+      first: "",
+      middle: "",
+      last: "",
+      suffix: "",
+      full: `Legislator ${legislatorId}`
+    },
+    party: "",
+    email: [],
+    phone: [],
+    district: "",
+    role: "Legislator",
+    office: "",
+    state: "Illinois" // Default to Illinois since we're in the Billinois app
+  };
+}
+
 // Enhanced function to create a more detailed legislator object from just the name when API fails
 function createEnhancedLegislatorFromName(name: string) {
   const nameParts = name.split(' ');
@@ -159,7 +186,7 @@ function createEnhancedLegislatorFromName(name: string) {
   else if (name.includes('(I)')) party = 'Independent';
   
   // Extract state from name if possible (sometimes in format "Name (X-State)")
-  let state = '';
+  let state = 'Illinois'; // Default to Illinois for Billinois app
   const stateMatch = name.match(/\(([^)]+)\)/);
   if (stateMatch && stateMatch[1]) {
     const matchParts = stateMatch[1].split('-');

@@ -14,15 +14,9 @@ interface SponsorHoverCardProps {
 const SponsorHoverCard = ({ sponsorData, getSponsorName, legislatorId }: SponsorHoverCardProps) => {
   const sponsorName = getSponsorName(sponsorData);
   
-  const { data: legislatorInfo, isLoading, error } = useLegislatorInfo(legislatorId || '', sponsorName);
+  // Pass the legislatorId and sponsorName to the hook
+  const { data: legislatorInfo, isLoading, error } = useLegislatorInfo(legislatorId, sponsorName);
   
-  console.log("SponsorHoverCard for legislator:", legislatorId, { 
-    sponsorName,
-    legislatorInfo,
-    isLoading,
-    hasError: !!error
-  });
-
   return (
     <HoverCard>
       <HoverCardTrigger className="cursor-pointer hover:text-blue-600 transition-colors">
