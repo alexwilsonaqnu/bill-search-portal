@@ -7,9 +7,9 @@ import Navbar from "@/components/Navbar";
 import BillDetailToolbar from "./BillDetailToolbar";
 import BillOverview from "./BillOverview";
 import BillComparisonContainer from "./BillComparisonContainer";
-import BillSponsors from "@/components/bill/BillSponsors";
 import BillNotificationSignup from "./BillNotificationSignup";
-import BillChat from "./BillChat";
+import BillTextContainer from "./BillTextContainer";
+import KeyInsightsCard from "./KeyInsightsCard";
 import ChatToggle from "./ChatToggle";
 
 interface BillDetailViewProps {
@@ -20,8 +20,14 @@ const BillDetailView = ({ bill }: BillDetailViewProps) => {
   const [selectedTool, setSelectedTool] = useState<"overview" | "comparison">("overview");
   const [isChatOpen, setIsChatOpen] = useState(false);
 
-  // Get the bill text from versions if available (not directly from bill.text)
-  const billText = bill.versions?.[0]?.sections?.[0]?.content || "";
+  // Get the bill version and date information
+  const versionInfo = bill.data?.bill_number ? 
+    `${bill.data.bill_number} | v${bill.versions?.length || "1.0"}` : 
+    `Bill ID: ${bill.id}`;
+    
+  const lastUpdated = bill.lastUpdated ? 
+    `(Last updated: ${new Date(bill.lastUpdated).toLocaleDateString()})` : 
+    "";
 
   const toggleChat = () => {
     setIsChatOpen(prev => !prev);
@@ -32,20 +38,20 @@ const BillDetailView = ({ bill }: BillDetailViewProps) => {
       <Navbar />
       
       <div className="max-w-6xl mx-auto pt-28 pb-20 px-6">
-        <div className="mb-8">
+        <div className="mb-4">
           <Link to="/" className="inline-flex items-center text-gray-600 hover:text-gray-900 transition-colors">
             <ChevronLeft className="h-4 w-4 mr-1" />
             Back to search
           </Link>
         </div>
         
-        <h1 className="text-3xl md:text-4xl font-bold mb-3">{bill.title}</h1>
-        
-        <div className="mb-8">
-          <BillSponsors bill={bill} />
+        <div className="mb-6">
+          <h1 className="text-3xl md:text-4xl font-bold mb-1">{bill.title}</h1>
+          <p className="text-gray-600">{versionInfo} {lastUpdated}</p>
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          {/* Left sidebar */}
           <div className="md:col-span-1">
             <BillDetailToolbar 
               bill={bill} 
@@ -56,9 +62,21 @@ const BillDetailView = ({ bill }: BillDetailViewProps) => {
             <BillNotificationSignup bill={bill} />
           </div>
           
+          {/* Main content area */}
           <div className="md:col-span-2">
             {selectedTool === "overview" ? (
-              <BillOverview bill={bill} />
+              <>
+                {/* Bill Overview Card */}
+                <BillOverview bill={bill} />
+                
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+                  {/* Bill Text Card */}
+                  <BillTextContainer bill={bill} />
+                  
+                  {/* Key Insights Card */}
+                  <KeyInsightsCard bill={bill} />
+                </div>
+              </>
             ) : (
               <BillComparisonContainer bill={bill} />
             )}
