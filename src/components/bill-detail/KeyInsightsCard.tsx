@@ -35,7 +35,7 @@ const KeyInsightsCard = ({ bill }: KeyInsightsCardProps) => {
         </div>
         
         {/* Tab buttons - Updated to use smaller size and better layout */}
-        <div className="flex flex-wrap gap-2">
+        <div className="flex justify-center gap-2">
           <Button
             variant={activeTab === "sponsors" ? "default" : "outline"}
             size="sm"
