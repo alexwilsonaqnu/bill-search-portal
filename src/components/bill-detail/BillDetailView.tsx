@@ -31,6 +31,7 @@ const BillDetailView = ({ bill }: BillDetailViewProps) => {
     "";
 
   const toggleChat = () => {
+    console.log("Toggle chat clicked, current state:", isChatOpen);
     setIsChatOpen(prev => !prev);
   };
 

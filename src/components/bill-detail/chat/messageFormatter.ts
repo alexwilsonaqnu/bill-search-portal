@@ -41,4 +41,3 @@ export const formatMessageContent = (content: string): string => {
     line.trim() ? `<p class='mb-2'>${line}</p>` : "<br />"
   ).join("");
 };
-

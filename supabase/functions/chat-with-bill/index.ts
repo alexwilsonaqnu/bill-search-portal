@@ -18,12 +18,15 @@ serve(async (req) => {
   try {
     const { messages, billText } = await req.json();
     
-    if (!messages || !billText) {
+    if (!messages) {
       return new Response(
-        JSON.stringify({ error: 'Missing required parameters' }),
+        JSON.stringify({ error: 'Missing messages parameter' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    // Allow empty bill text, but display a message about it
+    const billContent = billText || "No bill text available. I can still try to answer general questions.";
 
     if (!openAIApiKey) {
       return new Response(
@@ -32,13 +35,15 @@ serve(async (req) => {
       );
     }
 
+    console.log("Received chat request with", messages.length, "messages");
+
     const systemPrompt = `You are an assistant that helps people understand legislative bills. 
     You will be provided with the text of a bill and should answer questions about its content, 
     implications, and meaning. Be concise, accurate, and helpful. 
     When there's ambiguity or uncertainty, acknowledge it. 
     Base your answers solely on the text of the bill. Here's the bill text:
     
-    ${billText}`;
+    ${billContent}`;
 
     // Add the system prompt to the beginning of the messages array
     const fullMessages = [
@@ -88,6 +93,7 @@ serve(async (req) => {
     }
 
     const data = await response.json();
+    console.log("Successfully received response from OpenAI");
     
     return new Response(
       JSON.stringify({ response: data.choices[0].message }),

@@ -7,20 +7,21 @@ import ChatHeader from "./chat/ChatHeader";
 import ChatMessages from "./chat/ChatMessages";
 import ChatInput from "./chat/ChatInput";
 
-const BillChat = ({ content, billText, isOpen, onClose }: ChatProps & { isOpen: boolean; onClose: () => void }) => {
+const BillChat = ({ billText, isOpen, onClose }: ChatProps & { isOpen: boolean; onClose: () => void }) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
-  const billContent = content || billText || "";
+  // Use billText directly since we don't need content property anymore
+  const billContent = billText || "";
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
   // If not open or no content, return null to hide the chat
-  if (!isOpen || !billContent) {
+  if (!isOpen) {
     return null;
   }
 
@@ -77,22 +78,31 @@ const BillChat = ({ content, billText, isOpen, onClose }: ChatProps & { isOpen: 
     }
   };
 
+  // Even if there's no content, we'll show an empty chat UI with a message
   return (
     <div className="fixed bottom-4 left-4 w-[350px] h-[calc(100vh-2rem)] max-h-[calc(100vh-2rem)] bg-white border rounded-lg shadow-lg flex flex-col z-50"> 
       <ChatHeader onClose={onClose} />
-      <ChatMessages 
-        messages={messages}
-        isLoading={isLoading}
-        messagesEndRef={messagesEndRef}
-      />
-      <div className="border-t p-4">
-        <ChatInput
-          inputMessage={inputMessage}
-          setInputMessage={setInputMessage}
-          handleSendMessage={handleSendMessage}
-          isLoading={isLoading}
-        />
-      </div>
+      {!billContent ? (
+        <div className="flex-1 flex items-center justify-center p-4 text-center text-gray-500">
+          <p>No bill content available for chat.</p>
+        </div>
+      ) : (
+        <>
+          <ChatMessages 
+            messages={messages}
+            isLoading={isLoading}
+            messagesEndRef={messagesEndRef}
+          />
+          <div className="border-t p-4">
+            <ChatInput
+              inputMessage={inputMessage}
+              setInputMessage={setInputMessage}
+              handleSendMessage={handleSendMessage}
+              isLoading={isLoading}
+            />
+          </div>
+        </>
+      )}
     </div>
   );
 };

@@ -1,5 +1,5 @@
 
-import { MessageSquare } from "lucide-react";
+import { MessageSquare, X } from "lucide-react";
 
 interface ChatHeaderProps {
   onClose: () => void;
@@ -14,10 +14,10 @@ const ChatHeader = ({ onClose }: ChatHeaderProps) => {
       </div>
       <button 
         onClick={onClose} 
-        className="text-gray-500 hover:text-gray-700"
+        className="text-gray-500 hover:text-gray-700 rounded-full p-1 hover:bg-gray-100"
         aria-label="Close chat"
       >
-        ✕
+        <X className="h-4 w-4" />
       </button>
     </div>
   );
