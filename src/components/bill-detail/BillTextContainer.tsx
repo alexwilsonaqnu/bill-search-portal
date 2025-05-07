@@ -19,6 +19,10 @@ const BillTextContainer = ({ bill }: BillTextContainerProps) => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [retries, setRetries] = useState(0);
   const MAX_RETRIES = 2;
+
+  // Always default to IL for state
+  const state = bill.state || 'IL';
+  const billNumber = bill.data?.bill_number || null;
   
   // Always try to fetch text on mount
   useEffect(() => {
@@ -132,6 +136,8 @@ const BillTextContainer = ({ bill }: BillTextContainerProps) => {
           <BillTextHash 
             textHash={textHash} 
             billId={billId} 
+            state={state}
+            billNumber={billNumber}
             externalUrl={externalUrl} 
             autoFetch={true}
             errorMessage={errorMessage}
