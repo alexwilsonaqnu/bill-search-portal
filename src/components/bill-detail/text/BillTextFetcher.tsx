@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { fetchBillText } from "@/services/legiscan";
 import { fallbackBillText } from "@/services/billTextService";
@@ -23,7 +22,7 @@ interface BillTextFetcherProps {
 
 const BillTextFetcher = ({
   billId,
-  autoFetch = false,
+  autoFetch = true, // Changed default to true to automatically fetch text
   initialErrorMessage,
   children
 }: BillTextFetcherProps) => {
@@ -65,11 +64,12 @@ const BillTextFetcher = ({
     // Try to load from cache first
     const hasCachedText = checkCachedText();
     
-    // If no cached text and autoFetch is true, fetch from API
-    if (!hasCachedText && billId && autoFetch && !isLoading && !textContent) {
+    // If no cached text and billId exists, fetch from API immediately
+    if (!hasCachedText && billId && !isLoading && !textContent) {
+      console.log(`No cached text found for bill ${billId}, fetching from API...`);
       fetchActualText();
     }
-  }, [billId, autoFetch]);
+  }, [billId]);
   
   // Update error if passed from parent
   useEffect(() => {
@@ -161,7 +161,13 @@ const BillTextFetcher = ({
     pdfBase64,
     isHtmlContent,
     extractedText,
-    onTextExtracted: handleTextExtraction,
+    onTextExtracted: (text: string) => {
+      setExtractedText(text);
+      if (text && text.length > 100) {
+        setTextContent(text);
+        setIsHtmlContent(false);
+      }
+    },
     retryFetchText: fetchActualText,
     loadFromCache
   });

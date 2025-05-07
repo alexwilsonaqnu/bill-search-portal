@@ -23,18 +23,21 @@ const BillTextContent = ({ bill, externalUrl, errorMessage }: BillTextContentPro
       bill.versions[0].sections[0].content : "");
   
   // Determine if content is HTML
-  const isHtml = textContent.includes('<html') || 
-                 textContent.includes('<table') || 
-                 textContent.includes('<meta') || 
-                 textContent.includes('<style') || 
-                 textContent.includes('<body');
+  const isHtml = textContent?.includes('<html') || 
+                 textContent?.includes('<table') || 
+                 textContent?.includes('<meta') || 
+                 textContent?.includes('<style') || 
+                 textContent?.includes('<body');
   
   const toggleFullScreen = () => {
     setIsFullScreen(prev => !prev);
   };
 
+  console.log(`BillTextContent rendering for bill ${bill.id}, has text: ${!!textContent}`);
+
   // If the bill has an ID but no text content, use BillTextFetcher to load it
   if (bill.id && !textContent) {
+    console.log(`No text content found for bill ${bill.id}, using BillTextFetcher`);
     return (
       <BillTextFetcher
         billId={bill.id}
@@ -42,7 +45,7 @@ const BillTextContent = ({ bill, externalUrl, errorMessage }: BillTextContentPro
         initialErrorMessage={errorMessage}
       >
         {props => (
-          <BillTextDisplay {...props} />
+          <BillTextDisplay {...props} externalUrl={externalUrl} />
         )}
       </BillTextFetcher>
     );
@@ -51,7 +54,7 @@ const BillTextContent = ({ bill, externalUrl, errorMessage }: BillTextContentPro
   return (
     <div className="prose max-w-none">
       <div className="flex justify-between items-center mb-2">
-        <div></div>
+        <div>{bill.id ? `Bill ID: ${bill.id}` : ''}</div>
         <Button 
           variant="outline" 
           size="sm" 
@@ -69,8 +72,8 @@ const BillTextContent = ({ bill, externalUrl, errorMessage }: BillTextContentPro
       )}
       
       <TextContentDisplay 
-        content={textContent}
-        isHtml={isHtml}
+        content={textContent || ''}
+        isHtml={!!isHtml}
       />
       
       <FullScreenDialog 
@@ -81,7 +84,7 @@ const BillTextContent = ({ bill, externalUrl, errorMessage }: BillTextContentPro
         pdfBase64={null}
         textContent={textContent}
         extractedText={null}
-        isHtmlContent={isHtml}
+        isHtmlContent={!!isHtml}
         externalUrl={externalUrl}
       />
     </div>

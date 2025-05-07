@@ -14,10 +14,12 @@ const BillTextHash = ({
   textHash, 
   billId, 
   externalUrl, 
-  autoFetch = true, // Changed default to true to automatically fetch text
+  autoFetch = true, // Default is true to automatically fetch text
   errorMessage: initialErrorMessage 
 }: BillTextHashProps) => {
   if (!billId) return null;
+
+  console.log(`BillTextHash rendering for bill ${billId} with autoFetch=${autoFetch}`);
 
   return (
     <BillTextFetcher

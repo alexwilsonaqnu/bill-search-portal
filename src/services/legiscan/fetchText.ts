@@ -8,16 +8,16 @@ import { toast } from "sonner";
  */
 export async function fetchBillText(billId: string) {
   try {
-    console.log(`Invoking fetch-bill-text function with billId: ${billId} (always using IL state)`);
+    console.log(`Invoking fetch-bill-text function with billId: ${billId}`);
     
     // Set a reasonable timeout for the API call
     const timeoutPromise = new Promise((_, reject) =>
       setTimeout(() => reject(new Error("Request timed out after 12 seconds")), 12000)
     );
     
-    // Make the API call, explicitly setting state to 'IL'
+    // Make the API call - no need to pass state when using bill_id
     const fetchPromise = supabase.functions.invoke('fetch-bill-text', {
-      body: { billId, state: 'IL' }
+      body: { billId }
     });
     
     // Use Promise.race to handle timeouts

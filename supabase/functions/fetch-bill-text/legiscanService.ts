@@ -10,13 +10,13 @@ import { enhanceIllinoisBillText } from "./utils/formattingUtils.ts";
  * Fetches bill text from LegiScan API
  * Includes improved error handling, response processing, and state detection
  */
-export async function fetchFromLegiscan(billId: string, apiKey: string, state = 'IL') {
+export async function fetchFromLegiscan(billId: string, apiKey: string) {
   try {
-    console.log(`Fetching document content from LegiScan API for bill ${billId} from state ${state}`);
+    console.log(`Fetching document content from LegiScan API for bill ${billId}`);
     
     // Construct the LegiScan API request URL for the "getBillText" operation
-    // Explicitly include the state parameter to ensure we get Illinois bills
-    const requestUrl = `https://api.legiscan.com/?key=${apiKey}&op=getBillText&id=${billId}&state=${state}`;
+    // When using bill_id, we don't need to include state parameter
+    const requestUrl = `https://api.legiscan.com/?key=${apiKey}&op=getBillText&id=${billId}`;
     
     // Make API request with retry logic
     const data = await fetchWithRetry(requestUrl);
@@ -62,8 +62,8 @@ export async function fetchFromLegiscan(billId: string, apiKey: string, state = 
     }
     
     // Get state information from the bill data
-    const stateInfo = state || text.state || detectStateFromContent(decodedContent);
-    const stateCode = text.state_id ? getStateCodeById(text.state_id) : state;
+    const stateInfo = text.state || detectStateFromContent(decodedContent);
+    const stateCode = text.state_id ? getStateCodeById(text.state_id) : 'IL'; // Default to IL if no state info
     
     // Check if content is PDF
     const contentIsPdf = isPdf || isPdfContent(decodedContent);
@@ -83,7 +83,7 @@ export async function fetchFromLegiscan(billId: string, apiKey: string, state = 
       isPdf: contentIsPdf,
       docId,
       mimeType,
-      state: stateCode || stateInfo || 'IL',  // Ensure state is always set, default to IL
+      state: 'IL',  // Always set state as IL for consistency
       title: text.title || `Bill ${billId}`,
       url: text.state_link || null
     });
