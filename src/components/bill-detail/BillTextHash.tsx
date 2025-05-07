@@ -14,7 +14,7 @@ const BillTextHash = ({
   textHash, 
   billId, 
   externalUrl, 
-  autoFetch = false, 
+  autoFetch = true, // Changed default to true to automatically fetch text
   errorMessage: initialErrorMessage 
 }: BillTextHashProps) => {
   if (!billId) return null;

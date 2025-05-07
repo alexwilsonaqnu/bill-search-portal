@@ -5,6 +5,8 @@ import TextContentDisplay from "./text/TextContentDisplay";
 import FullScreenDialog from "./FullScreenDialog";
 import { Button } from "@/components/ui/button";
 import { Maximize } from "lucide-react";
+import BillTextFetcher from "./text/BillTextFetcher";
+import BillTextDisplay from "./text/BillTextDisplay";
 
 interface BillTextContentProps {
   bill: Bill;
@@ -30,6 +32,21 @@ const BillTextContent = ({ bill, externalUrl, errorMessage }: BillTextContentPro
   const toggleFullScreen = () => {
     setIsFullScreen(prev => !prev);
   };
+
+  // If the bill has an ID but no text content, use BillTextFetcher to load it
+  if (bill.id && !textContent) {
+    return (
+      <BillTextFetcher
+        billId={bill.id}
+        autoFetch={true}
+        initialErrorMessage={errorMessage}
+      >
+        {props => (
+          <BillTextDisplay {...props} />
+        )}
+      </BillTextFetcher>
+    );
+  }
   
   return (
     <div className="prose max-w-none">
