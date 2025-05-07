@@ -16,12 +16,11 @@ const HtmlDisplay = ({ content }: HtmlDisplayProps) => {
                      content.includes('<html>') ||
                      content.includes('<body>');
   
-  // For full HTML documents, we need to extract the body content
+  // For full HTML documents, we need to preserve the full structure
   let displayContent = cleanedContent;
   
   if (isFullHtml) {
     // No need to modify content as HtmlContentParser can handle full HTML documents
-    // The parser will extract useful parts while preserving styling
     displayContent = content;
   }
 

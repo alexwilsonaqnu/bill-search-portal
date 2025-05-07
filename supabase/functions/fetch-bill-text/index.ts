@@ -53,7 +53,8 @@ serve(async (req) => {
     const timeoutId = setTimeout(() => controller.abort(), 8000);
     
     try {
-      const response = await fetchFromLegiscan(billId, LEGISCAN_API_KEY);
+      // Explicitly pass IL as the state parameter to ensure we're getting Illinois bills
+      const response = await fetchFromLegiscan(billId, LEGISCAN_API_KEY, 'IL');
       clearTimeout(timeoutId);
       return response;
     } catch (error) {

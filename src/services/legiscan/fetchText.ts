@@ -1,6 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "@/components/ui/use-toast";
+import { toast } from "sonner";
 
 /**
  * Fetches bill text content from LegiScan
@@ -14,8 +14,9 @@ export async function fetchBillText(billId: string) {
       setTimeout(() => reject(new Error("Request timed out after 12 seconds")), 12000)
     );
     
+    // Always specify IL as the state for Illinois bills
     const fetchPromise = supabase.functions.invoke('fetch-bill-text', {
-      body: { billId }
+      body: { billId, state: 'IL' }
     });
     
     // Use Promise.race to handle timeouts
@@ -47,7 +48,7 @@ export async function fetchBillText(billId: string) {
       mimeType: data.mimeType,
       title: data.title,
       url: data.url,
-      state: data.state || null
+      state: data.state || 'IL' // Ensure state is always set, default to IL
     };
   } catch (error) {
     console.error("Error fetching bill text:", error);

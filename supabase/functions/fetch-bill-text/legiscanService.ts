@@ -6,12 +6,13 @@ import { createErrorResponse } from "./billHandlers.ts";
  * Fetches bill text from LegiScan API
  * Includes improved error handling, response processing, and state detection
  */
-export async function fetchFromLegiscan(billId: string, apiKey: string) {
+export async function fetchFromLegiscan(billId: string, apiKey: string, state = 'IL') {
   try {
-    console.log(`Fetching document content from LegiScan API for bill ${billId}`);
+    console.log(`Fetching document content from LegiScan API for bill ${billId} from state ${state}`);
     
     // Construct the LegiScan API request URL for the "getBillText" operation
-    const requestUrl = `https://api.legiscan.com/?key=${apiKey}&op=getBillText&id=${billId}`;
+    // Explicitly include the state parameter to ensure we get Illinois bills
+    const requestUrl = `https://api.legiscan.com/?key=${apiKey}&op=getBillText&id=${billId}&state=${state}`;
     
     // Make API request with retry logic
     const data = await fetchWithRetry(requestUrl);
@@ -57,8 +58,8 @@ export async function fetchFromLegiscan(billId: string, apiKey: string) {
     }
     
     // Get state information from the bill data
-    const stateInfo = text.state || detectStateFromContent(decodedContent);
-    const stateCode = text.state_id ? getStateCodeById(text.state_id) : null;
+    const stateInfo = state || text.state || detectStateFromContent(decodedContent);
+    const stateCode = text.state_id ? getStateCodeById(text.state_id) : state;
     
     // Check if content is PDF
     const contentIsPdf = isPdf || isPdfContent(decodedContent);
@@ -79,7 +80,7 @@ export async function fetchFromLegiscan(billId: string, apiKey: string) {
         isPdf: contentIsPdf,
         docId,
         mimeType,
-        state: stateCode || stateInfo,
+        state: stateCode || stateInfo || 'IL',  // Ensure state is always set, default to IL
         title: text.title || `Bill ${billId}`,
         url: text.state_link || null
       }),

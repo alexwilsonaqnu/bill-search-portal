@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const LEGISCAN_API_KEY = Deno.env.get('LEGISCAN_API_KEY');
@@ -161,6 +160,7 @@ serve(async (req) => {
       const paginatedBills = allBills.slice(startIndex, endIndex);
       const totalPages = Math.ceil(totalCount / pageSize);
 
+      // Return response with bills for Illinois
       return new Response(
         JSON.stringify({
           bills: paginatedBills,
@@ -176,7 +176,7 @@ serve(async (req) => {
         }
       );
     } catch (error) {
-      // Handle timeouts explicitly
+      // Handle errors
       if (error.name === 'AbortError') {
         console.error('Request to LegiScan API timed out');
         return new Response(
@@ -219,6 +219,7 @@ serve(async (req) => {
       );
     }
   } catch (error) {
+    // Handle overall function errors
     console.error(`Error in search-bills function: ${error.message}`);
     return new Response(
       JSON.stringify({ 
