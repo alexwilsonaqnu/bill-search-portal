@@ -14,8 +14,8 @@ serve(async (req) => {
   }
 
   try {
-    // Get bill ID from the request
-    const { billId } = await req.json();
+    // Get bill ID and state from the request
+    const { billId, state = 'IL' } = await req.json();
     
     if (!billId) {
       return createErrorResponse(
@@ -53,8 +53,8 @@ serve(async (req) => {
     const timeoutId = setTimeout(() => controller.abort(), 8000);
     
     try {
-      // Explicitly pass IL as the state parameter to ensure we're getting Illinois bills
-      const response = await fetchFromLegiscan(billId, LEGISCAN_API_KEY, 'IL');
+      // Explicitly pass the state parameter (default to IL) to LegiScan
+      const response = await fetchFromLegiscan(billId, LEGISCAN_API_KEY, state);
       clearTimeout(timeoutId);
       return response;
     } catch (error) {

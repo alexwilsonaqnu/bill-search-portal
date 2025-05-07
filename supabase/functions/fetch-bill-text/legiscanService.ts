@@ -72,7 +72,7 @@ export async function fetchFromLegiscan(billId: string, apiKey: string, state = 
       decodedContent = enhanceIllinoisBillText(decodedContent);
     }
     
-    // Return the processed response
+    // Return the processed response with correct state info
     return new Response(
       JSON.stringify({
         text: contentIsPdf ? null : decodedContent,
