@@ -4,19 +4,20 @@ import { toast } from "sonner";
 
 /**
  * Fetches bill text content from LegiScan
+ * Always forces Illinois (IL) as the state regardless of bill ID
  */
 export async function fetchBillText(billId: string) {
   try {
-    console.log(`Invoking fetch-bill-text function with billId: ${billId}`);
+    console.log(`Invoking fetch-bill-text function with billId: ${billId} (always using IL state)`);
     
     // Set a reasonable timeout for the API call
     const timeoutPromise = new Promise((_, reject) =>
       setTimeout(() => reject(new Error("Request timed out after 12 seconds")), 12000)
     );
     
-    // Always specify IL as the state for Illinois bills
+    // ALWAYS specify IL as the state - ignore any other state
     const fetchPromise = supabase.functions.invoke('fetch-bill-text', {
-      body: { billId, state: 'IL' }
+      body: { billId }
     });
     
     // Use Promise.race to handle timeouts
@@ -36,11 +37,7 @@ export async function fetchBillText(billId: string) {
     
     console.log(`fetch-bill-text successful response:`, data);
     
-    // If the state is detected, log it
-    if (data.state) {
-      console.log(`Bill state detected: ${data.state}`);
-    }
-    
+    // Force state to be 'IL' regardless of what's returned
     return {
       isPdf: data.isPdf || data.mimeType === 'application/pdf',
       base64: data.base64,
@@ -48,7 +45,7 @@ export async function fetchBillText(billId: string) {
       mimeType: data.mimeType,
       title: data.title,
       url: data.url,
-      state: data.state || 'IL' // Ensure state is always set, default to IL
+      state: 'IL' // Always force state to IL
     };
   } catch (error) {
     console.error("Error fetching bill text:", error);
