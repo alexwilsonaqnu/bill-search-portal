@@ -4,10 +4,11 @@ import { toast } from "sonner";
 
 /**
  * Fetches bill text content from LegiScan
+ * Always ensures Illinois (IL) as the state
  */
 export async function fetchBillText(billId: string) {
   try {
-    console.log(`Invoking fetch-bill-text function with billId: ${billId}`);
+    console.log(`Invoking fetch-bill-text function with billId: ${billId} (state: IL)`);
     
     // Set a reasonable timeout for the API call
     const timeoutPromise = new Promise((_, reject) =>
@@ -16,7 +17,10 @@ export async function fetchBillText(billId: string) {
     
     // Always specify IL as the state for Illinois bills
     const fetchPromise = supabase.functions.invoke('fetch-bill-text', {
-      body: { billId, state: 'IL' }
+      body: { 
+        billId, 
+        state: 'IL' // Always include state parameter for consistency
+      }
     });
     
     // Use Promise.race to handle timeouts
@@ -36,6 +40,17 @@ export async function fetchBillText(billId: string) {
     
     console.log(`fetch-bill-text successful response:`, data);
     
+    // Store in cache with proper bill ID and state association
+    try {
+      localStorage.setItem(`bill_text_${billId}`, JSON.stringify({
+        ...data,
+        state: 'IL', // Always ensure state is IL
+        billId: billId // Include the original bill ID
+      }));
+    } catch (storageError) {
+      console.warn("Failed to cache bill text:", storageError);
+    }
+    
     return {
       isPdf: data.isPdf || data.mimeType === 'application/pdf',
       base64: data.base64,
@@ -43,7 +58,8 @@ export async function fetchBillText(billId: string) {
       mimeType: data.mimeType,
       title: data.title,
       url: data.url,
-      state: data.state || 'IL' // Default to IL if not specified
+      state: 'IL', // Always set state as IL
+      billId: billId // Include the bill ID in the response
     };
   } catch (error) {
     console.error("Error fetching bill text:", error);
@@ -100,6 +116,7 @@ export async function fallbackBillText(billId: string, title: string) {
     mimeType: 'text/markdown',
     title: title || `Bill ${billId}`,
     url: null,
-    state: 'IL' // Default to IL for fallback content
+    state: 'IL', // Always ensure state is IL
+    billId: billId // Include the bill ID in fallback content
   };
 }

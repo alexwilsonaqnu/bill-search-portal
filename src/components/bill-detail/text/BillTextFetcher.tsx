@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { fetchBillText } from "@/services/legiscan";
 import { fallbackBillText } from "@/services/billTextService";
@@ -22,7 +23,7 @@ interface BillTextFetcherProps {
 
 const BillTextFetcher = ({
   billId,
-  autoFetch = true, // Changed default to true to automatically fetch text
+  autoFetch = true,
   initialErrorMessage,
   children
 }: BillTextFetcherProps) => {
@@ -43,6 +44,18 @@ const BillTextFetcher = ({
         if (cachedText) {
           const parsedCache = JSON.parse(cachedText);
           console.log(`Found cached text for bill ${billId}`);
+          
+          // Validate the state in cache matches our expected state (Illinois)
+          if (parsedCache.state !== 'IL') {
+            console.warn(`Cached text for bill ${billId} has incorrect state: ${parsedCache.state}, expected: IL`);
+            return false;
+          }
+          
+          // Validate the bill ID matches
+          if (parsedCache.billId && parsedCache.billId !== billId) {
+            console.warn(`Cached text has mismatched billId: ${parsedCache.billId}, expected: ${billId}`);
+            return false;
+          }
           
           setTextContent(parsedCache.text);
           setIsHtmlContent(parsedCache.mimeType?.includes('html'));
@@ -65,11 +78,11 @@ const BillTextFetcher = ({
     const hasCachedText = checkCachedText();
     
     // If no cached text and billId exists, fetch from API immediately
-    if (!hasCachedText && billId && !isLoading && !textContent) {
+    if (!hasCachedText && billId && !isLoading && !textContent && autoFetch) {
       console.log(`No cached text found for bill ${billId}, fetching from API...`);
       fetchActualText();
     }
-  }, [billId]);
+  }, [billId, autoFetch]);
   
   // Update error if passed from parent
   useEffect(() => {
@@ -83,18 +96,11 @@ const BillTextFetcher = ({
     
     setIsLoading(true);
     setError(null);
-    console.log(`Fetching text for bill with ID: ${billId} from LegiScan`);
+    console.log(`Fetching text for bill with ID: ${billId} from LegiScan (state: IL)`);
     
     try {
       const result = await fetchBillText(billId);
       console.log(`Received response for bill ${billId}:`, result);
-      
-      // Cache the result
-      try {
-        localStorage.setItem(`bill_text_${billId}`, JSON.stringify(result));
-      } catch (e) {
-        console.warn("Failed to cache bill text:", e);
-      }
       
       if (result.isPdf) {
         setIsPdfContent(true);
@@ -131,9 +137,13 @@ const BillTextFetcher = ({
         setTextContent(fallbackContent.text);
         setIsHtmlContent(false);
         
-        // Cache the fallback result
+        // Cache the fallback result with state information
         try {
-          localStorage.setItem(`bill_text_${billId}`, JSON.stringify(fallbackContent));
+          localStorage.setItem(`bill_text_${billId}`, JSON.stringify({
+            ...fallbackContent,
+            billId: billId, // Include the billId in the cache
+            state: 'IL'  // Always set state as IL
+          }));
         } catch (e) {
           console.warn("Failed to cache fallback text:", e);
         }
@@ -161,13 +171,7 @@ const BillTextFetcher = ({
     pdfBase64,
     isHtmlContent,
     extractedText,
-    onTextExtracted: (text: string) => {
-      setExtractedText(text);
-      if (text && text.length > 100) {
-        setTextContent(text);
-        setIsHtmlContent(false);
-      }
-    },
+    onTextExtracted: handleTextExtraction,
     retryFetchText: fetchActualText,
     loadFromCache
   });

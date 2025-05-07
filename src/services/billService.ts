@@ -115,7 +115,7 @@ export async function fetchBills(
 const billCache = new Map<string, { data: Bill; timestamp: number }>();
 
 /**
- * Fetches a bill by ID - simplified version
+ * Fetches a bill by ID - with improved state handling
  */
 export async function fetchBillById(id: string): Promise<Bill | null> {
   try {
@@ -127,10 +127,16 @@ export async function fetchBillById(id: string): Promise<Bill | null> {
     const cached = billCache.get(id);
     if (cached && (Date.now() - cached.timestamp) < CACHE_TTL) {
       console.log(`Using cached bill ${id}`);
+      
+      // Ensure the cached bill has state information
+      if (!cached.data.state) {
+        cached.data.state = 'IL'; // Always set state as IL for consistency
+      }
+      
       return cached.data;
     }
     
-    console.log(`Fetching bill with ID: ${id} from LegiScan API`);
+    console.log(`Fetching bill with ID: ${id} from LegiScan API (state: IL)`);
     const bill = await fetchBillFromLegiscan(id);
     
     if (!bill) {
@@ -138,8 +144,19 @@ export async function fetchBillById(id: string): Promise<Bill | null> {
       return null;
     }
     
-    // Cache the bill
-    billCache.set(id, { data: bill, timestamp: Date.now() });
+    // Ensure the bill has state information
+    if (!bill.state) {
+      bill.state = 'IL'; // Always set state as IL for consistency
+    }
+    
+    // Cache the bill with state information
+    billCache.set(id, { 
+      data: { 
+        ...bill,
+        state: 'IL' // Always ensure state is IL
+      }, 
+      timestamp: Date.now() 
+    });
     
     return bill;
   } catch (error) {

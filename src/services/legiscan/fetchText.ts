@@ -15,9 +15,12 @@ export async function fetchBillText(billId: string) {
       setTimeout(() => reject(new Error("Request timed out after 12 seconds")), 12000)
     );
     
-    // Make the API call - no need to pass state when using bill_id
+    // Make the API call - always include state='IL' to ensure consistent state handling
     const fetchPromise = supabase.functions.invoke('fetch-bill-text', {
-      body: { billId }
+      body: { 
+        billId,
+        state: 'IL' // Explicitly include state parameter for consistent handling
+      }
     });
     
     // Use Promise.race to handle timeouts
@@ -37,6 +40,18 @@ export async function fetchBillText(billId: string) {
     
     console.log(`fetch-bill-text successful response:`, data);
     
+    // Cache the bill text with state information
+    try {
+      // Store in local storage with state information included
+      localStorage.setItem(`bill_text_${billId}`, JSON.stringify({
+        ...data,
+        state: 'IL', // Ensure state is always stored with the bill text
+        billId: billId // Include the billId in the cache for reference
+      }));
+    } catch (storageError) {
+      console.warn("Failed to cache bill text with state information:", storageError);
+    }
+    
     // Force state to be 'IL' regardless of what's returned
     return {
       isPdf: data.isPdf || data.mimeType === 'application/pdf',
@@ -45,7 +60,8 @@ export async function fetchBillText(billId: string) {
       mimeType: data.mimeType,
       title: data.title,
       url: data.url,
-      state: 'IL' // Always force state to IL
+      state: 'IL', // Always force state to IL
+      billId: billId // Include the billId in the returned object for reference
     };
   } catch (error) {
     console.error("Error fetching bill text:", error);

@@ -12,7 +12,7 @@ import { enhanceIllinoisBillText } from "./utils/formattingUtils.ts";
  */
 export async function fetchFromLegiscan(billId: string, apiKey: string) {
   try {
-    console.log(`Fetching document content from LegiScan API for bill ${billId}`);
+    console.log(`Fetching document content from LegiScan API for bill ${billId} (always using IL state)`);
     
     // Construct the LegiScan API request URL for the "getBillText" operation
     // When using bill_id, we don't need to include state parameter
@@ -61,17 +61,12 @@ export async function fetchFromLegiscan(billId: string, apiKey: string) {
       );
     }
     
-    // Get state information from the bill data
-    const stateInfo = text.state || detectStateFromContent(decodedContent);
-    const stateCode = text.state_id ? getStateCodeById(text.state_id) : 'IL'; // Default to IL if no state info
-    
-    // Check if content is PDF
+    // Always store state as IL for consistency regardless of the API response
+    const stateCode = 'IL';
     const contentIsPdf = isPdf || isPdfContent(decodedContent);
-    const isIllinois = stateCode === 'IL' || stateInfo === 'IL' || 
-                      (decodedContent && isIllinoisContent(decodedContent));
     
     // Special handling for Illinois content
-    if (isIllinois && !contentIsPdf) {
+    if (!contentIsPdf) {
       // Add Illinois-specific styling for better display
       decodedContent = enhanceIllinoisBillText(decodedContent);
     }
@@ -85,7 +80,8 @@ export async function fetchFromLegiscan(billId: string, apiKey: string) {
       mimeType,
       state: 'IL',  // Always set state as IL for consistency
       title: text.title || `Bill ${billId}`,
-      url: text.state_link || null
+      url: text.state_link || null,
+      billId: billId // Include the billId in the response for reference
     });
   } catch (error) {
     console.error('Error in fetchFromLegiscan:', error);
