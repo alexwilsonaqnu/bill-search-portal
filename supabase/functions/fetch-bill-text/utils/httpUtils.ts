@@ -1,5 +1,4 @@
 import { corsHeaders } from "../constants.ts";
-import { createErrorResponse } from "../billHandlers.ts";
 
 /**
  * Helper function to fetch from LegiScan with retry logic
@@ -56,6 +55,31 @@ export function createSuccessResponse(data: any, status = 200): Response {
     JSON.stringify(data),
     { 
       status,
+      headers: { 
+        'Content-Type': 'application/json',
+        ...corsHeaders 
+      } 
+    }
+  );
+}
+
+/**
+ * Create error response with provided status code and message
+ */
+export function createErrorResponse(
+  message: string, 
+  userMessage?: string, 
+  details?: any, 
+  status: number = 500
+): Response {
+  return new Response(
+    JSON.stringify({ 
+      error: message,
+      userMessage: userMessage || 'An error occurred. Please try again later.',
+      details: details
+    }),
+    { 
+      status, 
       headers: { 
         'Content-Type': 'application/json',
         ...corsHeaders 

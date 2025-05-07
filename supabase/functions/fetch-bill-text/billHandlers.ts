@@ -1,65 +1,31 @@
 
 import { corsHeaders } from './constants.ts';
+import { createSuccessResponse, createErrorResponse } from './utils/httpUtils.ts';
+import { ILLINOIS_CURE_ACT_TEXT, ILLINOIS_BILL_1636654_TEXT } from './constants.ts';
 
 // Handler for pre-defined Illinois Cure Act (ID: 1635636)
 export function handleIllinoisCureAct() {
   console.log('Returning Illinois Cure Act text');
-  return new Response(
-    JSON.stringify({
-      text: "# Illinois Cure Act\n\n## SECTION 1. SHORT TITLE.\nThis Act may be cited as the Cure Act.\n\n## SECTION 5. THE ILLINOIS FOOD, DRUG, AND COSMETIC ACT\nArticle IV. Cure.\n\n### Section 401. Definitions.\nAs used in this Article:\n\"Biopharmaceutical\" means medical drugs produced using biotechnology.\n\"Biological product\" has the meaning given to that term in Section 351 of the Public Health Service Act (42 U.S.C. 262).\n\"Cure Corridor\" means the physical area and operations in the State that hosts institutions that are industry, academic, and research centers of excellence which are classified as biopharmaceutical or medical innovation centers, medical device and technology centers, or health care, educational, and community-based centers.\n\"Innovation pilot\" means a public health and safety program, including any that may use artificial intelligence, that is established or advanced by or in connection with the Cure Corridor.\n\"Medical product\" means drug, medical food, biopharmaceutical, biological product, or medical device.\n\n### Section 405. Cure Corridor; establishment.\nThe General Assembly establishes the Cure Corridor to increase access, lower costs, and develop cures for diseases. The Cure Corridor shall host institutions and innovation pilots to provide space for persons who wish to pursue cures to various diseases. The Governor shall appoint persons to serve on the Cure Corridor Board.\n\n### Section 410. Cure Corridor; powers and duties.\nThe Cure Corridor may:\n(1) seek grants and funding, including federal funding, to develop cures or preventions for diseases;\n(2) establish innovation pilots that further cures; and\n(3) do all acts and things necessary or convenient to carry out the powers expressly granted in this Article.\n\n### Section 415. Subsidies for innovative drugs.\nA pharmaceutical manufacturer that produces a drug for a rare disease may apply to the Cure Corridor Board for subsidies to lower the cost of the drug for patients. The Cure Corridor Board may award grants to researchers for developing a cure for a disease based on the expected patient impact in the State.",
-      docId: '1635636',
-      mimeType: 'text/plain',
-      title: "Illinois Cure Act",
-      state: "Illinois"
-    }),
-    { 
-      headers: { 
-        'Content-Type': 'application/json',
-        ...corsHeaders 
-      } 
-    }
-  );
+  return createSuccessResponse({
+    text: ILLINOIS_CURE_ACT_TEXT,
+    docId: '1635636',
+    mimeType: 'text/plain',
+    title: "Illinois Cure Act",
+    state: "Illinois"
+  });
 }
 
 // Handler for pre-defined Illinois Bill 1636654
 export function handleIllinoisBill1636654() {
   console.log('Returning hard-coded Illinois Bill 1636654 text');
-  return new Response(
-    JSON.stringify({
-      text: "# House Bill 890\n\n## AN ACT concerning regulation.\n\nBe it enacted by the People of the State of Illinois, represented in the General Assembly:\n\n### Section 5. The Department of Professional Regulation Law of the Civil Administrative Code of Illinois is amended by changing Section 2105-15 as follows:\n\n(20 ILCS 2105/2105-15)\n\n### Sec. 2105-15. General powers and duties.\n(a) The Department has, subject to the provisions of the Civil Administrative Code of Illinois, the following powers and duties:\n\n(1) To authorize examinations in English to ascertain the qualifications and fitness of applicants to exercise the profession, trade, or occupation for which the examination is held.\n(2) To prescribe rules and regulations for a fair and wholly impartial method of examination of candidates to exercise the respective professions, trades, or occupations.\n(3) To pass upon the qualifications of applicants for licenses, certificates, and authorities, whether by examination, by reciprocity, or by endorsement.\n(4) To prescribe rules and regulations defining, for the respective professions, trades, and occupations, what shall constitute a school, college, or university, or department of a university, or other institution, reputable and in good standing, and to determine the reputability and good standing of a school, college, or university, or department of a university, or other institution, reputable and in good standing, by reference to a compliance with those rules and regulations; provided, that no school, college, or university, or department of a university, or other institution that refuses admittance to applicants solely on account of race, color, creed, sex, sexual orientation, or national origin shall be considered reputable and in good standing.\n\n(b) The Department may, in accordance with Section 2105-75 of this Law, establish a system of fees to fund the administration and enforcement of the examination and licensing laws for the occupations and professions regulated by the Department.",
-      docId: '1636654',
-      mimeType: 'text/plain',
-      title: "Illinois House Bill 890",
-      state: "Illinois"
-    }),
-    { 
-      headers: { 
-        'Content-Type': 'application/json',
-        ...corsHeaders 
-      } 
-    }
-  );
+  return createSuccessResponse({
+    text: ILLINOIS_BILL_1636654_TEXT,
+    docId: '1636654',
+    mimeType: 'text/plain',
+    title: "Illinois House Bill 890",
+    state: "Illinois"
+  });
 }
 
-// Create error response with provided status code and message
-export function createErrorResponse(
-  message: string, 
-  userMessage?: string, 
-  details?: any, 
-  status: number = 500
-): Response {
-  return new Response(
-    JSON.stringify({ 
-      error: message,
-      userMessage: userMessage || 'An error occurred. Please try again later.',
-      details: details
-    }),
-    { 
-      status, 
-      headers: { 
-        'Content-Type': 'application/json',
-        ...corsHeaders 
-      } 
-    }
-  );
-}
+// Re-export the error response function from httpUtils for backward compatibility
+export { createErrorResponse } from './utils/httpUtils.ts';
