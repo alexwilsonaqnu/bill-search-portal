@@ -30,7 +30,7 @@ serve(async (req) => {
     // Log the incoming request details
     console.log(`Fetching text with params: ${JSON.stringify({ billId, state, billNumber })}`);
     
-    // Special cases - still using billId for these
+    // Check if we have special cases to handle (still using billId for these)
     if (billId === '1635636') {
       return handleIllinoisCureAct();
     }
@@ -54,10 +54,10 @@ serve(async (req) => {
     const timeoutId = setTimeout(() => controller.abort(), 8000);
     
     try {
-      // Use either billId OR state+billNumber approach
-      const response = billId 
-        ? await fetchFromLegiscan(billId, LEGISCAN_API_KEY) 
-        : await fetchFromLegiscan(null, LEGISCAN_API_KEY, state, billNumber);
+      // Prioritize using state+billNumber if available, fall back to billId
+      const response = (state && billNumber)
+        ? await fetchFromLegiscan(null, LEGISCAN_API_KEY, state, billNumber) // Use state+billNumber approach
+        : await fetchFromLegiscan(billId, LEGISCAN_API_KEY);                // Fall back to billId approach
       
       clearTimeout(timeoutId);
       return response;

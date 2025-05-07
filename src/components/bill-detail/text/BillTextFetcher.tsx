@@ -41,9 +41,18 @@ const BillTextFetcher = ({
   const [loadFromCache, setLoadFromCache] = useState(false);
   
   // Generate a consistent cache key based on available identifiers
+  // Prioritize state+billNumber if available
   const cacheKey = billNumber 
     ? `bill_text_${state}_${billNumber}` 
     : `bill_text_${billId}`;
+  
+  // Log which approach we're using
+  console.log(`BillTextFetcher: Using ${billNumber ? 'state+billNumber' : 'billId'} approach`, {
+    state,
+    billNumber,
+    billId,
+    cacheKey
+  });
   
   // Check for cached text when component mounts
   useEffect(() => {
@@ -111,15 +120,18 @@ const BillTextFetcher = ({
     
     setIsLoading(true);
     setError(null);
+    
+    // Log which method we're using to fetch
     console.log(`Fetching text ${billNumber ? `for ${state} bill ${billNumber}` : `for bill ID ${billId}`}`);
     
     try {
       // Use the appropriate fetch method based on available identifiers
-      const result = billNumber
+      // Prioritize state+billNumber if available
+      const result = (state && billNumber)
         ? await fetchBillText(billId, state, billNumber)  // Use state+billNumber approach
         : await fetchBillText(billId, state);             // Use billId approach with state
         
-      console.log(`Received response:`, result);
+      console.log(`Received text response:`, result);
       
       if (result.isPdf) {
         setIsPdfContent(true);
@@ -135,6 +147,7 @@ const BillTextFetcher = ({
         return;
       }
       
+      // Detect HTML content
       const isHtml = result.text?.includes('<html') || 
                      result.text?.includes('<table') || 
                      result.text?.includes('<meta') || 
@@ -143,6 +156,18 @@ const BillTextFetcher = ({
       
       setIsHtmlContent(isHtml);
       setTextContent(result.text);
+      
+      // Cache the successful result with all identifiers
+      try {
+        localStorage.setItem(cacheKey, JSON.stringify({
+          ...result,
+          state,
+          billId,
+          billNumber
+        }));
+      } catch (cacheError) {
+        console.warn("Failed to cache text result:", cacheError);
+      }
     } catch (error) {
       console.error("Error fetching bill text:", error);
       const errorMessage = error instanceof Error ? error.message : String(error);

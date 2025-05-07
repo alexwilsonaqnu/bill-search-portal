@@ -5,7 +5,7 @@ import BillTextDisplay from "./text/BillTextDisplay";
 interface BillTextHashProps {
   textHash: string;
   billId: string;
-  state?: string;
+  state: string;
   billNumber?: string;
   externalUrl?: string | null;
   autoFetch?: boolean;
@@ -21,8 +21,13 @@ const BillTextHash = ({
   autoFetch = true,
   errorMessage: initialErrorMessage 
 }: BillTextHashProps) => {
-  if (!billId && !(state && billNumber)) return null;
+  // We can use either state+billNumber OR billId, but prefer state+billNumber when available
+  if (!billId && !(state && billNumber)) {
+    console.warn("BillTextHash: Missing both billId and state+billNumber combination");
+    return null;
+  }
 
+  // Log which method we're using to fetch text
   console.log(`BillTextHash rendering with ${billNumber ? `state: ${state}, billNumber: ${billNumber}` : `billId: ${billId}`}`);
 
   return (

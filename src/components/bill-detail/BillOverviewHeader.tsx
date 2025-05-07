@@ -22,7 +22,7 @@ const BillOverviewHeader = ({
   setExternalContent
 }: BillOverviewHeaderProps) => {
   
-  // Extract bill data
+  // Extract bill data including state and billNumber
   const { 
     ilgaUrl, 
     textHash, 
@@ -30,6 +30,13 @@ const BillOverviewHeader = ({
     state,
     billNumber
   } = BillDataExtractor({ bill });
+  
+  // Log what approach we're using to fetch bill text
+  console.log(`BillOverviewHeader: Using ${billNumber ? 'state+billNumber' : 'billId'} approach`, {
+    state, 
+    billNumber, 
+    billId: legiscanBillId
+  });
   
   // Get content loader
   const { fetchExternalContent } = BillContentLoader({ 
@@ -48,6 +55,7 @@ const BillOverviewHeader = ({
         
         <BillResourceLinks bill={bill} />
         
+        {/* Always pass both billId and state+billNumber */}
         <BillTextHash 
           textHash={textHash} 
           billId={legiscanBillId}

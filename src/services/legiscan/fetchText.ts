@@ -8,6 +8,7 @@ import { toast } from "sonner";
  */
 export async function fetchBillText(billId: string, state: string = 'IL', billNumber?: string) {
   try {
+    // Log which approach we're using to fetch
     console.log(`Invoking fetch-bill-text function with ${billNumber ? `state: ${state}, billNumber: ${billNumber}` : `billId: ${billId}`}`);
     
     // Set a reasonable timeout for the API call
@@ -16,9 +17,9 @@ export async function fetchBillText(billId: string, state: string = 'IL', billNu
     );
     
     // Prepare request body - prioritize state+billNumber if available
-    const requestBody = billNumber
+    const requestBody = (state && billNumber)
       ? { state, billNumber } // Preferred: use state and bill number
-      : { billId, state: 'IL' }; // Fallback: use bill ID but always include state
+      : { billId, state }; // Fallback: use bill ID but always include state
     
     // Make the API call with the appropriate parameters
     const fetchPromise = supabase.functions.invoke('fetch-bill-text', {
@@ -45,7 +46,8 @@ export async function fetchBillText(billId: string, state: string = 'IL', billNu
     // Cache the bill text with state information
     try {
       // Generate a consistent cache key based on available identifiers
-      const cacheKey = billNumber 
+      // Prioritize state+billNumber if available for the cache key
+      const cacheKey = (state && billNumber) 
         ? `bill_text_${state}_${billNumber}` 
         : `bill_text_${billId}`;
         
@@ -53,13 +55,13 @@ export async function fetchBillText(billId: string, state: string = 'IL', billNu
         ...data,
         state: state || 'IL', // Ensure state is always stored
         billId: billId, // Include the billId for reference
-        billNumber: billNumber // Include bill number if available
+        billNumber: billNumber || data.billNumber // Include bill number if available
       }));
     } catch (storageError) {
       console.warn("Failed to cache bill text with state information:", storageError);
     }
     
-    // Always ensure consistent state in the returned object
+    // Always ensure consistent state and identifiers in the returned object
     return {
       isPdf: data.isPdf || data.mimeType === 'application/pdf',
       base64: data.base64,

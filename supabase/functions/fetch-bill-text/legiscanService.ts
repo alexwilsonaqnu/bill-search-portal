@@ -18,10 +18,10 @@ export async function fetchFromLegiscan(
 ) {
   try {
     // Log which method we're using to fetch
-    if (billId) {
-      console.log(`Fetching document content from LegiScan API for bill ${billId}`);
-    } else if (state && billNumber) {
+    if (state && billNumber) {
       console.log(`Fetching document content from LegiScan API for ${state} bill ${billNumber}`);
+    } else if (billId) {
+      console.log(`Fetching document content from LegiScan API for bill ${billId}`);
     } else {
       return createErrorResponse(
         'Invalid parameters',
@@ -32,12 +32,12 @@ export async function fetchFromLegiscan(
     
     // Construct the LegiScan API request URL for the appropriate operation
     let requestUrl;
-    if (billId) {
-      // Using bill_id for direct lookup (preferred when available)
-      requestUrl = `https://api.legiscan.com/?key=${apiKey}&op=getBillText&id=${billId}`;
-    } else {
-      // Using state+billNumber when billId is not available
+    if (state && billNumber) {
+      // Using state+billNumber approach (preferred method)
       requestUrl = `https://api.legiscan.com/?key=${apiKey}&op=getBill&state=${state}&bill=${billNumber}`;
+    } else {
+      // Using bill_id for direct lookup (fallback method)
+      requestUrl = `https://api.legiscan.com/?key=${apiKey}&op=getBillText&id=${billId}`;
     }
     
     // Make API request with retry logic
@@ -54,12 +54,12 @@ export async function fetchFromLegiscan(
     }
     
     // Different response handling based on the API call type
-    if (billId) {
-      // Handle getBillText response
-      return handleGetBillTextResponse(data, billId, state || 'IL');
+    if (state && billNumber) {
+      // Handle getBill response (when using state+billNumber)
+      return handleGetBillResponse(data, apiKey, state, billNumber);
     } else {
-      // Handle getBill response - need to extract text_id from bill and make a second API call
-      return handleGetBillResponse(data, apiKey, state || 'IL', billNumber || '');
+      // Handle getBillText response (when using billId)
+      return handleGetBillTextResponse(data, billId || '', state || 'IL');
     }
   } catch (error) {
     console.error('Error in fetchFromLegiscan:', error);
@@ -151,12 +151,15 @@ async function handleGetBillResponse(data: any, apiKey: string, state: string, b
     );
   }
   
+  // Store the bill ID for reference
+  const billId = bill.bill_id;
+  
   // Check if bill has text elements
   if (!bill.texts || bill.texts.length === 0) {
     return createErrorResponse(
       'No bill text available',
       'This bill does not have any text documents available.',
-      { state, billNumber, billId: bill.bill_id }
+      { state, billNumber, billId }
     );
   }
   
@@ -179,7 +182,55 @@ async function handleGetBillResponse(data: any, apiKey: string, state: string, b
     }
     
     // Now we have the text content, process it similarly to getBillText
-    return handleGetBillTextResponse(textData, bill.bill_id, state);
+    // But make sure to include billId, billNumber, and state in the response
+    const { text } = textData;
+    const base64Content = text.doc;
+    const mimeType = text.mime || 'text/html';
+    const isPdf = mimeType === 'application/pdf' || text.mime_id === 2;
+    
+    if (!base64Content) {
+      return createErrorResponse(
+        'No content available',
+        'The bill text content is not available from LegiScan.',
+        { state, billNumber, billId, docId }
+      );
+    }
+    
+    // Decode and process the content
+    let decodedContent;
+    try {
+      decodedContent = decodeBase64Text(base64Content);
+    } catch (error) {
+      console.error('Error decoding base64 content:', error);
+      return createErrorResponse(
+        'Content decoding error',
+        'The bill text could not be decoded properly.',
+        { state, billNumber, billId, docId }
+      );
+    }
+    
+    const contentIsPdf = isPdf || isPdfContent(decodedContent);
+    
+    // Special handling for state-specific content
+    if (!contentIsPdf) {
+      // Add state-specific styling for better display
+      decodedContent = enhanceIllinoisBillText(decodedContent);
+    }
+    
+    // Return the processed response with both billId and billNumber
+    return createSuccessResponse({
+      text: contentIsPdf ? null : decodedContent,
+      base64: contentIsPdf ? base64Content : null,
+      isPdf: contentIsPdf,
+      docId,
+      mimeType,
+      state,
+      title: text.title || `${state} Bill ${billNumber}`,
+      url: text.state_link || bill.state_link || null,
+      billId: billId,
+      billNumber: billNumber
+    });
+    
   } catch (error) {
     console.error('Error fetching bill text document:', error);
     return createErrorResponse(

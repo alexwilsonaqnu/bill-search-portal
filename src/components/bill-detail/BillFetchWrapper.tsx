@@ -38,23 +38,54 @@ const BillFetchWrapper = () => {
     retryCount // Pass retry count to force refetch on retry
   });
 
+  // Extract bill state and number (if available)
+  const billState = bill?.state || 'IL';
+  const billNumber = bill?.data?.bill_number || bill?.data?.bill?.bill_number;
+
+  // Log bill identifiers
+  useEffect(() => {
+    if (bill) {
+      console.log(`BillFetchWrapper: Loaded bill with identifiers:`, { 
+        id: bill.id, 
+        state: billState,
+        billNumber
+      });
+    }
+  }, [bill, billState, billNumber]);
+
   // Fetch bill text when bill data is loaded
   useEffect(() => {
     const loadBillText = async () => {
       if (bill && id && !billText && !isLoadingText) {
         try {
           setIsLoadingText(true);
-          console.log(`Fetching bill text for bill ID: ${id}`);
           
-          const textResult = await fetchBillText(id);
-          
-          if (textResult) {
-            console.log("Successfully loaded bill text");
-            setBillText(textResult.text || null);
+          // Use state+billNumber if available, fall back to id
+          if (billState && billNumber) {
+            console.log(`Fetching bill text for ${billState} bill ${billNumber}`);
+            const textResult = await fetchBillText(id, billState, billNumber);
             
-            // Update the bill object with the text content
-            if (textResult.text) {
-              bill.text = textResult.text;
+            if (textResult) {
+              console.log("Successfully loaded bill text using state+billNumber");
+              setBillText(textResult.text || null);
+              
+              // Update the bill object with the text content
+              if (textResult.text) {
+                bill.text = textResult.text;
+              }
+            }
+          } else {
+            console.log(`Fetching bill text with ID: ${id}`);
+            const textResult = await fetchBillText(id, billState);
+            
+            if (textResult) {
+              console.log("Successfully loaded bill text using billId");
+              setBillText(textResult.text || null);
+              
+              // Update the bill object with the text content
+              if (textResult.text) {
+                bill.text = textResult.text;
+              }
             }
           }
         } catch (error) {
@@ -68,7 +99,7 @@ const BillFetchWrapper = () => {
     };
     
     loadBillText();
-  }, [bill, id, billText, isLoadingText]);
+  }, [bill, id, billText, isLoadingText, billState, billNumber]);
   
   // Detect API down condition
   useEffect(() => {
