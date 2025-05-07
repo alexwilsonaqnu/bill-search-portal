@@ -4,23 +4,25 @@ import { toast } from "sonner";
 
 /**
  * Fetches bill text content from LegiScan
- * Always forces Illinois (IL) as the state regardless of bill ID
+ * Uses state and bill number (preferred) or bill ID
  */
-export async function fetchBillText(billId: string) {
+export async function fetchBillText(billId: string, state: string = 'IL', billNumber?: string) {
   try {
-    console.log(`Invoking fetch-bill-text function with billId: ${billId}`);
+    console.log(`Invoking fetch-bill-text function with ${billNumber ? `state: ${state}, billNumber: ${billNumber}` : `billId: ${billId}`}`);
     
     // Set a reasonable timeout for the API call
     const timeoutPromise = new Promise((_, reject) =>
       setTimeout(() => reject(new Error("Request timed out after 12 seconds")), 12000)
     );
     
-    // Make the API call - always include state='IL' to ensure consistent state handling
+    // Prepare request body - prioritize state+billNumber if available
+    const requestBody = billNumber
+      ? { state, billNumber } // Preferred: use state and bill number
+      : { billId, state: 'IL' }; // Fallback: use bill ID but always include state
+    
+    // Make the API call with the appropriate parameters
     const fetchPromise = supabase.functions.invoke('fetch-bill-text', {
-      body: { 
-        billId,
-        state: 'IL' // Explicitly include state parameter for consistent handling
-      }
+      body: requestBody
     });
     
     // Use Promise.race to handle timeouts
@@ -42,17 +44,22 @@ export async function fetchBillText(billId: string) {
     
     // Cache the bill text with state information
     try {
-      // Store in local storage with state information included
-      localStorage.setItem(`bill_text_${billId}`, JSON.stringify({
+      // Generate a consistent cache key based on available identifiers
+      const cacheKey = billNumber 
+        ? `bill_text_${state}_${billNumber}` 
+        : `bill_text_${billId}`;
+        
+      localStorage.setItem(cacheKey, JSON.stringify({
         ...data,
-        state: 'IL', // Ensure state is always stored with the bill text
-        billId: billId // Include the billId in the cache for reference
+        state: state || 'IL', // Ensure state is always stored
+        billId: billId, // Include the billId for reference
+        billNumber: billNumber // Include bill number if available
       }));
     } catch (storageError) {
       console.warn("Failed to cache bill text with state information:", storageError);
     }
     
-    // Force state to be 'IL' regardless of what's returned
+    // Always ensure consistent state in the returned object
     return {
       isPdf: data.isPdf || data.mimeType === 'application/pdf',
       base64: data.base64,
@@ -60,8 +67,9 @@ export async function fetchBillText(billId: string) {
       mimeType: data.mimeType,
       title: data.title,
       url: data.url,
-      state: 'IL', // Always force state to IL
-      billId: billId // Include the billId in the returned object for reference
+      state: state || 'IL', // Always ensure state is returned
+      billId: billId, // Always include billId
+      billNumber: billNumber || data.billNumber // Include billNumber if available
     };
   } catch (error) {
     console.error("Error fetching bill text:", error);

@@ -26,7 +26,9 @@ const BillOverviewHeader = ({
   const { 
     ilgaUrl, 
     textHash, 
-    legiscanBillId 
+    legiscanBillId,
+    state,
+    billNumber
   } = BillDataExtractor({ bill });
   
   // Get content loader
@@ -44,16 +46,16 @@ const BillOverviewHeader = ({
       <div className="space-y-6">
         <BillBasicInfo bill={bill} />
         
-        {/* Updated to pass bill prop instead of individual props */}
         <BillResourceLinks bill={bill} />
         
         <BillTextHash 
           textHash={textHash} 
           billId={legiscanBillId}
+          state={state}
+          billNumber={billNumber}
           externalUrl={ilgaUrl} 
         />
         
-        {/* Updated to pass bill prop instead of changes */}
         <BillHistoryView bill={bill} />
       </div>
     </Card>

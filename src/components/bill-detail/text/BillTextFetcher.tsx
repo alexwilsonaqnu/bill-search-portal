@@ -5,6 +5,8 @@ import { fallbackBillText } from "@/services/billTextService";
 
 interface BillTextFetcherProps {
   billId: string;
+  state?: string;
+  billNumber?: string;
   autoFetch?: boolean;
   initialErrorMessage?: string | null;
   children: (props: {
@@ -23,6 +25,8 @@ interface BillTextFetcherProps {
 
 const BillTextFetcher = ({
   billId,
+  state = 'IL',
+  billNumber,
   autoFetch = true,
   initialErrorMessage,
   children
@@ -36,24 +40,35 @@ const BillTextFetcher = ({
   const [extractedText, setExtractedText] = useState<string | null>(null);
   const [loadFromCache, setLoadFromCache] = useState(false);
   
+  // Generate a consistent cache key based on available identifiers
+  const cacheKey = billNumber 
+    ? `bill_text_${state}_${billNumber}` 
+    : `bill_text_${billId}`;
+  
   // Check for cached text when component mounts
   useEffect(() => {
     const checkCachedText = () => {
       try {
-        const cachedText = localStorage.getItem(`bill_text_${billId}`);
+        const cachedText = localStorage.getItem(cacheKey);
         if (cachedText) {
           const parsedCache = JSON.parse(cachedText);
-          console.log(`Found cached text for bill ${billId}`);
+          console.log(`Found cached text for ${billNumber ? `${state} bill ${billNumber}` : `bill ID ${billId}`}`);
           
-          // Validate the state in cache matches our expected state (Illinois)
-          if (parsedCache.state !== 'IL') {
-            console.warn(`Cached text for bill ${billId} has incorrect state: ${parsedCache.state}, expected: IL`);
+          // Validate the state in cache matches our expected state
+          if (parsedCache.state !== state) {
+            console.warn(`Cached text has incorrect state: ${parsedCache.state}, expected: ${state}`);
             return false;
           }
           
-          // Validate the bill ID matches
-          if (parsedCache.billId && parsedCache.billId !== billId) {
+          // Validate ID matches if we're using billId
+          if (!billNumber && parsedCache.billId && parsedCache.billId !== billId) {
             console.warn(`Cached text has mismatched billId: ${parsedCache.billId}, expected: ${billId}`);
+            return false;
+          }
+          
+          // Validate bill number matches if we're using billNumber
+          if (billNumber && parsedCache.billNumber && parsedCache.billNumber !== billNumber) {
+            console.warn(`Cached text has mismatched billNumber: ${parsedCache.billNumber}, expected: ${billNumber}`);
             return false;
           }
           
@@ -77,12 +92,12 @@ const BillTextFetcher = ({
     // Try to load from cache first
     const hasCachedText = checkCachedText();
     
-    // If no cached text and billId exists, fetch from API immediately
-    if (!hasCachedText && billId && !isLoading && !textContent && autoFetch) {
-      console.log(`No cached text found for bill ${billId}, fetching from API...`);
+    // If no cached text and we have identifiers, fetch from API immediately
+    if (!hasCachedText && autoFetch && ((billId) || (state && billNumber))) {
+      console.log(`No cached text found, fetching from API...`);
       fetchActualText();
     }
-  }, [billId, autoFetch]);
+  }, [billId, state, billNumber, autoFetch, cacheKey]);
   
   // Update error if passed from parent
   useEffect(() => {
@@ -96,11 +111,15 @@ const BillTextFetcher = ({
     
     setIsLoading(true);
     setError(null);
-    console.log(`Fetching text for bill with ID: ${billId} from LegiScan (state: IL)`);
+    console.log(`Fetching text ${billNumber ? `for ${state} bill ${billNumber}` : `for bill ID ${billId}`}`);
     
     try {
-      const result = await fetchBillText(billId);
-      console.log(`Received response for bill ${billId}:`, result);
+      // Use the appropriate fetch method based on available identifiers
+      const result = billNumber
+        ? await fetchBillText(billId, state, billNumber)  // Use state+billNumber approach
+        : await fetchBillText(billId, state);             // Use billId approach with state
+        
+      console.log(`Received response:`, result);
       
       if (result.isPdf) {
         setIsPdfContent(true);
@@ -116,11 +135,11 @@ const BillTextFetcher = ({
         return;
       }
       
-      const isHtml = result.text.includes('<html') || 
-                     result.text.includes('<table') || 
-                     result.text.includes('<meta') || 
-                     result.text.includes('<style') || 
-                     result.text.includes('<body');
+      const isHtml = result.text?.includes('<html') || 
+                     result.text?.includes('<table') || 
+                     result.text?.includes('<meta') || 
+                     result.text?.includes('<style') || 
+                     result.text?.includes('<body');
       
       setIsHtmlContent(isHtml);
       setTextContent(result.text);
@@ -132,17 +151,18 @@ const BillTextFetcher = ({
       // Try to use fallback content after API failure
       try {
         console.log("Using fallback bill text after API failure");
-        const title = billId ? `Bill ${billId}` : `Unknown Bill`;
+        const title = billNumber ? `${state} Bill ${billNumber}` : `Bill ${billId}`;
         const fallbackContent = await fallbackBillText(billId, title);
         setTextContent(fallbackContent.text);
         setIsHtmlContent(false);
         
-        // Cache the fallback result with state information
+        // Cache the fallback result with identifiers
         try {
-          localStorage.setItem(`bill_text_${billId}`, JSON.stringify({
+          localStorage.setItem(cacheKey, JSON.stringify({
             ...fallbackContent,
-            billId: billId, // Include the billId in the cache
-            state: 'IL'  // Always set state as IL
+            state,
+            billId,
+            billNumber
           }));
         } catch (e) {
           console.warn("Failed to cache fallback text:", e);

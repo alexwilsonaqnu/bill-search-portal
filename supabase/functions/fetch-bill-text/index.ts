@@ -14,28 +14,27 @@ serve(async (req) => {
   }
 
   try {
-    // Get bill ID from the request
-    const { billId, state } = await req.json();
+    // Get parameters from the request
+    const { billId, state, billNumber } = await req.json();
     
-    if (!billId) {
+    // Check if we have at least one valid identifier (billId OR state+billNumber)
+    if (!billId && !(state && billNumber)) {
       return createErrorResponse(
-        'Missing bill ID',
-        'Bill ID is required to fetch bill text.',
+        'Missing bill identifiers',
+        'Either bill ID or state and bill number are required to fetch bill text.',
         null,
         400
       );
     }
 
     // Log the incoming request details
-    console.log(`Fetching text for bill ID: ${billId}, state from request: ${state || 'not provided'}`);
-    console.log(`Note: Using bill_id directly; state parameter not needed for LegiScan API but ensuring Illinois (IL)`);
+    console.log(`Fetching text with params: ${JSON.stringify({ billId, state, billNumber })}`);
     
-    // Special case for Illinois Cure Act (ID: 1635636)
+    // Special cases - still using billId for these
     if (billId === '1635636') {
       return handleIllinoisCureAct();
     }
     
-    // Special case for Illinois Bill 1636654 (which seems to get wrong content from API)
     if (billId === '1636654') {
       return handleIllinoisBill1636654();
     }
@@ -55,8 +54,11 @@ serve(async (req) => {
     const timeoutId = setTimeout(() => controller.abort(), 8000);
     
     try {
-      // When using bill_id for lookup, state is not required, but we'll ensure IL state in the response
-      const response = await fetchFromLegiscan(billId, LEGISCAN_API_KEY);
+      // Use either billId OR state+billNumber approach
+      const response = billId 
+        ? await fetchFromLegiscan(billId, LEGISCAN_API_KEY) 
+        : await fetchFromLegiscan(null, LEGISCAN_API_KEY, state, billNumber);
+      
       clearTimeout(timeoutId);
       return response;
     } catch (error) {
@@ -68,7 +70,7 @@ serve(async (req) => {
         return createErrorResponse(
           'Request timeout',
           'The request to LegiScan timed out. Please try again later.',
-          { billId }
+          { billId, state, billNumber }
         );
       }
       

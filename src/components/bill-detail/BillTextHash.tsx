@@ -5,6 +5,8 @@ import BillTextDisplay from "./text/BillTextDisplay";
 interface BillTextHashProps {
   textHash: string;
   billId: string;
+  state?: string;
+  billNumber?: string;
   externalUrl?: string | null;
   autoFetch?: boolean;
   errorMessage?: string | null;
@@ -13,17 +15,21 @@ interface BillTextHashProps {
 const BillTextHash = ({ 
   textHash, 
   billId, 
+  state = 'IL',
+  billNumber,
   externalUrl, 
-  autoFetch = true, // Default is true to automatically fetch text
+  autoFetch = true,
   errorMessage: initialErrorMessage 
 }: BillTextHashProps) => {
-  if (!billId) return null;
+  if (!billId && !(state && billNumber)) return null;
 
-  console.log(`BillTextHash rendering for bill ${billId} with autoFetch=${autoFetch}`);
+  console.log(`BillTextHash rendering with ${billNumber ? `state: ${state}, billNumber: ${billNumber}` : `billId: ${billId}`}`);
 
   return (
     <BillTextFetcher
       billId={billId}
+      state={state}
+      billNumber={billNumber}
       autoFetch={autoFetch}
       initialErrorMessage={initialErrorMessage}
     >
