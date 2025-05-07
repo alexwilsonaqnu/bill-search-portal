@@ -13,6 +13,7 @@ export interface Bill {
   data?: any;
   sponsor?: any; // Add sponsor property
   cosponsors?: any[]; // Add cosponsors property
+  state?: string; // Add state property to support state information
 }
 
 export interface BillVersion {
