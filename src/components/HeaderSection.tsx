@@ -18,7 +18,7 @@ const HeaderSection = ({ query, onSearch, isLoading = false }: HeaderSectionProp
       </div>
       
       <h1 className="text-5xl md:text-7xl font-bold mb-8 billinois-logo text-brand-primary">
-        Billinois TEST TEST TEST
+        Billinois
       </h1>
       
       <div className="mx-auto max-w-xl">
