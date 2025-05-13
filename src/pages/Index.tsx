@@ -1,3 +1,4 @@
+
 import { useState, useCallback, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -11,8 +12,6 @@ import { Button } from "@/components/ui/button";
 import { RefreshCw } from "lucide-react";
 
 const Index = () => {
-  console.log("Index component rendering");
-  
   const [searchParams, setSearchParams] = useSearchParams();
   const query = searchParams.get("q") || "";
   const pageParam = searchParams.get("page");
@@ -21,15 +20,6 @@ const Index = () => {
   const [isApiDown, setIsApiDown] = useState(false);
   
   const { dbStatus, storageStatus } = useSupabaseStatus();
-  
-  // Log when URL parameters change
-  useEffect(() => {
-    console.log("URL parameters changed:", { 
-      query, 
-      page: currentPage,
-      isSearchInitiated
-    });
-  }, [query, currentPage, isSearchInitiated]);
   
   // Only fetch when there's a search query AND search is initiated
   // This prevents auto-fetch on component mount with existing query param
@@ -45,12 +35,12 @@ const Index = () => {
     meta: {
       onSettled: (data, error) => {
         if (error) {
-          // Check for API down condition
-          // @ts-ignore - Custom property from our enhanced error
-          if (error.apiDown) {
+          // Detect if it's an API down situation
+          if (error.message?.includes("timeout") || error.message?.includes("timed out") || 
+              error.message?.includes("Edge Function returned a non-2xx")) {
             setIsApiDown(true);
-            toast.error("Search service is unavailable", {
-              description: "We're having trouble connecting to the bill search service. Please try again later."
+            toast.error("LegiScan API appears to be down", {
+              description: "The bill search service is currently experiencing issues. Please try again later."
             });
           } else {
             setIsApiDown(false);
@@ -74,46 +64,26 @@ const Index = () => {
   }, [query]);
 
   const handleSearch = useCallback((newQuery: string) => {
-    console.log("handleSearch called with:", newQuery);
-    if (!newQuery.trim()) {
-      console.log("Empty query, skipping search");
-      return;
-    }
+    if (!newQuery.trim()) return;
     
     // Set search initiated flag to trigger the query
     setIsSearchInitiated(true);
     setIsApiDown(false);
     
     if (newQuery.trim() === query) {
-      console.log("Same query, forcing refetch");
       // If same query, force refetch
       refetch();
     } else {
-      console.log("New query, updating URL params");
-      try {
-        // Always use replace: true to prevent adding to browser history
-        setSearchParams({ q: newQuery, page: "1" }, { replace: true });
-      } catch (error) {
-        console.error("Error updating search params:", error);
-        // Fallback if there's an issue with setSearchParams
-        refetch();
-      }
+      setSearchParams({ q: newQuery, page: "1" });
     }
   }, [query, refetch, setSearchParams]);
 
   const handlePageChange = useCallback((page: number) => {
-    console.log("handlePageChange called with:", page);
-    // Always use replace: true to prevent adding to browser history
-    try {
-      setSearchParams({ q: query, page: page.toString() }, { replace: true });
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    } catch (error) {
-      console.error("Error updating page params:", error);
-    }
+    setSearchParams({ q: query, page: page.toString() });
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }, [query, setSearchParams]);
 
   const handleRetry = useCallback(() => {
-    console.log("handleRetry called");
     clearCache(); // Clear the cache before retrying
     toast.info("Retrying search...");
     setIsApiDown(false);
@@ -153,7 +123,7 @@ const Index = () => {
         {isApiDown && (
           <div className="mt-8 p-4 bg-amber-50 border border-amber-200 rounded-md">
             <div className="text-amber-800 text-sm mb-3">
-              <p className="font-medium mb-1">The search service appears to be unavailable</p>
+              <p className="font-medium mb-1">The LegiScan API appears to be unavailable</p>
               <p>We're having trouble connecting to the bill search service. This may be a temporary issue.</p>
             </div>
             <Button variant="outline" size="sm" onClick={handleRetry} className="border-amber-300">
