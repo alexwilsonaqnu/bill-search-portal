@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -12,6 +11,8 @@ import { Button } from "@/components/ui/button";
 import { RefreshCw } from "lucide-react";
 
 const Index = () => {
+  console.log("Index component rendering");
+  
   const [searchParams, setSearchParams] = useSearchParams();
   const query = searchParams.get("q") || "";
   const pageParam = searchParams.get("page");
@@ -20,6 +21,15 @@ const Index = () => {
   const [isApiDown, setIsApiDown] = useState(false);
   
   const { dbStatus, storageStatus } = useSupabaseStatus();
+  
+  // Log when URL parameters change
+  useEffect(() => {
+    console.log("URL parameters changed:", { 
+      query, 
+      page: currentPage,
+      isSearchInitiated
+    });
+  }, [query, currentPage, isSearchInitiated]);
   
   // Only fetch when there's a search query AND search is initiated
   // This prevents auto-fetch on component mount with existing query param
@@ -64,28 +74,46 @@ const Index = () => {
   }, [query]);
 
   const handleSearch = useCallback((newQuery: string) => {
-    if (!newQuery.trim()) return;
+    console.log("handleSearch called with:", newQuery);
+    if (!newQuery.trim()) {
+      console.log("Empty query, skipping search");
+      return;
+    }
     
     // Set search initiated flag to trigger the query
     setIsSearchInitiated(true);
     setIsApiDown(false);
     
     if (newQuery.trim() === query) {
+      console.log("Same query, forcing refetch");
       // If same query, force refetch
       refetch();
     } else {
-      // Always use replace: true to prevent adding to browser history
-      setSearchParams({ q: newQuery, page: "1" }, { replace: true });
+      console.log("New query, updating URL params");
+      try {
+        // Always use replace: true to prevent adding to browser history
+        setSearchParams({ q: newQuery, page: "1" }, { replace: true });
+      } catch (error) {
+        console.error("Error updating search params:", error);
+        // Fallback if there's an issue with setSearchParams
+        refetch();
+      }
     }
   }, [query, refetch, setSearchParams]);
 
   const handlePageChange = useCallback((page: number) => {
+    console.log("handlePageChange called with:", page);
     // Always use replace: true to prevent adding to browser history
-    setSearchParams({ q: query, page: page.toString() }, { replace: true });
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    try {
+      setSearchParams({ q: query, page: page.toString() }, { replace: true });
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } catch (error) {
+      console.error("Error updating page params:", error);
+    }
   }, [query, setSearchParams]);
 
   const handleRetry = useCallback(() => {
+    console.log("handleRetry called");
     clearCache(); // Clear the cache before retrying
     toast.info("Retrying search...");
     setIsApiDown(false);

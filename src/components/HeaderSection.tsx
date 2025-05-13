@@ -11,6 +11,8 @@ interface HeaderSectionProps {
 }
 
 const HeaderSection = ({ query, onSearch, isLoading = false }: HeaderSectionProps) => {
+  console.log("HeaderSection rendering with query:", query, "isLoading:", isLoading);
+  
   return (
     <div className="text-center mb-8 md:mb-16">
       <div className="hidden md:block absolute top-20 left-6 text-gray-500 text-sm">
@@ -22,9 +24,13 @@ const HeaderSection = ({ query, onSearch, isLoading = false }: HeaderSectionProp
       </h1>
       
       <div className="mx-auto max-w-xl">
+        {/* SearchBar with debugging props */}
         <SearchBar 
           initialQuery={query} 
-          onSearch={onSearch} 
+          onSearch={(searchQuery) => {
+            console.log("HeaderSection: onSearch called with:", searchQuery);
+            onSearch(searchQuery);
+          }}
           isLoading={isLoading}
         />
       </div>

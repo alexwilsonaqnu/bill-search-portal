@@ -8,22 +8,52 @@ import Index from "./pages/Index";
 import BillDetail from "./pages/BillDetail";
 import NotFound from "./pages/NotFound";
 
-const queryClient = new QueryClient();
+// Add history listener for debugging
+const enableHistoryDebugging = () => {
+  if (typeof window !== 'undefined') {
+    // Listen for navigation events
+    window.addEventListener('popstate', () => {
+      console.log('Navigation occurred:', window.location.href);
+    });
+    
+    // Log initial location
+    console.log('Initial location:', window.location.href);
+  }
+};
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/bill/:id" element={<BillDetail />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+// Create a new QueryClient instance with debug logging
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: false, // Disable retries for debugging
+      onError: (error) => {
+        console.error('Query error:', error);
+      }
+    }
+  }
+});
+
+// Call debug function
+enableHistoryDebugging();
+
+const App = () => {
+  console.log("App rendered");
+  
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/bill/:id" element={<BillDetail />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
+};
 
 export default App;

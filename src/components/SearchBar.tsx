@@ -1,5 +1,5 @@
 
-import { useState, FormEvent, useRef } from "react";
+import { useState, FormEvent, useRef, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Search } from "lucide-react";
@@ -17,20 +17,42 @@ const SearchBar = ({ initialQuery = "", onSearch, className = "", isLoading = fa
   const navigate = useNavigate();
   const location = useLocation();
   const inputRef = useRef<HTMLInputElement>(null);
+  const formRef = useRef<HTMLFormElement>(null);
+  
+  // Update local state when initialQuery prop changes
+  useEffect(() => {
+    setQuery(initialQuery);
+  }, [initialQuery]);
+
+  // Log when the component renders with props
+  useEffect(() => {
+    console.log("SearchBar rendered with:", { 
+      initialQuery, 
+      hasOnSearch: !!onSearch, 
+      isLoading 
+    });
+  }, [initialQuery, onSearch, isLoading]);
 
   const handleSubmit = (e: FormEvent) => {
     // Prevent default form submission to avoid page reload
     e.preventDefault();
+    e.stopPropagation(); // Also stop propagation to prevent any parent handlers
     
     console.log("Form submitted, preventing default behavior");
     
-    if (!query.trim() || isLoading) return;
+    if (!query.trim() || isLoading) {
+      console.log("Empty query or loading, skipping search");
+      return;
+    }
     
     if (onSearch) {
       console.log("Using onSearch handler with query:", query);
-      onSearch(query);
-      // Focus the input after search for better UX
-      setTimeout(() => inputRef.current?.focus(), 100);
+      // Use setTimeout to ensure the preventDefault has completed
+      setTimeout(() => {
+        onSearch(query);
+        // Focus the input after search for better UX
+        setTimeout(() => inputRef.current?.focus(), 100);
+      }, 0);
     } else {
       console.log("No onSearch handler, navigating with query:", query);
       // If no onSearch handler provided, navigate to search results
@@ -41,6 +63,7 @@ const SearchBar = ({ initialQuery = "", onSearch, className = "", isLoading = fa
 
   return (
     <form 
+      ref={formRef}
       onSubmit={handleSubmit}
       className={`search-bar flex items-center bg-white shadow-sm rounded-md px-4 py-2 w-full max-w-xl mx-auto ${className}`}
     >
@@ -61,6 +84,13 @@ const SearchBar = ({ initialQuery = "", onSearch, className = "", isLoading = fa
         variant="ghost"
         className="text-gray-500 hover:text-brand-primary hover:bg-transparent"
         disabled={isLoading || !query.trim()}
+        onClick={(e) => {
+          // Backup click handler that also prevents form submission
+          if (!formRef.current) {
+            e.preventDefault();
+            handleSubmit(e as unknown as FormEvent);
+          }
+        }}
       >
         {isLoading ? (
           <Spinner size="sm" color="primary" />
