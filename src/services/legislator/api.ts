@@ -32,30 +32,29 @@ export async function fetchLegislatorInfo(
     const startTime = Date.now();
     
     // Fetch from Supabase IL_Legislators table instead of using the edge function
-    let query = supabase.from('IL_legislators');
+    let query = supabase.from('IL_legislators').select();
     
     if (legislatorId) {
       // If we have an ID, use it as the primary lookup
-      query = query.eq('id', legislatorId);
+      query = query.filter('id', 'eq', legislatorId);
     } else if (sponsorName) {
       // If we only have a name, try to find match
       // First try exact match
-      query = query.eq('name', sponsorName);
+      query = query.filter('name', 'eq', sponsorName);
     }
     
-    let { data, error } = await query.select().limit(1).single();
+    let { data, error } = await query.limit(1);
     
     // If exact match fails and we're searching by name, try a more flexible search
-    if ((!data || error) && sponsorName && !legislatorId) {
+    if ((!data || data.length === 0 || error) && sponsorName && !legislatorId) {
       // Try a more flexible search with ilike
       const { data: flexData, error: flexError } = await supabase
         .from('IL_legislators')
         .select()
-        .ilike('name', `%${sponsorName}%`)
-        .limit(1)
-        .single();
+        .filter('name', 'ilike', `%${sponsorName}%`)
+        .limit(1);
         
-      if (flexData && !flexError) {
+      if (flexData && flexData.length > 0 && !flexError) {
         data = flexData;
         error = null;
       }
@@ -66,9 +65,7 @@ export async function fetchLegislatorInfo(
     console.log(`Legislator DB query took ${duration}ms`);
     
     if (error) {
-      if (error.code !== 'PGRST116') { // Not found error code
-        console.error("Error fetching legislator info:", error);
-      }
+      console.error("Error fetching legislator info:", error);
       
       // Create a basic fallback when no match found but we have a name
       if (sponsorName) {
@@ -80,7 +77,7 @@ export async function fetchLegislatorInfo(
       return null;
     }
     
-    if (!data) {
+    if (!data || data.length === 0) {
       console.log("No legislator found in database");
       
       if (sponsorName) {
@@ -93,7 +90,7 @@ export async function fetchLegislatorInfo(
     }
     
     // Transform database record to LegislatorInfo format
-    const legislatorInfo = transformDbRecordToLegislatorInfo(data);
+    const legislatorInfo = transformDbRecordToLegislatorInfo(data[0]);
     
     // Store in cache
     cacheLegislator(cacheKey, legislatorInfo);
@@ -200,17 +197,11 @@ function createBasicLegislatorFromName(name: string): LegislatorInfo {
   };
 }
 
-// Export a debounced version for search operations (300ms delay)
-export const searchLegislatorDebounced = debounce(
-  (sponsorName: string) => fetchLegislatorInfo(undefined, sponsorName),
-  300
-);
-
 // Create a debounce function for API calls
-const debounce = <F extends (...args: any[]) => Promise<any>>(
+function debounce<F extends (...args: any[]) => Promise<any>>(
   func: F,
   waitFor: number
-) => {
+) {
   let timeout: ReturnType<typeof setTimeout> | null = null;
 
   const debounced = (...args: Parameters<F>): Promise<ReturnType<F>> => {
@@ -226,7 +217,13 @@ const debounce = <F extends (...args: any[]) => Promise<any>>(
   };
 
   return debounced;
-};
+}
+
+// Export a debounced version for search operations (300ms delay)
+export const searchLegislatorDebounced = debounce(
+  (sponsorName: string) => fetchLegislatorInfo(undefined, sponsorName),
+  300
+);
 
 // Add a function to batch fetch multiple legislators at once
 export async function fetchMultipleLegislators(legislatorIds: string[]): Promise<(LegislatorInfo | null)[]> {
