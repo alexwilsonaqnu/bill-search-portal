@@ -1,3 +1,4 @@
+
 import { useEffect } from "react";
 import { Users } from "lucide-react";
 import { User } from "lucide-react";
@@ -14,18 +15,32 @@ const BillSponsors = ({ bill }: BillSponsorsProps) => {
   const sponsor = getSponsor(bill);
   const coSponsors = getCoSponsors(bill);
 
+  // Log sponsor information for debugging
+  useEffect(() => {
+    console.log("BillSponsors component: bill ID:", bill.id);
+    console.log("Primary sponsor:", sponsor);
+    console.log("Co-sponsors:", coSponsors);
+    
+    if (sponsor) {
+      const sponsorId = getLegislatorId(sponsor);
+      console.log("Primary sponsor ID:", sponsorId);
+    }
+  }, [bill.id, sponsor, coSponsors]);
+
   // Preload sponsor data when the component mounts
   useEffect(() => {
     if (sponsor) {
       // Start with primary sponsor first
+      console.log("Preloading primary sponsor data");
       preloadLegislatorData([sponsor]);
     }
     
     // Then preload co-sponsors (limited to first 5 to avoid too many requests)
     if (coSponsors.length > 0) {
+      console.log(`Preloading ${Math.min(coSponsors.length, 5)} co-sponsor data`);
       preloadLegislatorData(coSponsors.slice(0, 5));
     }
-  }, [bill.id]);
+  }, [bill.id, sponsor, coSponsors]);
 
   const hasMoreCosponsors = () => {
     if (!bill.data) return false;

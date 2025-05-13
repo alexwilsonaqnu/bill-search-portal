@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useLegislatorInfo } from "@/hooks/useLegislatorInfo";
 import SponsorContactInfo from "./SponsorContactInfo";
@@ -17,6 +17,15 @@ const SponsorHoverCard = ({ sponsorData, getSponsorName, legislatorId }: Sponsor
   const sponsorName = getSponsorName(sponsorData);
   const [isOpen, setIsOpen] = useState(false);
   
+  // Always log the sponsor data to help with debugging
+  useEffect(() => {
+    console.log('SponsorHoverCard data:', { 
+      sponsorData, 
+      legislatorId, 
+      sponsorName 
+    });
+  }, [sponsorData, legislatorId, sponsorName]);
+  
   // Only fetch data when the popover is opened to reduce API calls
   const { data: legislatorInfo, isLoading, error } = useLegislatorInfo(
     isOpen ? legislatorId : undefined, 
@@ -24,12 +33,27 @@ const SponsorHoverCard = ({ sponsorData, getSponsorName, legislatorId }: Sponsor
   );
 
   // Log when we're fetching legislator info
-  if (isOpen && (legislatorId || sponsorName)) {
-    console.log(`Fetching legislator info: id=${legislatorId}, name=${sponsorName}`);
-  }
+  useEffect(() => {
+    if (isOpen) {
+      console.log(`SponsorHoverCard: Open state changed to ${isOpen}, triggering data fetch`);
+      console.log(`Fetching legislator info with: id=${legislatorId}, name=${sponsorName}`);
+    }
+  }, [isOpen, legislatorId, sponsorName]);
+
+  // Log when legislator info changes
+  useEffect(() => {
+    if (isOpen) {
+      console.log('SponsorHoverCard: legislatorInfo result:', { 
+        legislatorInfo, 
+        isLoading, 
+        error 
+      });
+    }
+  }, [legislatorInfo, isLoading, error, isOpen]);
 
   // If we don't have a legislator ID or name, use a simpler tooltip
   if (!legislatorId && !sponsorName) {
+    console.log('SponsorHoverCard: No ID or name available, using simple tooltip');
     return (
       <TooltipProvider>
         <Tooltip>
@@ -64,7 +88,7 @@ const SponsorHoverCard = ({ sponsorData, getSponsorName, legislatorId }: Sponsor
               <Spinner className="h-6 w-6 text-blue-600" />
             </div>
           ) : error ? (
-            <p className="text-sm text-red-500">Error loading legislator info</p>
+            <p className="text-sm text-red-500">Error loading legislator info: {error.message || 'Unknown error'}</p>
           ) : legislatorInfo ? (
             <>
               <p className="text-sm text-gray-600">

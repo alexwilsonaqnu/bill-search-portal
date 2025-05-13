@@ -5,6 +5,9 @@ import { LegislatorInfo } from '../types';
  * Transform Supabase database record to LegislatorInfo format
  */
 export function transformDbRecordToLegislatorInfo(record: any): LegislatorInfo {
+  // Debug the raw data first
+  console.log('Transforming legislator record:', record);
+  
   // Build name object
   const nameParts = {
     first: record.given_name || '',
@@ -28,7 +31,7 @@ export function transformDbRecordToLegislatorInfo(record: any): LegislatorInfo {
     phoneArray.push(record.district_voice);
   }
   
-  return {
+  const result = {
     party: record.current_party || '',
     email: emailArray,
     phone: phoneArray,
@@ -40,4 +43,7 @@ export function transformDbRecordToLegislatorInfo(record: any): LegislatorInfo {
     office: record.capitol_address || '',
     state: 'IL' // Since this is specific to Illinois legislators
   };
+  
+  console.log('Transformed legislator info:', result);
+  return result;
 }

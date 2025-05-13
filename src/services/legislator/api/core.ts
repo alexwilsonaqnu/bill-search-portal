@@ -177,7 +177,8 @@ export async function fetchMultipleLegislators(legislatorIds: string[]): Promise
   // Combine cached and fresh results in original order
   return uniqueIds.map(id => {
     // First check if we have it cached
-    const cached = getCachedLegislator(`id:${id}`);
+    const cacheKey = `id:${id}`;
+    const cached = getCachedLegislator(cacheKey);
     if (cached) return cached;
     
     // Then check if we got it fresh from the database
