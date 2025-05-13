@@ -20,6 +20,7 @@ const SearchBar = ({ initialQuery = "", onSearch, className = "", isLoading = fa
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleSubmit = (e: FormEvent) => {
+    // Prevent default form submission to avoid page reload
     e.preventDefault();
     
     if (!query.trim() || isLoading) return;

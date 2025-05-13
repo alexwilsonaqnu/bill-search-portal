@@ -74,13 +74,13 @@ const Index = () => {
       // If same query, force refetch
       refetch();
     } else {
-      // Use replace: true to prevent adding to browser history
+      // Always use replace: true to prevent adding to browser history
       setSearchParams({ q: newQuery, page: "1" }, { replace: true });
     }
   }, [query, refetch, setSearchParams]);
 
   const handlePageChange = useCallback((page: number) => {
-    // Use replace: true to prevent adding to browser history
+    // Always use replace: true to prevent adding to browser history
     setSearchParams({ q: query, page: page.toString() }, { replace: true });
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [query, setSearchParams]);
