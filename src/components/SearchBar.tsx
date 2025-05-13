@@ -1,6 +1,6 @@
 
 import { useState, FormEvent, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, Loader2 } from "lucide-react";
@@ -16,6 +16,7 @@ interface SearchBarProps {
 const SearchBar = ({ initialQuery = "", onSearch, className = "", isLoading = false }: SearchBarProps) => {
   const [query, setQuery] = useState(initialQuery);
   const navigate = useNavigate();
+  const location = useLocation();
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleSubmit = (e: FormEvent) => {
@@ -28,8 +29,13 @@ const SearchBar = ({ initialQuery = "", onSearch, className = "", isLoading = fa
       // Focus the input after search for better UX
       setTimeout(() => inputRef.current?.focus(), 100);
     } else {
-      // If no onSearch handler provided, navigate to search results
-      navigate(`/search?q=${encodeURIComponent(query)}`);
+      // If we're already on the search page, update the URL params without reload
+      if (location.pathname === '/') {
+        navigate(`/?q=${encodeURIComponent(query)}`, { replace: true });
+      } else {
+        // Only navigate to search results if not already on the search page
+        navigate(`/?q=${encodeURIComponent(query)}`);
+      }
     }
   };
 
