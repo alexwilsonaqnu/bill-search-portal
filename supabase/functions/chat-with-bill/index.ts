@@ -35,7 +35,12 @@ serve(async (req) => {
       );
     }
 
-    console.log("Received chat request with", messages.length, "messages");
+    console.log("Received chat request with", messages.length, "messages and bill text length:", billContent.length);
+
+    // Ensure billContent isn't too large (OpenAI has token limits)
+    const truncatedBillContent = billContent.length > 100000 
+      ? billContent.substring(0, 100000) + "... [Content truncated due to length]"
+      : billContent;
 
     const systemPrompt = `You are an assistant that helps people understand legislative bills. 
     You will be provided with the text of a bill and should answer questions about its content, 
@@ -43,7 +48,7 @@ serve(async (req) => {
     When there's ambiguity or uncertainty, acknowledge it. 
     Base your answers solely on the text of the bill. Here's the bill text:
     
-    ${billContent}`;
+    ${truncatedBillContent}`;
 
     // Add the system prompt to the beginning of the messages array
     const fullMessages = [
@@ -53,53 +58,75 @@ serve(async (req) => {
 
     console.log("Calling OpenAI API with model: gpt-4o-mini");
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${openAIApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: fullMessages,
-        temperature: 0.5,
-      }),
-    });
+    try {
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${openAIApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages: fullMessages,
+          temperature: 0.5,
+        }),
+      });
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      console.error('OpenAI API error:', errorData);
-      
-      // Check for specific organization error
-      if (errorData?.error?.type === 'invalid_request_error' && 
-          errorData?.error?.code === 'invalid_organization') {
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('OpenAI API error:', errorData);
+        
+        // Check for specific organization error
+        if (errorData?.error?.type === 'invalid_request_error' && 
+            errorData?.error?.code === 'invalid_organization') {
+          return new Response(
+            JSON.stringify({ 
+              error: 'Organization validation failed. Your OpenAI API key is valid but may be associated with a different organization.',
+              userMessage: 'Unable to connect to AI service. The API key is valid but may have organization restrictions.'
+            }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+        
+        // Token limit error handling
+        if (errorData?.error?.type === 'invalid_request_error' && 
+            errorData?.error?.message.includes('maximum context length')) {
+          return new Response(
+            JSON.stringify({ 
+              error: 'Token limit exceeded. The bill text is too large for the AI model.',
+              userMessage: 'This bill is too long for the AI to process completely. Try asking about specific sections instead.'
+            }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+        
+        // General API error
         return new Response(
           JSON.stringify({ 
-            error: 'Organization validation failed. Your OpenAI API key is valid but may be associated with a different organization.',
-            userMessage: 'Unable to connect to AI service. The API key is valid but may have organization restrictions.'
+            error: errorData.error?.message || 'Error calling OpenAI API',
+            userMessage: 'Failed to get response from AI. Please try again later.'
           }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          { status: response.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
+
+      const data = await response.json();
+      console.log("Successfully received response from OpenAI");
       
-      // General API error
+      return new Response(
+        JSON.stringify({ response: data.choices[0].message }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    } catch (error) {
+      console.error("OpenAI API request failed:", error);
       return new Response(
         JSON.stringify({ 
-          error: errorData.error?.message || 'Error calling OpenAI API',
-          userMessage: 'Failed to get response from AI. Please try again later.'
+          error: `OpenAI API request failed: ${error.message || 'Unknown error'}`,
+          userMessage: 'Failed to connect to OpenAI service. Please try again later.'
         }),
-        { status: response.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
-
-    const data = await response.json();
-    console.log("Successfully received response from OpenAI");
-    
-    return new Response(
-      JSON.stringify({ response: data.choices[0].message }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
-    
   } catch (error) {
     console.error('Error in chat-with-bill function:', error);
     

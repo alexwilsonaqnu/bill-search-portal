@@ -11,6 +11,7 @@ const BillChat = ({ billText, isOpen, onClose }: ChatProps & { isOpen: boolean; 
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   // Check if there's actual content in the billText
@@ -19,6 +20,11 @@ const BillChat = ({ billText, isOpen, onClose }: ChatProps & { isOpen: boolean; 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  // Reset error when chat is opened/closed
+  useEffect(() => {
+    setError(null);
+  }, [isOpen]);
 
   // If not open, return null to hide the chat
   if (!isOpen) {
@@ -32,6 +38,7 @@ const BillChat = ({ billText, isOpen, onClose }: ChatProps & { isOpen: boolean; 
     setMessages(prev => [...prev, userMessage]);
     setInputMessage("");
     setIsLoading(true);
+    setError(null);
 
     try {
       const apiMessages = messages.map(msg => ({
@@ -47,16 +54,16 @@ const BillChat = ({ billText, isOpen, onClose }: ChatProps & { isOpen: boolean; 
       console.log("Sending request to chat-with-bill with text length:", 
                  billText ? billText.length : 0);
 
-      const { data, error } = await supabase.functions.invoke('chat-with-bill', {
+      const { data, error: supabaseError } = await supabase.functions.invoke('chat-with-bill', {
         body: { 
           messages: apiMessages,
           billText: billText 
         }
       });
 
-      if (error) {
-        console.error("Error invoking function:", error);
-        throw new Error(`Error invoking function: ${error.message}`);
+      if (supabaseError) {
+        console.error("Error invoking function:", supabaseError);
+        throw new Error(`Error invoking function: ${supabaseError.message}`);
       }
 
       if (data.error) {
@@ -75,7 +82,9 @@ const BillChat = ({ billText, isOpen, onClose }: ChatProps & { isOpen: boolean; 
       
     } catch (error) {
       console.error("Error in chat:", error);
-      toast.error(`Failed to get response: ${error instanceof Error ? error.message : String(error)}`);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      setError(errorMessage);
+      toast.error(`Failed to get response: ${errorMessage}`);
     } finally {
       setIsLoading(false);
     }
@@ -87,6 +96,16 @@ const BillChat = ({ billText, isOpen, onClose }: ChatProps & { isOpen: boolean; 
       {!hasBillContent ? (
         <div className="flex-1 flex items-center justify-center p-4 text-center text-gray-500">
           <p>No bill content available for chat.</p>
+        </div>
+      ) : error ? (
+        <div className="flex-1 flex flex-col items-center justify-center p-4 text-center">
+          <p className="text-red-500 mb-2">Error: {error}</p>
+          <button 
+            onClick={() => setError(null)} 
+            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+          >
+            Dismiss
+          </button>
         </div>
       ) : (
         <>
