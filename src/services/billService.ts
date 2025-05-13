@@ -45,69 +45,64 @@ export async function fetchBills(
       setTimeout(() => reject(new Error("Search request timed out after 15 seconds")), 15000);
     });
     
-    const { data, error } = await Promise.race([fetchPromise, timeoutPromise]) as any;
+    try {
+      const { data, error } = await Promise.race([fetchPromise, timeoutPromise]) as any;
 
-    if (error) {
-      console.error("Error searching bills:", error);
-      
-      // Show user-friendly toast
-      toast.error("Search service unavailable", {
-        description: "We're having trouble connecting to the bill search service. Please try again later."
-      });
-      
-      return { bills: [], currentPage: page, totalPages: 0, totalItems: 0 };
-    }
-    
-    if (data?.error) {
-      console.error("API returned error:", data.error);
-      
-      // Check if API is down
-      if (data.apiDown) {
-        toast.error("LegiScan API Unavailable", {
-          description: "The external bill information service is currently unavailable. Please try again later."
-        });
-      } else {
-        toast.error("Search error", {
-          description: data.error || "Failed to search bills"
-        });
+      if (error) {
+        console.error("Error searching bills:", error);
+        throw new Error(error.message || "Failed to search bills");
       }
       
-      return { bills: [], currentPage: page, totalPages: 0, totalItems: 0 };
-    }
-    
-    let result: SearchResults;
-    
-    // Process the search results
-    if (data && data.bills && typeof data.currentPage === 'number' && typeof data.totalPages === 'number') {
-      // We have proper pagination from the API, use it directly
-      result = data;
-    } else if (data && data.bills) {
-      // Otherwise, process the results locally with our pagination logic
-      result = processResults(data.bills, query, page, pageSize);
-    } else {
-      result = { bills: [], currentPage: page, totalPages: 0, totalItems: 0 };
-    }
+      if (data?.error) {
+        console.error("API returned error:", data.error);
+        
+        // Check if API is down
+        if (data.apiDown) {
+          throw new Error("LegiScan API is currently unavailable");
+        } else {
+          throw new Error(data.error || "Failed to search bills");
+        }
+      }
+      
+      let result: SearchResults;
+      
+      // Process the search results
+      if (data && data.bills && typeof data.currentPage === 'number' && typeof data.totalPages === 'number') {
+        // We have proper pagination from the API, use it directly
+        result = data;
+      } else if (data && data.bills) {
+        // Otherwise, process the results locally with our pagination logic
+        result = processResults(data.bills, query, page, pageSize);
+      } else {
+        result = { bills: [], currentPage: page, totalPages: 0, totalItems: 0 };
+      }
 
-    // Cache the result
-    searchCache.set(cacheKey, { data: result, timestamp: Date.now() });
+      // Cache the result
+      searchCache.set(cacheKey, { data: result, timestamp: Date.now() });
+      
+      return result;
+    } catch (fetchError) {
+      throw fetchError;
+    }
     
-    return result;
-    
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error in fetchBills:", error);
     
-    // Show appropriate error based on error type
-    if (error.message?.includes("timeout") || error.message?.includes("timed out")) {
-      toast.error("Search service timeout", {
-        description: "The search service is taking too long to respond. Please try again later."
-      });
-    } else {
-      toast.error("Failed to search bills", {
-        description: "Please try again later"
-      });
+    // Create a more descriptive error that contains the original message
+    const enhancedError = new Error(error.message || "Failed to search bills");
+    
+    // Add a flag to indicate API down if the message suggests connectivity issues
+    if (error.message?.includes("timeout") || 
+        error.message?.includes("timed out") ||
+        error.message?.includes("Failed to send") ||
+        error.message?.includes("Edge Function") ||
+        error.message?.includes("unavailable")) {
+      
+      // @ts-ignore - Adding custom property
+      enhancedError.apiDown = true;
     }
     
-    return { bills: [], currentPage: page, totalPages: 0, totalItems: 0 };
+    throw enhancedError;
   }
 }
 

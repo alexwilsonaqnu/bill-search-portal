@@ -35,12 +35,12 @@ const Index = () => {
     meta: {
       onSettled: (data, error) => {
         if (error) {
-          // Detect if it's an API down situation
-          if (error.message?.includes("timeout") || error.message?.includes("timed out") || 
-              error.message?.includes("Edge Function returned a non-2xx")) {
+          // Check for API down condition
+          // @ts-ignore - Custom property from our enhanced error
+          if (error.apiDown) {
             setIsApiDown(true);
-            toast.error("LegiScan API appears to be down", {
-              description: "The bill search service is currently experiencing issues. Please try again later."
+            toast.error("Search service is unavailable", {
+              description: "We're having trouble connecting to the bill search service. Please try again later."
             });
           } else {
             setIsApiDown(false);
@@ -74,12 +74,14 @@ const Index = () => {
       // If same query, force refetch
       refetch();
     } else {
-      setSearchParams({ q: newQuery, page: "1" });
+      // Use replace: true to prevent adding to browser history
+      setSearchParams({ q: newQuery, page: "1" }, { replace: true });
     }
   }, [query, refetch, setSearchParams]);
 
   const handlePageChange = useCallback((page: number) => {
-    setSearchParams({ q: query, page: page.toString() });
+    // Use replace: true to prevent adding to browser history
+    setSearchParams({ q: query, page: page.toString() }, { replace: true });
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [query, setSearchParams]);
 
@@ -123,7 +125,7 @@ const Index = () => {
         {isApiDown && (
           <div className="mt-8 p-4 bg-amber-50 border border-amber-200 rounded-md">
             <div className="text-amber-800 text-sm mb-3">
-              <p className="font-medium mb-1">The LegiScan API appears to be unavailable</p>
+              <p className="font-medium mb-1">The search service appears to be unavailable</p>
               <p>We're having trouble connecting to the bill search service. This may be a temporary issue.</p>
             </div>
             <Button variant="outline" size="sm" onClick={handleRetry} className="border-amber-300">
