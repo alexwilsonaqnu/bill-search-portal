@@ -26,8 +26,10 @@ const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       retry: false, // Disable retries for debugging
-      onError: (error) => {
-        console.error('Query error:', error);
+      meta: {
+        onError: (error: Error) => {
+          console.error('Query error:', error);
+        }
       }
     }
   }
