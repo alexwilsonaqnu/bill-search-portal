@@ -2,8 +2,7 @@
 import { useState, FormEvent, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Search, Loader2 } from "lucide-react";
+import { Search } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 
 interface SearchBarProps {
@@ -23,13 +22,17 @@ const SearchBar = ({ initialQuery = "", onSearch, className = "", isLoading = fa
     // Prevent default form submission to avoid page reload
     e.preventDefault();
     
+    console.log("Form submitted, preventing default behavior");
+    
     if (!query.trim() || isLoading) return;
     
     if (onSearch) {
+      console.log("Using onSearch handler with query:", query);
       onSearch(query);
       // Focus the input after search for better UX
       setTimeout(() => inputRef.current?.focus(), 100);
     } else {
+      console.log("No onSearch handler, navigating with query:", query);
       // If no onSearch handler provided, navigate to search results
       // Use replace: true to prevent adding to navigation history
       navigate(`/search?q=${encodeURIComponent(query)}`, { replace: true });
@@ -41,13 +44,14 @@ const SearchBar = ({ initialQuery = "", onSearch, className = "", isLoading = fa
       onSubmit={handleSubmit}
       className={`search-bar flex items-center bg-white shadow-sm rounded-md px-4 py-2 w-full max-w-xl mx-auto ${className}`}
     >
-      <Input
+      {/* Using regular HTML input instead of custom Input component */}
+      <input
         ref={inputRef}
         type="text"
         placeholder="Search by topic (such as taxes or education) by bill name or by sponsor"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
-        className="flex-grow border-0 shadow-none focus-visible:ring-0 px-2"
+        className="flex-grow border-0 outline-none px-2 w-full bg-transparent"
         disabled={isLoading}
         aria-label="Search bills"
       />
