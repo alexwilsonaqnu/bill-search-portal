@@ -24,6 +24,7 @@ const BillSponsors = ({ bill }: BillSponsorsProps) => {
     if (sponsor) {
       const sponsorId = getLegislatorId(sponsor);
       console.log("Primary sponsor ID:", sponsorId);
+      console.log("Primary sponsor name:", getSponsorName(sponsor));
     }
   }, [bill.id, sponsor, coSponsors]);
 
@@ -100,7 +101,7 @@ const BillSponsors = ({ bill }: BillSponsorsProps) => {
           </div>
           <div className="pl-4">
             {coSponsors.map((cosponsor, index) => (
-              <div key={index}>
+              <div key={index} className="mb-1">
                 <SponsorHoverCard 
                   sponsorData={cosponsor} 
                   getSponsorName={getSponsorName}

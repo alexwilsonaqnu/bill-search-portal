@@ -58,7 +58,7 @@ const SponsorHoverCard = ({ sponsorData, getSponsorName, legislatorId }: Sponsor
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger className="cursor-pointer hover:text-blue-600 transition-colors">
-            {sponsorName}
+            {sponsorName || "Unknown Sponsor"}
           </TooltipTrigger>
           <TooltipContent>
             No additional information available
@@ -77,7 +77,7 @@ const SponsorHoverCard = ({ sponsorData, getSponsorName, legislatorId }: Sponsor
           console.log(`Popover clicked for: ${sponsorName} (${legislatorId || 'no ID'})`);
         }}
       >
-        {sponsorName}
+        {sponsorName || "Unknown Sponsor"}
       </PopoverTrigger>
       <PopoverContent className="w-80 p-4">
         <div className="space-y-2">

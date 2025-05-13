@@ -6,9 +6,14 @@ import { fetchLegislatorInfo, fetchMultipleLegislators, LegislatorInfo } from "@
 export type { LegislatorInfo };
 
 export const useLegislatorInfo = (legislatorId?: string, sponsorName?: string) => {
+  console.log(`useLegislatorInfo hook called with ID: ${legislatorId || 'undefined'}, name: ${sponsorName || 'undefined'}`);
+  
   return useQuery({
     queryKey: ['legislator', legislatorId, sponsorName],
-    queryFn: () => fetchLegislatorInfo(legislatorId, sponsorName),
+    queryFn: () => {
+      console.log(`useLegislatorInfo queryFn executing for ID: ${legislatorId || 'undefined'}, name: ${sponsorName || 'undefined'}`);
+      return fetchLegislatorInfo(legislatorId, sponsorName);
+    },
     enabled: !!(legislatorId || sponsorName),
     retry: 1, // Only retry once to avoid too many requests if API is rate limiting
     staleTime: 60 * 60 * 1000, // Cache results for 60 minutes (increased from 30)
@@ -29,6 +34,7 @@ export const useBatchLegislatorInfo = (legislatorIds?: string[]) => {
       
       // Create a unique set of IDs to avoid duplicates
       const uniqueIds = [...new Set(legislatorIds)];
+      console.log(`useBatchLegislatorInfo fetching ${uniqueIds.length} unique legislator IDs`);
       
       // Batch fetch through the service
       return await fetchMultipleLegislators(uniqueIds);

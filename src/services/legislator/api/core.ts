@@ -25,6 +25,7 @@ export async function fetchLegislatorInfo(
     // Check cache first
     const cached = getCachedLegislator(cacheKey);
     if (cached) {
+      console.log(`Using cached legislator data for ${cacheKey}`);
       return cached;
     }
     
@@ -34,27 +35,32 @@ export async function fetchLegislatorInfo(
     const startTime = Date.now();
     
     // Fetch from Supabase IL_Legislators table instead of using the edge function
-    let query = supabase.from('IL_legislators').select();
+    let query = supabase.from('IL_legislators').select('*');
     
     if (legislatorId) {
       // If we have an ID, use it as the primary lookup
-      query = query.filter('id', 'eq', legislatorId);
+      query = query.eq('id', legislatorId);
     } else if (sponsorName) {
-      // If we only have a name, try to find match
-      // First try exact match
-      query = query.filter('name', 'eq', sponsorName);
+      // If we only have a name, try to find match on name field
+      query = query.eq('name', sponsorName);
     }
     
     let { data, error } = await query.limit(1);
     
+    console.log('Supabase query results:', { data, error });
+    
     // If exact match fails and we're searching by name, try a more flexible search
     if ((!data || data.length === 0 || error) && sponsorName && !legislatorId) {
+      console.log(`No exact match for name "${sponsorName}", trying flexible search with ilike`);
+      
       // Try a more flexible search with ilike
       const { data: flexData, error: flexError } = await supabase
         .from('IL_legislators')
-        .select()
-        .filter('name', 'ilike', `%${sponsorName}%`)
+        .select('*')
+        .ilike('name', `%${sponsorName}%`)
         .limit(1);
+        
+      console.log('Flexible search results:', { flexData, flexError });
         
       if (flexData && flexData.length > 0 && !flexError) {
         data = flexData;
@@ -73,6 +79,7 @@ export async function fetchLegislatorInfo(
       if (sponsorName) {
         const fallbackLegislator = createBasicLegislatorFromName(sponsorName);
         cacheLegislator(cacheKey, fallbackLegislator);
+        console.log(`Created fallback legislator for "${sponsorName}":`, fallbackLegislator);
         return fallbackLegislator;
       }
       
@@ -80,11 +87,12 @@ export async function fetchLegislatorInfo(
     }
     
     if (!data || data.length === 0) {
-      console.log("No legislator found in database");
+      console.log(`No legislator found in database for ${legislatorId ? `ID: ${legislatorId}` : `name: ${sponsorName}`}`);
       
       if (sponsorName) {
         const fallbackLegislator = createBasicLegislatorFromName(sponsorName);
         cacheLegislator(cacheKey, fallbackLegislator);
+        console.log(`Created fallback legislator for "${sponsorName}":`, fallbackLegislator);
         return fallbackLegislator;
       }
       
@@ -93,6 +101,7 @@ export async function fetchLegislatorInfo(
     
     // Transform database record to LegislatorInfo format
     const legislatorInfo = transformDbRecordToLegislatorInfo(data[0]);
+    console.log(`Successfully transformed legislator data:`, legislatorInfo);
     
     // Store in cache
     cacheLegislator(cacheKey, legislatorInfo);
@@ -150,8 +159,10 @@ export async function fetchMultipleLegislators(legislatorIds: string[]): Promise
       // Fetch all uncached legislators in one query
       const { data, error } = await supabase
         .from('IL_legislators')
-        .select()
+        .select('*')
         .in('id', uncachedIds);
+      
+      console.log('Batch DB query results:', { data, error });
       
       if (error) {
         console.error("Error in batch legislator fetch:", error);
