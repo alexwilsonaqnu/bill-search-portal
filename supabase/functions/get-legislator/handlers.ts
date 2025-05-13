@@ -1,6 +1,7 @@
 
 import { corsHeaders, createResponse } from "./utils.ts";
-import { fetchLegislatorById, searchLegislatorByName } from "./api.ts";
+import { fetchLegislatorById, searchLegislatorByName } from "./legislatorApi.ts";
+import { createEnhancedLegislatorFromName } from "./fallbackData.ts";
 
 // Main request handler
 export async function handleRequest(req: Request) {
@@ -37,26 +38,7 @@ export async function handleRequest(req: Request) {
   // If we get here, both methods failed - create a basic response from what we know
   if (sponsorName) {
     // If we have a name but no data, create a basic response with just the name
-    const nameParts = sponsorName.split(' ');
-    const firstName = nameParts[0] || '';
-    const lastName = nameParts.slice(1).join(' ') || '';
-    
-    return createResponse({
-      name: {
-        first: firstName,
-        middle: '',
-        last: lastName,
-        suffix: '',
-        full: sponsorName
-      },
-      party: '',
-      email: [],
-      phone: [],
-      district: '',
-      role: '',
-      office: '',
-      state: ''
-    });
+    return createResponse(createEnhancedLegislatorFromName(sponsorName));
   }
 
   // Absolute fallback when we have nothing
