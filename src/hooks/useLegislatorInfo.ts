@@ -11,7 +11,7 @@ export const useLegislatorInfo = (legislatorId?: string, sponsorName?: string) =
     queryFn: () => fetchLegislatorInfo(legislatorId, sponsorName),
     enabled: !!(legislatorId || sponsorName),
     retry: 1, // Only retry once to avoid too many requests if API is rate limiting
-    staleTime: 10 * 60 * 1000, // Cache results for 10 minutes to reduce API calls
+    staleTime: 30 * 60 * 1000, // Cache results for 30 minutes to reduce API calls (increased from 10 minutes)
     gcTime: 60 * 60 * 1000, // Keep unused query data for 1 hour
   });
 };

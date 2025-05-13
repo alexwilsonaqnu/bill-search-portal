@@ -24,7 +24,7 @@ export interface LegislatorInfo {
 
 // Global cache to store legislator data across the application
 const legislatorCache = new Map<string, { data: LegislatorInfo; timestamp: number }>();
-const CACHE_TTL = 15 * 60 * 1000; // 15 minutes
+const CACHE_TTL = 60 * 60 * 1000; // 60 minutes (increased from 15 minutes)
 
 /**
  * Fetches legislator information with optimized caching
@@ -51,10 +51,17 @@ export async function fetchLegislatorInfo(
     
     console.log(`Fetching legislator info for ID: ${legislatorId || 'N/A'}, Name: ${sponsorName || 'N/A'}`);
     
+    // Track API call start time for analytics
+    const startTime = Date.now();
+    
     // Using our dedicated edge function to handle rate limiting and caching
     const { data, error } = await supabase.functions.invoke('get-legislator', {
       body: { legislatorId, sponsorName }
     });
+    
+    // Log API call duration for monitoring
+    const duration = Date.now() - startTime;
+    console.log(`OpenStates API call took ${duration}ms`);
     
     if (error) {
       console.error("Error fetching legislator info:", error);
@@ -84,7 +91,9 @@ export async function fetchLegislatorInfo(
   } catch (error) {
     console.error("Error in fetchLegislatorInfo:", error);
     // Don't show toast for every error to avoid overwhelming the user
-    if (error.message !== "OpenStates API key not configured") {
+    if (error.message !== "OpenStates API key not configured" && 
+        !error.message.includes("rate limit") && 
+        legislatorCache.size < 50) { // Only show toast if we haven't shown too many already
       toast.error("Error loading legislator information", { 
         description: "Try again later",
         duration: 3000,
@@ -103,17 +112,30 @@ export function preloadLegislatorData(sponsors: any[]) {
   
   // Process in the background after a short delay
   setTimeout(() => {
-    sponsors.forEach(sponsor => {
-      // Get either ID or name
-      const id = getLegislatorId(sponsor);
-      const name = getSponsorName(sponsor);
-      
-      // Preload in the background without awaiting
-      fetchLegislatorInfo(id, name).catch(() => {
-        // Silently fail on preload errors
-      });
+    // Limit preloading to first 3 sponsors to avoid too many requests
+    const limitedSponsors = sponsors.slice(0, 3);
+    
+    // Add a delay between each preload request
+    limitedSponsors.forEach((sponsor, index) => {
+      setTimeout(() => {
+        // Get either ID or name
+        const id = getLegislatorId(sponsor);
+        const name = getSponsorName(sponsor);
+        
+        // Skip if we already have this in cache
+        const cacheKey = id ? `id:${id}` : `name:${name}`;
+        const cached = legislatorCache.get(cacheKey);
+        if (cached && (Date.now() - cached.timestamp) < CACHE_TTL) {
+          return;
+        }
+        
+        // Preload in the background without awaiting
+        fetchLegislatorInfo(id, name).catch(() => {
+          // Silently fail on preload errors
+        });
+      }, index * 2000); // 2 second delay between each preload
     });
-  }, 100);
+  }, 1000); // Initial delay before starting preloads
 }
 
 // Helper functions to extract sponsor data
