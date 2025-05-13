@@ -11,3 +11,4 @@ CREATE INDEX IF NOT EXISTS legislator_cache_created_at_idx ON public.legislator_
 
 -- Add comment for documentation
 COMMENT ON TABLE public.legislator_cache IS 'Persistent cache for OpenStates legislator data to reduce API calls';
+

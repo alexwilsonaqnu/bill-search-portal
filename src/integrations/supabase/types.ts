@@ -36,6 +36,93 @@ export type Database = {
         }
         Relationships: []
       }
+      IL_legislators: {
+        Row: {
+          biography: string | null
+          birth_date: string | null
+          capitol_address: string | null
+          capitol_fax: string | null
+          capitol_voice: string | null
+          current_chamber: string | null
+          current_district: number | null
+          current_party: string | null
+          death_date: string | null
+          district_address: string | null
+          district_fax: string | null
+          district_voice: string | null
+          email: string | null
+          facebook: string | null
+          family_name: string | null
+          gender: string | null
+          given_name: string | null
+          id: string | null
+          image: string | null
+          instagram: string | null
+          links: string | null
+          name: string | null
+          sources: string | null
+          twitter: string | null
+          wikidata: string | null
+          youtube: string | null
+        }
+        Insert: {
+          biography?: string | null
+          birth_date?: string | null
+          capitol_address?: string | null
+          capitol_fax?: string | null
+          capitol_voice?: string | null
+          current_chamber?: string | null
+          current_district?: number | null
+          current_party?: string | null
+          death_date?: string | null
+          district_address?: string | null
+          district_fax?: string | null
+          district_voice?: string | null
+          email?: string | null
+          facebook?: string | null
+          family_name?: string | null
+          gender?: string | null
+          given_name?: string | null
+          id?: string | null
+          image?: string | null
+          instagram?: string | null
+          links?: string | null
+          name?: string | null
+          sources?: string | null
+          twitter?: string | null
+          wikidata?: string | null
+          youtube?: string | null
+        }
+        Update: {
+          biography?: string | null
+          birth_date?: string | null
+          capitol_address?: string | null
+          capitol_fax?: string | null
+          capitol_voice?: string | null
+          current_chamber?: string | null
+          current_district?: number | null
+          current_party?: string | null
+          death_date?: string | null
+          district_address?: string | null
+          district_fax?: string | null
+          district_voice?: string | null
+          email?: string | null
+          facebook?: string | null
+          family_name?: string | null
+          gender?: string | null
+          given_name?: string | null
+          id?: string | null
+          image?: string | null
+          instagram?: string | null
+          links?: string | null
+          name?: string | null
+          sources?: string | null
+          twitter?: string | null
+          wikidata?: string | null
+          youtube?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

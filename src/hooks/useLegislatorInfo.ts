@@ -1,6 +1,6 @@
 
 import { useQuery } from "@tanstack/react-query";
-import { fetchLegislatorInfo, LegislatorInfo } from "@/services/legislator";
+import { fetchLegislatorInfo, fetchMultipleLegislators, LegislatorInfo } from "@/services/legislator";
 
 // Use 'export type' instead of just 'export' for types when isolatedModules is enabled
 export type { LegislatorInfo };
@@ -31,12 +31,7 @@ export const useBatchLegislatorInfo = (legislatorIds?: string[]) => {
       const uniqueIds = [...new Set(legislatorIds)];
       
       // Batch fetch through the service
-      const legislators = await Promise.all(
-        uniqueIds.map(id => fetchLegislatorInfo(id, undefined))
-      );
-      
-      // Return only valid results (filter out nulls)
-      return legislators.filter(Boolean);
+      return await fetchMultipleLegislators(uniqueIds);
     },
     enabled: !!(legislatorIds && legislatorIds.length > 0),
     staleTime: 60 * 60 * 1000, // 60 minutes
