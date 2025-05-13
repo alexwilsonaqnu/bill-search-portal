@@ -2,7 +2,7 @@
 import { LegislatorInfo } from './types';
 
 // Global cache to store legislator data across the application
-const legislatorCache = new Map<string, { data: LegislatorInfo; timestamp: number }>();
+export const legislatorCache = new Map<string, { data: LegislatorInfo; timestamp: number }>();
 const CACHE_TTL = 60 * 60 * 1000; // 60 minutes
 
 /**

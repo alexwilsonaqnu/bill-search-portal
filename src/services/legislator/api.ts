@@ -2,7 +2,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { LegislatorInfo } from './types';
-import { getCachedLegislator, cacheLegislator } from './cache';
+import { getCachedLegislator, cacheLegislator, legislatorCache } from './cache';
 
 /**
  * Fetches legislator information with optimized caching
