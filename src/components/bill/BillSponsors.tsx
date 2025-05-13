@@ -4,7 +4,7 @@ import { User } from "lucide-react";
 import { Bill } from "@/types";
 import { getSponsor, getCoSponsors } from "@/utils/billCardUtils";
 import SponsorHoverCard from "./sponsors/SponsorHoverCard";
-import { preloadLegislatorData } from "@/services/legislatorService";
+import { preloadLegislatorData, getLegislatorId, getSponsorName } from "@/services/legislator";
 
 interface BillSponsorsProps {
   bill: Bill;
@@ -26,56 +26,6 @@ const BillSponsors = ({ bill }: BillSponsorsProps) => {
       preloadLegislatorData(coSponsors.slice(0, 5));
     }
   }, [bill.id]);
-
-  const getSponsorName = (sponsorData: any): string => {
-    if (typeof sponsorData === 'string') return sponsorData;
-    if (!sponsorData) return 'Unknown';
-    
-    if (sponsorData.message && sponsorData.message.includes("Circular")) {
-      const path = sponsorData.message.replace("[Circular Reference to ", "").replace("]", "");
-      if (path === "root.sponsor" && bill.data?.sponsor) {
-        return getSponsorName(bill.data.sponsor);
-      }
-      return "Referenced Sponsor";
-    }
-    
-    if (typeof sponsorData.name === 'string') return sponsorData.name;
-    if (typeof sponsorData.full_name === 'string') return sponsorData.full_name;
-    
-    const nameParts = [];
-    if (sponsorData.first_name) nameParts.push(sponsorData.first_name);
-    if (sponsorData.middle_name) nameParts.push(sponsorData.middle_name);
-    if (sponsorData.last_name) nameParts.push(sponsorData.last_name);
-    
-    if (nameParts.length > 0) {
-      const fullName = nameParts.join(' ');
-      if (sponsorData.suffix) return `${fullName}, ${sponsorData.suffix}`;
-      return fullName;
-    }
-    
-    let displayName = 'Unknown';
-    if (sponsorData.role) {
-      displayName = `${sponsorData.role}.`;
-      if (sponsorData.party) displayName += ` (${sponsorData.party})`;
-    } else if (sponsorData.title) {
-      displayName = sponsorData.title;
-    }
-    
-    return displayName;
-  };
-
-  // Safe version of getLegislatorId that handles potential string values
-  const getLegislatorId = (sponsorData: any): string | undefined => {
-    if (!sponsorData || typeof sponsorData === 'string') {
-      return undefined;
-    }
-    
-    // Check for common legislator ID fields
-    return sponsorData.people_id?.toString() || 
-           sponsorData.id?.toString() || 
-           sponsorData.legislator_id?.toString() || 
-           undefined;
-  };
 
   const hasMoreCosponsors = () => {
     if (!bill.data) return false;

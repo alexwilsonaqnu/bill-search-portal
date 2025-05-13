@@ -1,6 +1,6 @@
 
 import { useQuery } from "@tanstack/react-query";
-import { fetchLegislatorInfo, LegislatorInfo } from "@/services/legislatorService";
+import { fetchLegislatorInfo, LegislatorInfo } from "@/services/legislator";
 
 // Use 'export type' instead of just 'export' for types when isolatedModules is enabled
 export type { LegislatorInfo };
