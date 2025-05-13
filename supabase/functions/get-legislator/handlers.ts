@@ -14,6 +14,11 @@ export async function handleRequest(req: Request) {
 
   console.log(`Processing request for legislator: ${legislatorId || 'N/A'}, Name: ${sponsorName || 'N/A'}`);
 
+  // Check for batch request (array of IDs)
+  if (Array.isArray(legislatorId)) {
+    return await handleBatchRequest(legislatorId);
+  }
+
   // If we have a legislator ID, try to fetch directly by ID first
   if (legislatorId) {
     try {
@@ -43,4 +48,34 @@ export async function handleRequest(req: Request) {
 
   // Absolute fallback when we have nothing
   return createResponse({ error: "Could not find legislator information" }, 404);
+}
+
+// New handler for batch requests
+async function handleBatchRequest(legislatorIds: string[]) {
+  // Deduplicate IDs
+  const uniqueIds = [...new Set(legislatorIds)];
+  
+  // Limit batch size to prevent abuse
+  const maxBatchSize = 20;
+  const idsToFetch = uniqueIds.slice(0, maxBatchSize);
+  
+  // Fetch all legislators in parallel
+  const results = await Promise.all(
+    idsToFetch.map(async (id) => {
+      try {
+        const result = await fetchLegislatorById(id);
+        return { id, data: result || null };
+      } catch (error) {
+        console.error(`Error fetching legislator ${id}:`, error);
+        return { id, data: null, error: error.message };
+      }
+    })
+  );
+  
+  return createResponse({
+    results,
+    totalRequested: uniqueIds.length,
+    totalProcessed: idsToFetch.length,
+    truncated: uniqueIds.length > maxBatchSize
+  });
 }

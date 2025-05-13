@@ -1,4 +1,3 @@
-
 // CORS headers for cross-origin requests
 export const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -99,12 +98,18 @@ export function cleanNameForSearch(name: string): string {
     .trim();
 }
 
-// Create a response with CORS headers
+// Create a response with CORS headers and HTTP cache headers
 export function createResponse(data: any, status = 200) {
   return new Response(
     JSON.stringify(data), 
     { 
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { 
+        ...corsHeaders, 
+        "Content-Type": "application/json",
+        // Add HTTP cache headers to enable downstream caching
+        "Cache-Control": "max-age=3600, stale-while-revalidate=86400", // 1 hour cache, 24 hour stale
+        "Surrogate-Control": "max-age=86400" // CDN cache for 24 hours
+      },
       status 
     }
   );

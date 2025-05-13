@@ -1,10 +1,11 @@
 
-// Rate limiter implementation
+// Rate limiter implementation 
+// OpenStates limit is 10 requests/second, so we'll be more conservative
 const API_RATE_LIMITS = {
   lastRequest: 0,
-  minInterval: 1000, // Minimum 1 second between requests
+  minInterval: 500, // Minimum 500ms between requests (allowing up to 2/second)
   requestCount: 0,
-  maxRequests: 5, // Max 5 requests per minute
+  maxRequests: 8, // Max 8 requests per minute (vs the 10/sec that OpenStates allows)
   resetTime: 0
 };
 

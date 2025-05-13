@@ -2,6 +2,10 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { handleRequest } from "./handlers.ts";
 import { corsHeaders } from "./utils.ts";
+import { initializeCache } from "./persistentCache.ts";
+
+// Initialize persistent cache on startup
+await initializeCache();
 
 // Handle CORS preflight requests
 const handleCors = (req: Request) => {

@@ -4,6 +4,28 @@ import { toast } from "sonner";
 import { LegislatorInfo } from './types';
 import { getCachedLegislator, cacheLegislator, legislatorCache } from './cache';
 
+// Create a debounce function for API calls
+const debounce = <F extends (...args: any[]) => Promise<any>>(
+  func: F,
+  waitFor: number
+) => {
+  let timeout: ReturnType<typeof setTimeout> | null = null;
+
+  const debounced = (...args: Parameters<F>): Promise<ReturnType<F>> => {
+    if (timeout !== null) {
+      clearTimeout(timeout);
+    }
+    
+    return new Promise(resolve => {
+      timeout = setTimeout(async () => {
+        resolve(await func(...args));
+      }, waitFor);
+    });
+  };
+
+  return debounced;
+};
+
 /**
  * Fetches legislator information with optimized caching
  */
@@ -76,4 +98,72 @@ export async function fetchLegislatorInfo(
     }
     return null;
   }
+}
+
+// Export a debounced version for search operations (300ms delay)
+export const searchLegislatorDebounced = debounce(
+  (sponsorName: string) => fetchLegislatorInfo(undefined, sponsorName),
+  300
+);
+
+// Add a function to batch fetch multiple legislators at once
+export async function fetchMultipleLegislators(legislatorIds: string[]): Promise<(LegislatorInfo | null)[]> {
+  if (!legislatorIds || legislatorIds.length === 0) {
+    return [];
+  }
+  
+  // Filter out any duplicates
+  const uniqueIds = [...new Set(legislatorIds)];
+  
+  // Check how many we can get from cache first
+  const cachedResults = uniqueIds.map(id => {
+    const cacheKey = `id:${id}`;
+    return { 
+      id, 
+      cached: getCachedLegislator(cacheKey) 
+    };
+  });
+  
+  // Separate cached from uncached
+  const cachedIds = cachedResults.filter(r => r.cached).map(r => r.id);
+  const uncachedIds = cachedResults.filter(r => !r.cached).map(r => r.id);
+  
+  console.log(`Batch legislator fetch: ${cachedIds.length} from cache, ${uncachedIds.length} need fetching`);
+  
+  // If we have uncached IDs that need fetching, do it in one batch API call
+  let freshResults: {id: string, data: LegislatorInfo | null}[] = [];
+  
+  if (uncachedIds.length > 0) {
+    try {
+      const { data, error } = await supabase.functions.invoke('get-legislator', {
+        body: { legislatorId: uncachedIds } // This passes an array to trigger batch mode
+      });
+      
+      if (error) {
+        console.error("Error in batch legislator fetch:", error);
+      } else if (data?.results) {
+        // Cache each result individually
+        freshResults = data.results;
+        for (const result of freshResults) {
+          if (result.data) {
+            const cacheKey = `id:${result.id}`;
+            cacheLegislator(cacheKey, result.data);
+          }
+        }
+      }
+    } catch (err) {
+      console.error("Exception in batch legislator fetch:", err);
+    }
+  }
+  
+  // Combine cached and fresh results in original order
+  return uniqueIds.map(id => {
+    // First check if we have it cached
+    const cached = getCachedLegislator(`id:${id}`);
+    if (cached) return cached;
+    
+    // Then check if we got it fresh from the API
+    const fresh = freshResults.find(r => r.id === id);
+    return fresh ? fresh.data : null;
+  });
 }
