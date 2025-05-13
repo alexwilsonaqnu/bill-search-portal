@@ -55,13 +55,6 @@ const Index = () => {
     }
   });
 
-  // Handle initial query from URL - When component mounts with a query in URL
-  useEffect(() => {
-    if (query && !isSearchInitiated) {
-      setIsSearchInitiated(true);
-    }
-  }, [query, isSearchInitiated]);
-
   // Clear isSearchInitiated flag when query changes from URL
   useEffect(() => {
     if (!query) {
@@ -81,14 +74,12 @@ const Index = () => {
       // If same query, force refetch
       refetch();
     } else {
-      // Update URL without causing a page reload
-      setSearchParams({ q: newQuery, page: "1" }, { replace: true });
+      setSearchParams({ q: newQuery, page: "1" });
     }
   }, [query, refetch, setSearchParams]);
 
   const handlePageChange = useCallback((page: number) => {
-    // Update URL without causing a page reload
-    setSearchParams({ q: query, page: page.toString() }, { replace: true });
+    setSearchParams({ q: query, page: page.toString() });
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [query, setSearchParams]);
 
