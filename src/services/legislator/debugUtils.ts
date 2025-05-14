@@ -58,9 +58,13 @@ export async function checkLegislatorsTable() {
     }
     
     // Parse count properly - tables might contain different structures based on the query
-    const recordCount = typeof tables === 'object' && tables && 'count' in tables ? 
-      Number(tables.count) : 
-      (records ? records.length : 0);
+    // Fix for error on line 62
+    let recordCount = 0;
+    if (tables && typeof tables === 'object') {
+      if ('count' in tables) {
+        recordCount = Number(tables.count);
+      }
+    }
     
     // Prepare diagnostic info
     const diagnosticInfo = {
