@@ -2,10 +2,8 @@
 import { useState, useEffect } from "react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useLegislatorInfo } from "@/hooks/useLegislatorInfo";
-import SponsorContactInfo from "./SponsorContactInfo";
-import { MapPin } from "lucide-react";
-import { Spinner } from "@/components/ui/spinner";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import LegislatorDetails from "./LegislatorDetails";
+import SponsorTooltip from "./SponsorTooltip";
 
 interface SponsorHoverCardProps {
   sponsorData: any;
@@ -25,6 +23,12 @@ const SponsorHoverCard = ({ sponsorData, getSponsorName, legislatorId }: Sponsor
       sponsorName 
     });
   }, [sponsorData, legislatorId, sponsorName]);
+  
+  // If we don't have a legislator ID or name, use a simpler tooltip
+  if (!legislatorId && !sponsorName) {
+    console.log('SponsorHoverCard: No ID or name available, using simple tooltip');
+    return <SponsorTooltip sponsorName={sponsorName || "Unknown Sponsor"} />;
+  }
   
   // Only fetch data when the popover is opened to reduce API calls
   const { data: legislatorInfo, isLoading, error } = useLegislatorInfo(
@@ -50,23 +54,6 @@ const SponsorHoverCard = ({ sponsorData, getSponsorName, legislatorId }: Sponsor
       });
     }
   }, [legislatorInfo, isLoading, error, isOpen]);
-
-  // If we don't have a legislator ID or name, use a simpler tooltip
-  if (!legislatorId && !sponsorName) {
-    console.log('SponsorHoverCard: No ID or name available, using simple tooltip');
-    return (
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger className="cursor-pointer hover:text-blue-600 transition-colors">
-            {sponsorName || "Unknown Sponsor"}
-          </TooltipTrigger>
-          <TooltipContent>
-            No additional information available
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
-    );
-  }
   
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
@@ -80,41 +67,12 @@ const SponsorHoverCard = ({ sponsorData, getSponsorName, legislatorId }: Sponsor
         {sponsorName || "Unknown Sponsor"}
       </PopoverTrigger>
       <PopoverContent className="w-80 p-4">
-        <div className="space-y-2">
-          <h4 className="text-sm font-semibold">{legislatorInfo?.name?.full || sponsorName}</h4>
-          
-          {isLoading ? (
-            <div className="flex items-center justify-center py-4">
-              <Spinner className="h-6 w-6 text-blue-600" />
-            </div>
-          ) : error ? (
-            <p className="text-sm text-red-500">Error loading legislator info: {error.message || 'Unknown error'}</p>
-          ) : legislatorInfo ? (
-            <>
-              <p className="text-sm text-gray-600">
-                Party: {legislatorInfo.party === 'D' ? 'Democratic' : 
-                       legislatorInfo.party === 'R' ? 'Republican' : 
-                       legislatorInfo.party || 'Unknown'}
-              </p>
-              {legislatorInfo.role && legislatorInfo.district && (
-                <p className="text-sm text-gray-600">
-                  {legislatorInfo.role}, District {legislatorInfo.district}
-                </p>
-              )}
-              {legislatorInfo.office && (
-                <p className="text-sm text-gray-600 flex items-center gap-1">
-                  <MapPin className="h-3 w-3" /> {legislatorInfo.office}
-                </p>
-              )}
-              <SponsorContactInfo 
-                emails={legislatorInfo.email} 
-                phones={legislatorInfo.phone}
-              />
-            </>
-          ) : (
-            <p className="text-sm text-gray-500">No legislator information available</p>
-          )}
-        </div>
+        <LegislatorDetails 
+          legislatorInfo={legislatorInfo}
+          isLoading={isLoading}
+          error={error}
+          sponsorName={sponsorName}
+        />
       </PopoverContent>
     </Popover>
   );
