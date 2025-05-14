@@ -1,45 +1,34 @@
 
-// Simple key-value cache object
-let memoryCache: Record<string, any> = {};
-let isCacheInitialized = false;
+// Simple placeholder implementation for persistent cache
+// This could be enhanced to use KV or another storage mechanism
 
-// Initialize the cache
-export async function initializeCache() {
-  if (isCacheInitialized) {
-    console.log("Cache already initialized");
-    return;
+const persistentCache = new Map<string, { data: any; timestamp: number }>();
+const PERSISTENT_CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
+
+// Get cached legislator from persistent storage
+export async function getPersistentCachedLegislator(cacheKey: string): Promise<any | null> {
+  if (persistentCache.has(cacheKey)) {
+    const { data, timestamp } = persistentCache.get(cacheKey)!;
+    
+    // Check if cache entry is still valid
+    if (Date.now() - timestamp < PERSISTENT_CACHE_TTL) {
+      console.log(`Persistent cache hit for: ${cacheKey}`);
+      return data;
+    } else {
+      // Clean up expired entry
+      persistentCache.delete(cacheKey);
+      console.log(`Expired persistent cache entry removed for: ${cacheKey}`);
+    }
   }
   
-  try {
-    console.log("Initializing legislator cache");
-    // You can add logic here to load cache from database if needed
-    // For now, we'll just initialize the memory cache
-    memoryCache = {};
-    isCacheInitialized = true;
-    console.log("Cache initialized successfully");
-  } catch (error) {
-    console.error("Error initializing cache:", error);
-    // Initialize with empty cache on error
-    memoryCache = {};
-    isCacheInitialized = true;
-  }
+  return null;
 }
 
-// Get a value from the cache
-export function getCachedValue(key: string): any {
-  return memoryCache[key] || null;
+// Set cached legislator in persistent storage
+export async function setPersistentCachedLegislator(cacheKey: string, data: any): Promise<void> {
+  persistentCache.set(cacheKey, {
+    data,
+    timestamp: Date.now()
+  });
+  console.log(`Saved to persistent cache: ${cacheKey}`);
 }
-
-// Set a value in the cache
-export function setCachedValue(key: string, value: any): void {
-  memoryCache[key] = value;
-}
-
-// Check if a key exists in the cache
-export function cacheHasKey(key: string): boolean {
-  return key in memoryCache;
-}
-
-// Export specific functions with the names expected by cache.ts
-export const getPersistentCachedLegislator = getCachedValue;
-export const setPersistentCachedLegislator = setCachedValue;

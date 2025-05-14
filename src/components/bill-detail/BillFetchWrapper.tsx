@@ -6,7 +6,7 @@ import Navbar from "@/components/Navbar";
 import BillDetailView from "./BillDetailView";
 import BillDetailLoading from "./BillDetailLoading";
 import BillDetailError from "./BillDetailError";
-import { toast } from "@/components/ui/use-toast";
+import { toast } from "sonner";
 import { fetchBillText } from "@/services/legiscan";
 
 const BillFetchWrapper = () => {
@@ -22,10 +22,7 @@ const BillFetchWrapper = () => {
   useEffect(() => {
     if (!id) {
       navigate("/");
-      toast({
-        title: "Missing bill ID",
-        description: "Bill ID is required to view details"
-      });
+      toast.error("Bill ID is required to view details");
     }
   }, [id, navigate]);
   
@@ -117,9 +114,7 @@ const BillFetchWrapper = () => {
         
         // Show a toast warning if we haven't shown one yet
         if (!hasShownApiWarning) {
-          toast({
-            title: "API connection issues",
-            description: "Some bill information may be limited due to API connectivity problems",
+          toast.warning("Some bill information may be limited due to API connectivity problems", {
             duration: 5000,
           });
           setHasShownApiWarning(true);
@@ -135,10 +130,7 @@ const BillFetchWrapper = () => {
     setIsApiDown(false);
     setBillText(null);
     setHasShownApiWarning(false);
-    toast({
-      title: "Retrying",
-      description: "Attempting to reload bill data..."
-    });
+    toast.info("Attempting to reload bill data...");
   };
 
   const handleGoBack = () => {

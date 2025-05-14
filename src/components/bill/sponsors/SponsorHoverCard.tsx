@@ -4,7 +4,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { useLegislatorInfo } from "@/hooks/useLegislatorInfo";
 import LegislatorDetails from "./LegislatorDetails";
 import SponsorTooltip from "./SponsorTooltip";
-import { toast } from "@/components/ui/use-toast";
+import { toast } from "sonner";
 
 interface SponsorHoverCardProps {
   sponsorData: any;
@@ -58,11 +58,7 @@ const SponsorHoverCard = ({ sponsorData, getSponsorName, legislatorId }: Sponsor
       
       // Show a toast if there's an error with additional details
       if (error) {
-        toast({
-          title: "Error loading legislator info",
-          description: `Could not load details for ${sponsorName}`,
-          variant: "destructive"
-        });
+        toast.error(`Could not load details for ${sponsorName}`);
       }
     }
   }, [legislatorInfo, isLoading, error, isOpen, hasAttemptedLoad, sponsorName]);

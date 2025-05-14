@@ -1,5 +1,5 @@
 
 import { toast } from "sonner";
 
-// Re-export toast
+// Re-export sonner toast
 export { toast };
