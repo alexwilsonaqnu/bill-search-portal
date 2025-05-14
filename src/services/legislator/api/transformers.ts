@@ -5,27 +5,10 @@ import { LegislatorInfo } from '../types';
  * Transform Supabase database record to LegislatorInfo format
  */
 export function transformDbRecordToLegislatorInfo(record: any): LegislatorInfo {
-  // Debug the raw data first
-  console.log('Transforming legislator record:', record);
-  
   // Check for null or empty record
   if (!record || Object.keys(record).length === 0) {
-    console.warn('Empty or null record provided to transformDbRecordToLegislatorInfo');
-    return {
-      name: {
-        first: '',
-        middle: '',
-        last: '',
-        suffix: '',
-        full: 'Unknown Legislator'
-      },
-      party: '',
-      email: [],
-      phone: [],
-      district: '',
-      role: 'Legislator',
-      state: 'IL'
-    };
+    console.warn('Empty record provided to transformDbRecordToLegislatorInfo');
+    return createEmptyLegislatorInfo();
   }
   
   // Build name object
@@ -36,6 +19,11 @@ export function transformDbRecordToLegislatorInfo(record: any): LegislatorInfo {
     suffix: '',
     full: record.name || `${record.given_name || ''} ${record.family_name || ''}`.trim()
   };
+  
+  // If we have no name at all, add a placeholder
+  if (!nameParts.full) {
+    nameParts.full = 'Unknown Legislator';
+  }
   
   // Format email and phone as arrays
   const emailArray = record.email ? [record.email] : [];
@@ -56,14 +44,48 @@ export function transformDbRecordToLegislatorInfo(record: any): LegislatorInfo {
     email: emailArray,
     phone: phoneArray,
     district: record.current_district ? record.current_district.toString() : '',
-    role: record.current_chamber === 'upper' ? 'Senator' : 
-          record.current_chamber === 'lower' ? 'Representative' : 
-          'Legislator',
+    role: getRoleName(record.current_chamber),
     name: nameParts,
     office: record.capitol_address || '',
     state: 'IL' // Since this is specific to Illinois legislators
   };
   
-  console.log('Transformed legislator info:', result);
   return result;
+}
+
+/**
+ * Get a human-readable role name from chamber value
+ */
+function getRoleName(chamber?: string): string {
+  if (!chamber) return 'Legislator';
+  
+  switch(chamber.toLowerCase()) {
+    case 'upper':
+      return 'Senator';
+    case 'lower':
+      return 'Representative';
+    default:
+      return 'Legislator';
+  }
+}
+
+/**
+ * Create empty legislator info object for fallback
+ */
+function createEmptyLegislatorInfo(): LegislatorInfo {
+  return {
+    name: {
+      first: '',
+      middle: '',
+      last: '',
+      suffix: '',
+      full: 'Unknown Legislator'
+    },
+    party: '',
+    email: [],
+    phone: [],
+    district: '',
+    role: 'Legislator',
+    state: 'IL'
+  };
 }

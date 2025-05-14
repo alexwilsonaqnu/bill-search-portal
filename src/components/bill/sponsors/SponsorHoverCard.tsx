@@ -15,20 +15,17 @@ interface SponsorHoverCardProps {
 const SponsorHoverCard = ({ sponsorData, getSponsorName, legislatorId }: SponsorHoverCardProps) => {
   const sponsorName = getSponsorName(sponsorData);
   const [isOpen, setIsOpen] = useState(false);
-  const [hasAttemptedLoad, setHasAttemptedLoad] = useState(false);
   
   // Always log the sponsor data to help with debugging
   useEffect(() => {
     console.log('SponsorHoverCard data:', { 
-      sponsorData, 
-      legislatorId, 
-      sponsorName 
+      sponsorName,
+      legislatorId
     });
-  }, [sponsorData, legislatorId, sponsorName]);
+  }, [sponsorName, legislatorId]);
   
   // If we don't have a legislator ID or name, use a simpler tooltip
   if (!legislatorId && !sponsorName) {
-    console.log('SponsorHoverCard: No ID or name available, using simple tooltip');
     return <SponsorTooltip sponsorName={"Unknown Sponsor"} />;
   }
   
@@ -38,39 +35,26 @@ const SponsorHoverCard = ({ sponsorData, getSponsorName, legislatorId }: Sponsor
     isOpen ? sponsorName : undefined
   );
 
-  // Log when we're fetching legislator info
-  useEffect(() => {
-    if (isOpen) {
-      console.log(`SponsorHoverCard: Open state changed to ${isOpen}, triggering data fetch`);
-      console.log(`Fetching legislator info with: id=${legislatorId}, name=${sponsorName}`);
-      setHasAttemptedLoad(true);
-    }
-  }, [isOpen, legislatorId, sponsorName]);
-
   // Log when legislator info changes
   useEffect(() => {
-    if (isOpen && hasAttemptedLoad) {
-      console.log('SponsorHoverCard: legislatorInfo result:', { 
-        legislatorInfo, 
-        isLoading, 
-        error 
-      });
-      
-      // Show a toast if there's an error with additional details
+    if (isOpen) {
       if (error) {
-        toast.error(`Could not load details for ${sponsorName}`);
+        console.error(`Error loading legislator: ${error.message}`);
+        toast({
+          title: "Could not load details",
+          description: `Unable to load information for ${sponsorName}`,
+          variant: "destructive"
+        });
+      } else if (!isLoading) {
+        console.log('Legislator info loaded:', legislatorInfo);
       }
     }
-  }, [legislatorInfo, isLoading, error, isOpen, hasAttemptedLoad, sponsorName]);
+  }, [legislatorInfo, isLoading, error, isOpen, sponsorName]);
   
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger 
         className="cursor-pointer hover:text-blue-600 transition-colors"
-        onClick={() => {
-          // Log when popover is clicked
-          console.log(`Popover clicked for: ${sponsorName} (${legislatorId || 'no ID'})`);
-        }}
       >
         {sponsorName || "Unknown Sponsor"}
       </PopoverTrigger>
