@@ -45,11 +45,9 @@ export async function checkLegislatorsTable() {
     // Get table columns - using a safer approach
     let columns: any[] = [];
     try {
-      // Use an explicitly typed object to work around the type constraints
-      const params = { table_name: 'IL_legislators' } as any;
-      
-      const { data: columnData, error: columnsError } = await supabase
-        .rpc('get_table_columns', params);
+      // Cast the entire function call to any to bypass type checking for this specific operation
+      const { data: columnData, error: columnsError } = await (supabase
+        .rpc('get_table_columns', { table_name: 'IL_legislators' }) as any);
         
       if (!columnsError && columnData) {
         columns = columnData as any[];
