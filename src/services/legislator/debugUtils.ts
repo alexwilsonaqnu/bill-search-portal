@@ -49,7 +49,7 @@ export async function checkLegislatorsTable() {
         .rpc('get_table_columns', { table_name: 'IL_legislators' });
         
       if (!columnsError && columnData) {
-        columns = columnData;
+        columns = columnData as any[];
       } else {
         console.log("Could not fetch schema details:", columnsError?.message);
       }
@@ -61,8 +61,8 @@ export async function checkLegislatorsTable() {
     // Fix for error on line 62
     let recordCount = 0;
     if (tables && typeof tables === 'object') {
-      if ('count' in tables) {
-        recordCount = Number(tables.count || 0);
+      if ('count' in tables && tables.count !== null) {
+        recordCount = Number(tables.count);
       }
     }
     
