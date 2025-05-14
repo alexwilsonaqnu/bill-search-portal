@@ -40,9 +40,11 @@ export async function fetchLegislatorInfo(
     if (legislatorId) {
       // If we have an ID, use it as the primary lookup
       query = query.eq('id', legislatorId);
+      console.log(`Querying IL_legislators with ID: ${legislatorId}`);
     } else if (sponsorName) {
       // If we only have a name, try to find match on name field
       query = query.eq('name', sponsorName);
+      console.log(`Querying IL_legislators with exact name: ${sponsorName}`);
     }
     
     let { data, error } = await query.limit(1);
