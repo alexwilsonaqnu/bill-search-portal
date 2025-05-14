@@ -220,7 +220,10 @@ export function preloadLegislatorData(sponsors: any[]): void {
  * Clear the legislator cache
  */
 export function clearLegislatorCache(cacheKey?: string): void {
-  clearCache(cacheKey);
+  // Import the clearCache function from cache.ts to avoid circular dependencies
+  import('./cache').then(({ clearCache }) => {
+    clearCache(cacheKey);
+  });
 }
 
 // Create a debounced version of the search function

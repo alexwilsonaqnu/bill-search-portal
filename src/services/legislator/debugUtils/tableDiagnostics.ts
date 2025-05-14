@@ -2,100 +2,107 @@
 import { supabase } from "@/integrations/supabase/client";
 
 /**
- * Functions for diagnosing table issues
- */
-
-/**
- * Check if the IL_legislators table exists and return its basic information
+ * Check the IL_legislators table in the database
+ * Returns diagnostics about the table structure and data
  */
 export async function checkILLegislatorsTable() {
-  console.log("Checking IL_legislators table existence and information");
-  
-  // First check if the table exists by querying the information schema
   try {
-    const { data: tableExists, error: tableError } = await supabase
-      .from('information_schema.tables')
-      .select('*')
-      .eq('table_schema', 'public')
-      .eq('table_name', 'IL_legislators');
+    console.log("Running diagnostics on IL_legislators table...");
     
-    if (tableError) {
-      console.error("Error checking table existence:", tableError);
+    // First check if the table exists
+    const { data: tablesData, error: tablesError } = await supabase
+      .rpc('check_table_exists', { table_name: 'IL_legislators' }) as any;
+    
+    if (tablesError) {
+      console.error("Error checking if table exists:", tablesError);
       return {
         exists: false,
-        error: tableError.message,
-        sample: null,
-        columns: []
+        error: tablesError.message,
+        columnCount: 0,
+        rowCount: 0,
+        sampleData: null
       };
     }
     
-    const exists = tableExists && tableExists.length > 0;
-    console.log(`IL_legislators table exists: ${exists}`);
+    console.log("Table exists check result:", tablesData);
     
-    if (!exists) {
+    if (!tablesData || tablesData.length === 0 || !tablesData[0].exists) {
       return {
         exists: false,
         error: "Table does not exist",
-        sample: null,
-        columns: []
+        columnCount: 0,
+        rowCount: 0,
+        sampleData: null
       };
     }
     
-    // If table exists, get a sample record
+    // Get column information
+    const { data: columnsData, error: columnsError } = await supabase
+      .rpc('get_table_columns', { table_name: 'IL_legislators' }) as any;
+    
+    if (columnsError) {
+      console.error("Error getting table columns:", columnsError);
+      return {
+        exists: true,
+        error: columnsError.message,
+        columnCount: 0,
+        rowCount: 0,
+        sampleData: null
+      };
+    }
+    
+    // Get row count
+    const { count, error: countError } = await supabase
+      .from('IL_legislators')
+      .select('*', { count: 'exact', head: true }) as any;
+    
+    if (countError) {
+      console.error("Error counting rows:", countError);
+      return {
+        exists: true,
+        columns: columnsData,
+        columnCount: columnsData?.length || 0,
+        error: countError.message,
+        rowCount: 0,
+        sampleData: null
+      };
+    }
+    
+    // Get a sample row
     const { data: sampleData, error: sampleError } = await supabase
       .from('IL_legislators')
       .select('*')
       .limit(1);
     
     if (sampleError) {
-      console.error("Error fetching sample data:", sampleError);
+      console.error("Error getting sample data:", sampleError);
       return {
         exists: true,
+        columns: columnsData,
+        columnCount: columnsData?.length || 0,
+        rowCount: count || 0,
         error: sampleError.message,
-        sample: null,
-        columns: []
+        sampleData: null
       };
-    }
-    
-    // Get table columns - using a safer approach with type casting
-    let columns: any[] = [];
-    try {
-      // Use type assertion to bypass type checking for RPC calls
-      const rpcCall = supabase.rpc(
-        'get_table_columns' as any, 
-        { table_name: 'IL_legislators' } as any
-      ) as any;
-      
-      const { data: columnData, error: columnsError } = await rpcCall;
-        
-      if (!columnsError && columnData) {
-        columns = columnData as any[];
-      } else if (columnsError) {
-        console.error("Error getting columns:", columnsError);
-      }
-    } catch (error) {
-      console.error("RPC call to get_table_columns failed:", error);
-      
-      // Fallback: Extract column names from the sample record
-      if (sampleData && sampleData.length > 0) {
-        columns = Object.keys(sampleData[0]).map(name => ({ column_name: name }));
-      }
     }
     
     return {
       exists: true,
-      error: null,
-      sample: sampleData && sampleData.length > 0 ? sampleData[0] : null,
-      columns
+      columns: columnsData,
+      columnCount: columnsData?.length || 0,
+      rowCount: count || 0,
+      sampleData: sampleData && sampleData.length > 0 ? sampleData[0] : null,
+      error: null
     };
     
   } catch (error) {
-    console.error("Unexpected error checking table:", error);
+    console.error("Exception in checkILLegislatorsTable:", error);
     return {
       exists: false,
-      error: `Unexpected error: ${error instanceof Error ? error.message : String(error)}`,
-      sample: null,
-      columns: []
+      error: error.message,
+      columnCount: 0,
+      rowCount: 0,
+      sampleData: null
     };
   }
 }

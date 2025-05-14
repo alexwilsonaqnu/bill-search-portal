@@ -1,9 +1,4 @@
 
-import { checkLegislatorsTable } from './tableDiagnostics';
-import { searchLegislatorDebug } from './searchDebug';
-
-// Export the utility functions
-export const debugUtils = {
-  checkLegislatorsTable,
-  searchLegislatorDebug
-};
+// This file exports debug utilities for legislator operations
+export { searchLegislatorsDebug } from './searchDebug';
+export { checkILLegislatorsTable } from './tableDiagnostics';

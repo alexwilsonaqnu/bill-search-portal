@@ -13,8 +13,7 @@ export {
   fetchMultipleLegislators,
   searchLegislators, 
   searchLegislatorDebounced,
-  preloadLegislatorData,
-  clearLegislatorCache
+  preloadLegislatorData
 } from './api';
 
 // Export utility functions
