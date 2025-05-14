@@ -6,7 +6,7 @@ import Navbar from "@/components/Navbar";
 import BillDetailView from "./BillDetailView";
 import BillDetailLoading from "./BillDetailLoading";
 import BillDetailError from "./BillDetailError";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/use-toast";
 import { fetchBillText } from "@/services/legiscan";
 
 const BillFetchWrapper = () => {

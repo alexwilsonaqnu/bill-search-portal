@@ -4,7 +4,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { useLegislatorInfo } from "@/hooks/useLegislatorInfo";
 import LegislatorDetails from "./LegislatorDetails";
 import SponsorTooltip from "./SponsorTooltip";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/use-toast";
 
 interface SponsorHoverCardProps {
   sponsorData: any;
