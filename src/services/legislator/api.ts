@@ -7,5 +7,6 @@ export {
   fetchMultipleLegislators,
   searchLegislatorDebounced,
   createBasicLegislatorFromName,
-  transformDbRecordToLegislatorInfo
+  transformDbRecordToLegislatorInfo,
+  clearCache
 } from './api/index';
