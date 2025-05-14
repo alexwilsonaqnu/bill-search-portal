@@ -12,7 +12,7 @@ export async function checkLegislatorsTable() {
     // Check if the table exists
     const { data: tables, error: tablesError } = await supabase
       .from('IL_legislators')
-      .select('count(*)') // Changed from 'count(*)'
+      .select('count(*)') 
       .limit(1)
       .single();
       
