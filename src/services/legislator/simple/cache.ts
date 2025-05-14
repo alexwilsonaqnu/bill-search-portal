@@ -1,19 +1,17 @@
 
 import { LegislatorInfo } from './types';
 
-// Global cache to store legislator data across the application
-export const legislatorCache = new Map<string, { data: LegislatorInfo; timestamp: number }>();
-const CACHE_TTL = 60 * 60 * 1000; // 60 minutes
+/**
+ * Simple in-memory cache for legislator data
+ */
+const legislatorCache = new Map<string, { data: LegislatorInfo; timestamp: number }>();
+const CACHE_TTL = 60 * 60 * 1000; // 60 minutes cache lifetime
 
 /**
- * Check if legislator exists in cache and is not expired
- * @param cacheKey The key to check in cache
- * @param forceRefresh Whether to ignore the cache and force a refresh
+ * Get cached legislator data if available and not expired
  */
 export function getCachedLegislator(cacheKey: string, forceRefresh = false): LegislatorInfo | null {
-  // If forceRefresh is true, skip cache lookup
   if (forceRefresh) {
-    console.log(`Force refresh requested for: ${cacheKey}`);
     return null;
   }
   
@@ -26,23 +24,23 @@ export function getCachedLegislator(cacheKey: string, forceRefresh = false): Leg
 }
 
 /**
- * Store legislator in cache
+ * Store legislator data in cache
  */
 export function cacheLegislator(cacheKey: string, data: LegislatorInfo): void {
   legislatorCache.set(cacheKey, { 
     data, 
     timestamp: Date.now() 
   });
+  console.log(`Cached legislator data for: ${cacheKey}`);
 }
 
 /**
- * Clear specific entry or entire cache
- * @param cacheKey Optional key to clear. If not provided, entire cache is cleared
+ * Clear specific entry or entire legislator cache
  */
 export function clearCache(cacheKey?: string): void {
   if (cacheKey) {
     legislatorCache.delete(cacheKey);
-    console.log(`Cleared cache for: ${cacheKey}`);
+    console.log(`Cleared legislator cache for: ${cacheKey}`);
   } else {
     legislatorCache.clear();
     console.log('Cleared entire legislator cache');
