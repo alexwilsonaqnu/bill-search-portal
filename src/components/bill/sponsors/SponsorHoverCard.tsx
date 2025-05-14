@@ -40,11 +40,8 @@ const SponsorHoverCard = ({ sponsorData, getSponsorName, legislatorId }: Sponsor
     if (isOpen) {
       if (error) {
         console.error(`Error loading legislator: ${error.message}`);
-        toast({
-          title: "Could not load details",
-          description: `Unable to load information for ${sponsorName}`,
-          variant: "destructive"
-        });
+        // Fix: Using the correct toast function signature for sonner
+        toast.error(`Unable to load information for ${sponsorName}`);
       } else if (!isLoading) {
         console.log('Legislator info loaded:', legislatorInfo);
       }
