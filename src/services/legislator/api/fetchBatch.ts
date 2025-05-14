@@ -63,24 +63,27 @@ async function fetchUncachedLegislators(uncachedIds: string[]): Promise<{id: str
     console.log('Batch DB query results:', { data, error });
     
     if (error) {
-      console.error("Error in batch legislator fetch:", error);
+      console.error("Supabase error:", error);
       return [];
-    } else if (data) {
-      // Transform and cache each result
-      return data.map(record => {
-        const info = transformDbRecordToLegislatorInfo(record);
-        const id = record.id;
-        
-        if (id) {
-          const cacheKey = `id:${id}`;
-          cacheLegislator(cacheKey, info);
-        }
-        
-        return { id: record.id || '', data: info };
-      });
     }
     
-    return [];
+    if (!data || data.length === 0) {
+      return [];
+    }
+    
+    // Transform and cache each result
+    return data.map(record => {
+      const info = transformDbRecordToLegislatorInfo(record);
+      const id = record.id;
+      
+      if (id) {
+        const cacheKey = `id:${id}`;
+        cacheLegislator(cacheKey, info);
+      }
+      
+      return { id: record.id || '', data: info };
+    });
+    
   } catch (err) {
     console.error("Exception in batch legislator fetch:", err);
     return [];
