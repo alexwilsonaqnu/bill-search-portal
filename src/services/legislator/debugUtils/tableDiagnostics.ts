@@ -11,7 +11,7 @@ export async function checkILLegislatorsTable() {
     
     // First check if the table exists
     const { data: tablesData, error: tablesError } = await supabase
-      .rpc('check_table_exists', { table_name: 'IL_legislators' }) as any;
+      .rpc('check_table_exists', { table_name: 'il_legislators' });
     
     if (tablesError) {
       console.error("Error checking if table exists:", tablesError);
@@ -38,7 +38,7 @@ export async function checkILLegislatorsTable() {
     
     // Get column information
     const { data: columnsData, error: columnsError } = await supabase
-      .rpc('get_table_columns', { table_name: 'IL_legislators' }) as any;
+      .rpc('get_table_columns', { table_name: 'il_legislators' });
     
     if (columnsError) {
       console.error("Error getting table columns:", columnsError);
@@ -53,8 +53,8 @@ export async function checkILLegislatorsTable() {
     
     // Get row count
     const { count, error: countError } = await supabase
-      .from('IL_legislators')
-      .select('*', { count: 'exact', head: true }) as any;
+      .from('il_legislators')
+      .select('*', { count: 'exact', head: true });
     
     if (countError) {
       console.error("Error counting rows:", countError);
@@ -70,7 +70,7 @@ export async function checkILLegislatorsTable() {
     
     // Get a sample row
     const { data: sampleData, error: sampleError } = await supabase
-      .from('IL_legislators')
+      .from('il_legislators')
       .select('*')
       .limit(1);
     

@@ -37,19 +37,19 @@ export async function fetchLegislatorInfo(
     console.log(`Fetching legislator for ID: ${legislatorId || 'N/A'}, Name: ${sponsorName || 'N/A'}, Force refresh: ${forceRefresh}`);
     
     // First let's check if the table exists and if it has any data
-    console.log("Checking IL_legislators table status...");
+    console.log("Checking il_legislators table status...");
     const { count, error: countError } = await supabase
-      .from('IL_legislators')
+      .from('il_legislators')
       .select('*', { count: 'exact', head: true });
       
     if (countError) {
       console.error("Error checking table:", countError.message);
     } else {
-      console.log(`IL_legislators table contains ${count} records`);
+      console.log(`il_legislators table contains ${count} records`);
       
       // If table is empty, return fallback right away
       if (count === 0) {
-        console.warn("IL_legislators table is empty, using fallback");
+        console.warn("il_legislators table is empty, using fallback");
         if (sponsorName) {
           const fallback = createBasicLegislatorFromName(sponsorName);
           if (cacheKey) cacheLegislator(cacheKey, fallback);
@@ -83,7 +83,7 @@ async function queryDatabase(
   // First, let's dump a few records to see what's in the database
   console.log("Fetching sample records to inspect data format:");
   const { data: sampleData, error: sampleError } = await supabase
-    .from('IL_legislators')
+    .from('il_legislators')
     .select('*')
     .limit(3);
     
@@ -100,7 +100,7 @@ async function queryDatabase(
   if (legislatorId) {
     console.log(`Querying by ID: ${legislatorId}`);
     const { data, error } = await supabase
-      .from('IL_legislators')
+      .from('il_legislators')
       .select('*')
       .eq('id', legislatorId)
       .limit(1);
@@ -126,7 +126,7 @@ async function queryDatabase(
     
     // First try case-sensitive match
     const { data: exactData, error: exactError } = await supabase
-      .from('IL_legislators')
+      .from('il_legislators')
       .select('*')
       .eq('name', sponsorName)
       .limit(1);
@@ -143,7 +143,7 @@ async function queryDatabase(
     // Try with lowercase comparison
     console.log("Trying case-insensitive search...");
     const { data: lowerData, error: lowerError } = await supabase
-      .from('IL_legislators')
+      .from('il_legislators')
       .select('*')
       .ilike('name', sponsorName)
       .limit(1);
@@ -166,7 +166,7 @@ async function queryDatabase(
       console.log(`Searching with firstName="${firstName}", lastName="${lastName}"`);
       
       const { data: namePartsData, error: namePartsError } = await supabase
-        .from('IL_legislators')
+        .from('il_legislators')
         .select('*')
         .eq('given_name', firstName)
         .eq('family_name', lastName)
@@ -185,7 +185,7 @@ async function queryDatabase(
     // Try flexible name search with wildcards
     console.log(`Trying flexible name search for: "${sponsorName}"`);
     const { data: flexData, error: flexError } = await supabase
-      .from('IL_legislators')
+      .from('il_legislators')
       .select('*')
       .ilike('name', `%${sponsorName}%`)
       .limit(1);
@@ -205,7 +205,7 @@ async function queryDatabase(
       console.log(`Trying family_name search for: "${lastName}"`);
       
       const { data: lastNameData, error: lastNameError } = await supabase
-        .from('IL_legislators')
+        .from('il_legislators')
         .select('*')
         .ilike('family_name', `%${lastName}%`)
         .limit(1);
@@ -223,7 +223,7 @@ async function queryDatabase(
     // Final attempt: get the first record from the table to see if there's any data
     console.log(`Last resort: querying any record from the table`);
     const { data: anyData, error: anyError } = await supabase
-      .from('IL_legislators')
+      .from('il_legislators')
       .select('*')
       .limit(1);
       
@@ -233,7 +233,7 @@ async function queryDatabase(
     } else if (anyError) {
       console.error("Error in last resort query:", anyError.message);
     } else {
-      console.log("No records found in IL_legislators at all");
+      console.log("No records found in il_legislators at all");
     }
     
     // Last resort: return fallback legislator data

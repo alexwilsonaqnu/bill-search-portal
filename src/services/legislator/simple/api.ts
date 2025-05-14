@@ -33,7 +33,7 @@ export async function fetchLegislator(
     // First try by ID if available
     if (legislatorId) {
       const { data, error } = await supabase
-        .from('IL_legislators')
+        .from('il_legislators')
         .select('*')
         .eq('id', legislatorId)
         .limit(1);
@@ -59,7 +59,7 @@ export async function fetchLegislator(
       
       // First try exact match
       const { data: exactData, error: exactError } = await supabase
-        .from('IL_legislators')
+        .from('il_legislators')
         .select('*')
         .ilike('name', cleanedName)
         .limit(1);
@@ -78,7 +78,7 @@ export async function fetchLegislator(
         const lastName = nameParts[nameParts.length - 1];
         
         const { data: namePartsData, error: namePartsError } = await supabase
-          .from('IL_legislators')
+          .from('il_legislators')
           .select('*')
           .ilike('given_name', `%${firstName}%`)
           .ilike('family_name', `%${lastName}%`)
@@ -218,8 +218,9 @@ export function preloadLegislatorData(sponsors: any[]): void {
 
 /**
  * Clear the legislator cache
+ * This function is deliberately not exported to avoid duplicate exports
  */
-export function clearLegislatorCache(cacheKey?: string): void {
+function clearLegislatorCache(cacheKey?: string): void {
   // Import the clearCache function from cache.ts to avoid circular dependencies
   import('./cache').then(({ clearCache }) => {
     clearCache(cacheKey);
