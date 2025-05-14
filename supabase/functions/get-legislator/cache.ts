@@ -7,13 +7,7 @@ const legislatorCache = new Map();
 const MEMORY_CACHE_TTL = 15 * 60 * 1000; // 15 minutes for in-memory cache
 
 // Multi-level cache strategy: check memory first, then database
-export async function getCachedLegislator(cacheKey: string, forceRefresh = false): Promise<any | null> {
-  // If forceRefresh is true, skip all cache lookups
-  if (forceRefresh) {
-    console.log(`Force refresh requested for: ${cacheKey}`);
-    return null;
-  }
-  
+export async function getCachedLegislator(cacheKey: string): Promise<any | null> {
   // First level: Check memory cache (fastest)
   if (legislatorCache.has(cacheKey)) {
     const { data, timestamp } = legislatorCache.get(cacheKey);
@@ -52,15 +46,4 @@ export async function setCachedLegislator(cacheKey: string, data: any): Promise<
   
   // Update persistent cache
   await setPersistentCachedLegislator(cacheKey, data);
-}
-
-// Clear specific entry or entire cache
-export async function clearCache(cacheKey?: string): Promise<void> {
-  if (cacheKey) {
-    legislatorCache.delete(cacheKey);
-    console.log(`Cleared memory cache for: ${cacheKey}`);
-  } else {
-    legislatorCache.clear();
-    console.log('Cleared entire memory legislator cache');
-  }
 }

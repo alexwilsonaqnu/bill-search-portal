@@ -3,116 +3,84 @@ import { supabase } from "@/integrations/supabase/client";
 import { LegislatorInfo } from '../types';
 import { getCachedLegislator, cacheLegislator } from '../cache';
 import { transformDbRecordToLegislatorInfo } from './transformers';
-import { createBasicLegislatorFromName } from './fallbacks';
 
 /**
- * Fetch multiple legislators in a single request
- * @param legislatorIds Array of legislator IDs to fetch
- * @param forceRefresh Flag to bypass cache
+ * Batch fetch multiple legislators at once
  */
-export async function fetchMultipleLegislators(
-  legislatorIds: string[],
-  forceRefresh = false
-): Promise<(LegislatorInfo | null)[]> {
-  try {
-    if (!legislatorIds || legislatorIds.length === 0) {
-      console.log('fetchMultipleLegislators called with empty ID array');
-      return [];
-    }
+export async function fetchMultipleLegislators(legislatorIds: string[]): Promise<(LegislatorInfo | null)[]> {
+  if (!legislatorIds || legislatorIds.length === 0) {
+    return [];
+  }
+  
+  // Filter out any duplicates
+  const uniqueIds = [...new Set(legislatorIds)];
+  
+  // Check how many we can get from cache first
+  const cachedResults = uniqueIds.map(id => {
+    const cacheKey = `id:${id}`;
+    return { 
+      id, 
+      cached: getCachedLegislator(cacheKey) 
+    };
+  });
+  
+  // Separate cached from uncached
+  const cachedIds = cachedResults.filter(r => r.cached).map(r => r.id);
+  const uncachedIds = cachedResults.filter(r => !r.cached).map(r => r.id);
+  
+  console.log(`Batch legislator fetch: ${cachedIds.length} from cache, ${uncachedIds.length} need fetching`);
+  
+  // If we have uncached IDs that need fetching, fetch from Supabase table
+  let databaseResults: {id: string, data: LegislatorInfo}[] = [];
+  
+  if (uncachedIds.length > 0) {
+    databaseResults = await fetchUncachedLegislators(uncachedIds);
+  }
+  
+  // Combine cached and fresh results in original order
+  return uniqueIds.map(id => {
+    // First check if we have it cached
+    const cacheKey = `id:${id}`;
+    const cached = getCachedLegislator(cacheKey);
+    if (cached) return cached;
+    
+    // Then check if we got it fresh from the database
+    const fresh = databaseResults.find(r => r.id === id);
+    return fresh ? fresh.data : null;
+  });
+}
 
-    console.log(`Fetching ${legislatorIds.length} legislators, forceRefresh: ${forceRefresh}`);
-    
-    // Create a new array with unique IDs to avoid duplicates
-    const uniqueIds = [...new Set(legislatorIds)];
-    console.log(`Fetching ${uniqueIds.length} unique legislator IDs`);
-    
-    // Create a map to track which IDs we've already processed
-    const results: (LegislatorInfo | null)[] = [];
-    const processedIds = new Set<string>();
-    
-    // First check cache for each ID
-    for (const id of uniqueIds) {
-      const cacheKey = `id:${id}`;
-      const cached = getCachedLegislator(cacheKey, forceRefresh);
-      
-      if (cached) {
-        console.log(`Using cached data for legislator ID: ${id}`);
-        results.push(cached);
-        processedIds.add(id);
-      }
-    }
-    
-    // If all IDs were found in cache, return early
-    if (processedIds.size === uniqueIds.length) {
-      console.log('All legislators found in cache');
-      return results;
-    }
-    
-    // Get remaining IDs that weren't in the cache
-    const remainingIds = uniqueIds.filter(id => !processedIds.has(id));
-    console.log(`Fetching ${remainingIds.length} remaining legislators from database`);
-    
-    // Fetch the remaining IDs from the database in a single query
+async function fetchUncachedLegislators(uncachedIds: string[]): Promise<{id: string, data: LegislatorInfo}[]> {
+  try {
+    // Fetch all uncached legislators in one query
     const { data, error } = await supabase
       .from('IL_legislators')
       .select('*')
-      .in('id', remainingIds);
-      
-    if (error) {
-      console.error(`Error fetching legislators: ${error.message}`);
-    }
+      .in('id', uncachedIds);
     
-    // Process the database results
-    if (data && data.length > 0) {
-      console.log(`Found ${data.length} legislators in database`);
-      
-      // Create a map of ID to database record for fast lookups
-      const legislatorMap = new Map();
-      for (const record of data) {
-        if (record.id) {
-          legislatorMap.set(record.id, record);
-        }
-      }
-      
-      // Now add database results and fallbacks in the same order as the input array
-      for (const id of uniqueIds) {
-        if (processedIds.has(id)) {
-          // Skip IDs we already processed from cache
-          continue;
+    console.log('Batch DB query results:', { data, error });
+    
+    if (error) {
+      console.error("Error in batch legislator fetch:", error);
+      return [];
+    } else if (data) {
+      // Transform and cache each result
+      return data.map(record => {
+        const info = transformDbRecordToLegislatorInfo(record);
+        const id = record.id;
+        
+        if (id) {
+          const cacheKey = `id:${id}`;
+          cacheLegislator(cacheKey, info);
         }
         
-        const record = legislatorMap.get(id);
-        if (record) {
-          const legislatorInfo = transformDbRecordToLegislatorInfo(record);
-          cacheLegislator(`id:${id}`, legislatorInfo);
-          results.push(legislatorInfo);
-        } else {
-          // Create a fallback for IDs not found in database
-          console.log(`No data found for legislator ID: ${id}`);
-          const fallback = createBasicLegislatorFromName(`Legislator ${id}`);
-          cacheLegislator(`id:${id}`, fallback);
-          results.push(fallback);
-        }
-      }
-    } else {
-      console.warn('No legislators found in database');
-      
-      // Add fallbacks for all remaining IDs
-      for (const id of remainingIds) {
-        const fallback = createBasicLegislatorFromName(`Legislator ${id}`);
-        cacheLegislator(`id:${id}`, fallback);
-        results.push(fallback);
-      }
+        return { id: record.id || '', data: info };
+      });
     }
     
-    return results;
-  } catch (error) {
-    console.error('Error in fetchMultipleLegislators:', error);
-    
-    // Return fallbacks for all IDs
-    return legislatorIds.map(id => {
-      const fallback = createBasicLegislatorFromName(`Legislator ${id}`);
-      return fallback;
-    });
+    return [];
+  } catch (err) {
+    console.error("Exception in batch legislator fetch:", err);
+    return [];
   }
 }

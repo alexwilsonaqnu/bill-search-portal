@@ -17,18 +17,18 @@ export function getApiKey(): string {
 }
 
 // Fetch legislator by ID from OpenStates API with improved error handling
-export async function fetchLegislatorById(legislatorId: string, forceRefresh = false) {
+export async function fetchLegislatorById(legislatorId: string) {
   if (!legislatorId) return null;
   
   const cacheKey = `id-${legislatorId}`;
-  const cachedData = getCachedLegislator(cacheKey, forceRefresh);
+  const cachedData = getCachedLegislator(cacheKey);
   if (cachedData) {
     console.log(`Using cached legislator data for ID: ${legislatorId}`);
     return cachedData;
   }
 
   try {
-    console.log(`Cache miss - fetching fresh data for legislator ID: ${legislatorId}${forceRefresh ? ' (force refresh)' : ''}`);
+    console.log(`Cache miss - fetching fresh data for legislator ID: ${legislatorId}`);
     const OPENSTATES_API_KEY = getApiKey();
 
     // Use backoff mechanism to handle rate limiting
@@ -64,19 +64,19 @@ export async function fetchLegislatorById(legislatorId: string, forceRefresh = f
 }
 
 // Search legislator by name from OpenStates API with improved caching
-export async function searchLegislatorByName(name: string, forceRefresh = false) {
+export async function searchLegislatorByName(name: string) {
   if (!name) return null;
   
   const cleanedName = cleanNameForSearch(name);
   const cacheKey = `name-${cleanedName}`;
-  const cachedData = getCachedLegislator(cacheKey, forceRefresh);
+  const cachedData = getCachedLegislator(cacheKey);
   if (cachedData) {
     console.log(`Using cached legislator data for name: ${cleanedName}`);
     return cachedData;
   }
 
   try {
-    console.log(`Cache miss - searching for legislator with name: ${cleanedName}${forceRefresh ? ' (force refresh)' : ''}`);
+    console.log(`Cache miss - searching for legislator with name: ${cleanedName}`);
     const OPENSTATES_API_KEY = getApiKey();
 
     console.log(`Making API request to OpenStates for name search: ${cleanedName}`);

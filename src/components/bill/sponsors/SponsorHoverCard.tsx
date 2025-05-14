@@ -1,13 +1,10 @@
 
 import { useState, useEffect } from "react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { useLegislator } from "@/hooks/useLegislatorSimple";
+import { useLegislatorInfo } from "@/hooks/useLegislatorInfo";
 import LegislatorDetails from "./LegislatorDetails";
 import SponsorTooltip from "./SponsorTooltip";
 import { toast } from "@/components/ui/use-toast";
-import { Button } from "@/components/ui/button";
-import { RefreshCw, Info } from "lucide-react";
-import { clearLegislatorCache } from "@/services/legislator/simple";
 
 interface SponsorHoverCardProps {
   sponsorData: any;
@@ -18,118 +15,72 @@ interface SponsorHoverCardProps {
 const SponsorHoverCard = ({ sponsorData, getSponsorName, legislatorId }: SponsorHoverCardProps) => {
   const sponsorName = getSponsorName(sponsorData);
   const [isOpen, setIsOpen] = useState(false);
-  const [forceRefresh, setForceRefresh] = useState(false);
-  const [debugInfo, setDebugInfo] = useState<any>(null);
+  const [hasAttemptedLoad, setHasAttemptedLoad] = useState(false);
   
-  // Log sponsor data for debugging
+  // Always log the sponsor data to help with debugging
   useEffect(() => {
     console.log('SponsorHoverCard data:', { 
-      sponsorName,
-      legislatorId,
-      sponsorData
+      sponsorData, 
+      legislatorId, 
+      sponsorName 
     });
-  }, [sponsorName, legislatorId, sponsorData]);
+  }, [sponsorData, legislatorId, sponsorName]);
   
   // If we don't have a legislator ID or name, use a simpler tooltip
   if (!legislatorId && !sponsorName) {
+    console.log('SponsorHoverCard: No ID or name available, using simple tooltip');
     return <SponsorTooltip sponsorName={"Unknown Sponsor"} />;
   }
   
-  // Using our new simplified hook
-  const { data: legislatorInfo, isLoading, error, refetch } = useLegislator(
+  // Only fetch data when the popover is opened to reduce API calls
+  const { data: legislatorInfo, isLoading, error } = useLegislatorInfo(
     isOpen ? legislatorId : undefined, 
-    isOpen ? sponsorName : undefined,
-    { forceRefresh }
+    isOpen ? sponsorName : undefined
   );
 
-  // Reset forceRefresh after data is loaded
-  useEffect(() => {
-    if (!isLoading && forceRefresh) {
-      setForceRefresh(false);
-    }
-  }, [isLoading, forceRefresh]);
-
-  // Store debug info when data changes
+  // Log when we're fetching legislator info
   useEffect(() => {
     if (isOpen) {
+      console.log(`SponsorHoverCard: Open state changed to ${isOpen}, triggering data fetch`);
+      console.log(`Fetching legislator info with: id=${legislatorId}, name=${sponsorName}`);
+      setHasAttemptedLoad(true);
+    }
+  }, [isOpen, legislatorId, sponsorName]);
+
+  // Log when legislator info changes
+  useEffect(() => {
+    if (isOpen && hasAttemptedLoad) {
+      console.log('SponsorHoverCard: legislatorInfo result:', { 
+        legislatorInfo, 
+        isLoading, 
+        error 
+      });
+      
+      // Show a toast if there's an error with additional details
       if (error) {
-        console.error(`Error loading legislator: ${error.message}`);
-        toast.error(`Unable to load information for ${sponsorName}`);
-      } else if (!isLoading) {
-        console.log('Legislator info loaded:', legislatorInfo);
-        setDebugInfo({
-          receivedAt: new Date().toISOString(),
-          data: legislatorInfo
-        });
+        toast.error(`Could not load details for ${sponsorName}`);
       }
     }
-  }, [legislatorInfo, isLoading, error, isOpen, sponsorName]);
-
-  const handleRefresh = () => {
-    // Clear the cache for this specific legislator
-    const cacheKey = legislatorId ? `id:${legislatorId}` : `name:${sponsorName}`;
-    clearLegislatorCache(cacheKey);
-    console.log(`Clearing cache with key: ${cacheKey}`);
-    
-    setForceRefresh(true);
-    refetch();
-    toast.info(`Refreshing information for ${sponsorName}...`);
-  };
-  
-  const handleDebugInfo = () => {
-    console.log("Debug info:", {
-      sponsorName,
-      legislatorId,
-      cachedInfo: debugInfo,
-      forceRefresh,
-      isLoading
-    });
-    
-    toast.info(`Debug info logged to console`, { 
-      description: `Check browser console for detailed information about ${sponsorName}` 
-    });
-  };
+  }, [legislatorInfo, isLoading, error, isOpen, hasAttemptedLoad, sponsorName]);
   
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger 
         className="cursor-pointer hover:text-blue-600 transition-colors"
         onClick={() => {
-          console.log(`Popover opened for: ${sponsorName}`);
+          // Log when popover is clicked
+          console.log(`Popover clicked for: ${sponsorName} (${legislatorId || 'no ID'})`);
         }}
       >
         {sponsorName || "Unknown Sponsor"}
       </PopoverTrigger>
       <PopoverContent className="w-80 p-4">
-        <div className="flex flex-col space-y-3">
-          <LegislatorDetails 
-            legislatorInfo={legislatorInfo}
-            isLoading={isLoading}
-            error={error}
-            sponsorName={sponsorName}
-          />
-          <div className="flex justify-between">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={handleDebugInfo}
-              className="text-xs"
-            >
-              <Info className="h-3 w-3 mr-1" />
-              Debug
-            </Button>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={handleRefresh} 
-              disabled={isLoading || forceRefresh}
-              className="text-xs"
-            >
-              <RefreshCw className="h-3 w-3 mr-1" />
-              Refresh
-            </Button>
-          </div>
-        </div>
+        <LegislatorDetails 
+          legislatorInfo={legislatorInfo}
+          isLoading={isLoading}
+          error={error}
+          sponsorName={sponsorName}
+        />
       </PopoverContent>
     </Popover>
   );

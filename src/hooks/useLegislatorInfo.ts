@@ -5,22 +5,14 @@ import { fetchLegislatorInfo, fetchMultipleLegislators, LegislatorInfo } from "@
 // Use 'export type' instead of just 'export' for types when isolatedModules is enabled
 export type { LegislatorInfo };
 
-interface UseLegislatorInfoOptions {
-  forceRefresh?: boolean;
-}
-
-export const useLegislatorInfo = (
-  legislatorId?: string, 
-  sponsorName?: string,
-  options: UseLegislatorInfoOptions = {}
-) => {
-  console.log(`useLegislatorInfo hook called with ID: ${legislatorId || 'undefined'}, name: ${sponsorName || 'undefined'}, forceRefresh: ${options.forceRefresh || false}`);
+export const useLegislatorInfo = (legislatorId?: string, sponsorName?: string) => {
+  console.log(`useLegislatorInfo hook called with ID: ${legislatorId || 'undefined'}, name: ${sponsorName || 'undefined'}`);
   
   return useQuery({
-    queryKey: ['legislator', legislatorId, sponsorName, options.forceRefresh],
+    queryKey: ['legislator', legislatorId, sponsorName],
     queryFn: () => {
-      console.log(`useLegislatorInfo queryFn executing for ID: ${legislatorId || 'undefined'}, name: ${sponsorName || 'undefined'}, forceRefresh: ${options.forceRefresh || false}`);
-      return fetchLegislatorInfo(legislatorId, sponsorName, options.forceRefresh);
+      console.log(`useLegislatorInfo queryFn executing for ID: ${legislatorId || 'undefined'}, name: ${sponsorName || 'undefined'}`);
+      return fetchLegislatorInfo(legislatorId, sponsorName);
     },
     enabled: !!(legislatorId || sponsorName),
     retry: 1, // Only retry once to avoid too many requests if API is rate limiting
@@ -34,21 +26,18 @@ export const useLegislatorInfo = (
 };
 
 // Add a new hook for efficiently fetching multiple legislators at once
-export const useBatchLegislatorInfo = (
-  legislatorIds?: string[],
-  options: UseLegislatorInfoOptions = {}
-) => {
+export const useBatchLegislatorInfo = (legislatorIds?: string[]) => {
   return useQuery({
-    queryKey: ['legislators-batch', legislatorIds, options.forceRefresh],
+    queryKey: ['legislators-batch', legislatorIds],
     queryFn: async () => {
       if (!legislatorIds || legislatorIds.length === 0) return [];
       
       // Create a unique set of IDs to avoid duplicates
       const uniqueIds = [...new Set(legislatorIds)];
-      console.log(`useBatchLegislatorInfo fetching ${uniqueIds.length} unique legislator IDs, forceRefresh: ${options.forceRefresh || false}`);
+      console.log(`useBatchLegislatorInfo fetching ${uniqueIds.length} unique legislator IDs`);
       
       // Batch fetch through the service
-      return await fetchMultipleLegislators(uniqueIds, options.forceRefresh);
+      return await fetchMultipleLegislators(uniqueIds);
     },
     enabled: !!(legislatorIds && legislatorIds.length > 0),
     staleTime: 60 * 60 * 1000, // 60 minutes

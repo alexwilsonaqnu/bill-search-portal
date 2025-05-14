@@ -5,7 +5,7 @@ import { User } from "lucide-react";
 import { Bill } from "@/types";
 import { getSponsor, getCoSponsors } from "@/utils/billCardUtils";
 import SponsorHoverCard from "./sponsors/SponsorHoverCard";
-import { preloadLegislatorData, getSponsorName, getLegislatorId } from "@/services/legislator/simple";
+import { preloadLegislatorData, getLegislatorId, getSponsorName } from "@/services/legislator";
 
 interface BillSponsorsProps {
   bill: Bill;
