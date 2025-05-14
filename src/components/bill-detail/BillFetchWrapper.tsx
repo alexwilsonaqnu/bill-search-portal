@@ -16,12 +16,14 @@ const BillFetchWrapper = () => {
   const [isApiDown, setIsApiDown] = useState(false);
   const [billText, setBillText] = useState<string | null>(null);
   const [isLoadingText, setIsLoadingText] = useState(false);
+  const [hasShownApiWarning, setHasShownApiWarning] = useState(false);
   
   // Handle the case where ID is not provided
   useEffect(() => {
     if (!id) {
       navigate("/");
-      toast("Missing bill ID", { 
+      toast({
+        title: "Missing bill ID",
         description: "Bill ID is required to view details"
       });
     }
@@ -90,8 +92,6 @@ const BillFetchWrapper = () => {
           }
         } catch (error) {
           console.error("Error loading bill text:", error);
-          // Don't show a toast here as it could be annoying
-          // The component will handle displaying fallback content
         } finally {
           setIsLoadingText(false);
         }
@@ -114,17 +114,29 @@ const BillFetchWrapper = () => {
           errorMsg.includes("API") ||
           errorMsg.includes("unavailable")) {
         setIsApiDown(true);
+        
+        // Show a toast warning if we haven't shown one yet
+        if (!hasShownApiWarning) {
+          toast({
+            title: "API connection issues",
+            description: "Some bill information may be limited due to API connectivity problems",
+            duration: 5000,
+          });
+          setHasShownApiWarning(true);
+        }
       }
     } else {
       setIsApiDown(false);
     }
-  }, [error]);
+  }, [error, hasShownApiWarning]);
   
   const handleRetry = () => {
     setRetryCount(prev => prev + 1);
     setIsApiDown(false);
     setBillText(null);
-    toast("Retrying", {
+    setHasShownApiWarning(false);
+    toast({
+      title: "Retrying",
       description: "Attempting to reload bill data..."
     });
   };

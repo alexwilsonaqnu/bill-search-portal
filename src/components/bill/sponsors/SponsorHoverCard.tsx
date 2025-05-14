@@ -4,6 +4,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { useLegislatorInfo } from "@/hooks/useLegislatorInfo";
 import LegislatorDetails from "./LegislatorDetails";
 import SponsorTooltip from "./SponsorTooltip";
+import { toast } from "@/components/ui/use-toast";
 
 interface SponsorHoverCardProps {
   sponsorData: any;
@@ -14,6 +15,7 @@ interface SponsorHoverCardProps {
 const SponsorHoverCard = ({ sponsorData, getSponsorName, legislatorId }: SponsorHoverCardProps) => {
   const sponsorName = getSponsorName(sponsorData);
   const [isOpen, setIsOpen] = useState(false);
+  const [hasAttemptedLoad, setHasAttemptedLoad] = useState(false);
   
   // Always log the sponsor data to help with debugging
   useEffect(() => {
@@ -27,7 +29,7 @@ const SponsorHoverCard = ({ sponsorData, getSponsorName, legislatorId }: Sponsor
   // If we don't have a legislator ID or name, use a simpler tooltip
   if (!legislatorId && !sponsorName) {
     console.log('SponsorHoverCard: No ID or name available, using simple tooltip');
-    return <SponsorTooltip sponsorName={sponsorName || "Unknown Sponsor"} />;
+    return <SponsorTooltip sponsorName={"Unknown Sponsor"} />;
   }
   
   // Only fetch data when the popover is opened to reduce API calls
@@ -41,19 +43,29 @@ const SponsorHoverCard = ({ sponsorData, getSponsorName, legislatorId }: Sponsor
     if (isOpen) {
       console.log(`SponsorHoverCard: Open state changed to ${isOpen}, triggering data fetch`);
       console.log(`Fetching legislator info with: id=${legislatorId}, name=${sponsorName}`);
+      setHasAttemptedLoad(true);
     }
   }, [isOpen, legislatorId, sponsorName]);
 
   // Log when legislator info changes
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && hasAttemptedLoad) {
       console.log('SponsorHoverCard: legislatorInfo result:', { 
         legislatorInfo, 
         isLoading, 
         error 
       });
+      
+      // Show a toast if there's an error with additional details
+      if (error) {
+        toast({
+          title: "Error loading legislator info",
+          description: `Could not load details for ${sponsorName}`,
+          variant: "destructive"
+        });
+      }
     }
-  }, [legislatorInfo, isLoading, error, isOpen]);
+  }, [legislatorInfo, isLoading, error, isOpen, hasAttemptedLoad, sponsorName]);
   
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
