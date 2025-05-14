@@ -64,6 +64,7 @@ const SponsorHoverCard = ({ sponsorData, getSponsorName, legislatorId }: Sponsor
     // Clear the cache for this specific legislator
     const cacheKey = legislatorId ? `id:${legislatorId}` : `name:${sponsorName}`;
     clearCache(cacheKey);
+    console.log(`Clearing cache with key: ${cacheKey}`);
     
     setForceRefresh(true);
     refetch();
@@ -74,6 +75,9 @@ const SponsorHoverCard = ({ sponsorData, getSponsorName, legislatorId }: Sponsor
     <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger 
         className="cursor-pointer hover:text-blue-600 transition-colors"
+        onClick={() => {
+          console.log(`Popover opened for: ${sponsorName}`);
+        }}
       >
         {sponsorName || "Unknown Sponsor"}
       </PopoverTrigger>

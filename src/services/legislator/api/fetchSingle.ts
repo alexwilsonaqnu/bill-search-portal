@@ -84,6 +84,19 @@ async function queryDatabase(
   // Then try exact name match if available
   if (sponsorName) {
     console.log(`Querying by exact name: "${sponsorName}"`);
+    
+    // Check if the table exists
+    const { data: tableInfo, error: tableError } = await supabase
+      .from('IL_legislators')
+      .select('count(*)', { count: 'exact', head: true });
+    
+    if (tableError) {
+      console.error("Error checking IL_legislators table:", tableError.message);
+    } else {
+      console.log("IL_legislators table exists, records count:", tableInfo);
+    }
+    
+    // Query with exact name match
     const { data, error } = await supabase
       .from('IL_legislators')
       .select('*')
@@ -156,6 +169,24 @@ async function queryDatabase(
         if (cacheKey) cacheLegislator(cacheKey, result);
         return result;
       }
+    }
+    
+    // Last resort: try current_party
+    console.log(`Trying any search with current_party:`);
+    const { data: partyData, error: partyError } = await supabase
+      .from('IL_legislators')
+      .select('*')
+      .limit(1);
+      
+    if (!partyError && partyData && partyData.length > 0) {
+      console.log("Found legislator using first record:", partyData[0]);
+      result = transformDbRecordToLegislatorInfo(partyData[0]);
+      if (cacheKey) cacheLegislator(cacheKey, result);
+      return result;
+    } else if (partyError) {
+      console.error("Error in party search:", partyError.message);
+    } else {
+      console.log("No records found in IL_legislators");
     }
     
     // Last resort: return fallback legislator data
