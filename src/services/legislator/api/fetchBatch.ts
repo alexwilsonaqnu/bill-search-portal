@@ -54,7 +54,7 @@ async function fetchUncachedLegislators(uncachedIds: string[]): Promise<{id: str
   try {
     console.log("Fetching legislators with IDs:", uncachedIds);
 
-    // Fetch all uncached legislators in one query
+    // IMPORTANT: Use lowercase 'l' in 'IL_legislators' to match the actual table name in Supabase
     const { data, error } = await supabase
       .from('IL_legislators')
       .select('*')

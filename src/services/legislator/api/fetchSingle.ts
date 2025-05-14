@@ -40,7 +40,7 @@ export async function fetchLegislatorInfo(
       return edgeFunctionResult;
     }
 
-    // Fallback to direct Supabase IL_Legislators table query
+    // Fallback to direct Supabase IL_legislators table query
     return await queryDatabaseDirectly(legislatorId, sponsorName, cacheKey, startTime);
   } catch (error) {
     console.error("Error in fetchLegislatorInfo:", error);
@@ -68,6 +68,8 @@ async function tryEdgeFunction(
   cacheKey?: string
 ): Promise<LegislatorInfo | null> {
   try {
+    console.log("Attempting to use edge function to fetch legislator data...");
+    
     const { data: edgeFunctionData, error: edgeFunctionError } = await supabase.functions.invoke('get-legislator', {
       body: { legislatorId, sponsorName },
     });
@@ -97,15 +99,9 @@ async function queryDatabaseDirectly(
   cacheKey?: string,
   startTime?: number
 ): Promise<LegislatorInfo | null> {
-  // Use the exact table name as it appears in the database
-  console.log("Checking database tables available...");
-  const { data: tables } = await supabase.from('pg_catalog.pg_tables')
-    .select('tablename')
-    .eq('schemaname', 'public');
+  console.log("Falling back to direct database query...");
   
-  console.log("Available tables:", tables);
-
-  // Use the correct table name case as defined in the database
+  // IMPORTANT: Use lowercase 'l' in 'IL_legislators' to match the actual table name in Supabase
   let query = supabase.from('IL_legislators').select('*');
   
   if (legislatorId) {
@@ -120,7 +116,7 @@ async function queryDatabaseDirectly(
   
   let { data, error } = await query.limit(1);
   
-  console.log('Supabase query results:', { data, error });
+  console.log('Supabase direct query results:', { data, error });
   
   // If exact match fails and we're searching by name, try a more flexible search
   if ((!data || data.length === 0 || error) && sponsorName && !legislatorId) {
@@ -183,7 +179,7 @@ async function queryDatabaseDirectly(
 async function tryFlexibleNameSearch(sponsorName: string) {
   console.log(`No exact match for name "${sponsorName}", trying flexible search with ilike`);
   
-  // Use the correct table name case as defined in the database
+  // IMPORTANT: Use lowercase 'l' in 'IL_legislators' to match the actual table name in Supabase
   const { data: flexData, error: flexError } = await supabase
     .from('IL_legislators')
     .select('*')

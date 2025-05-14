@@ -8,6 +8,26 @@ export function transformDbRecordToLegislatorInfo(record: any): LegislatorInfo {
   // Debug the raw data first
   console.log('Transforming legislator record:', record);
   
+  // Check for null or empty record
+  if (!record || Object.keys(record).length === 0) {
+    console.warn('Empty or null record provided to transformDbRecordToLegislatorInfo');
+    return {
+      name: {
+        first: '',
+        middle: '',
+        last: '',
+        suffix: '',
+        full: 'Unknown Legislator'
+      },
+      party: '',
+      email: [],
+      phone: [],
+      district: '',
+      role: 'Legislator',
+      state: 'IL'
+    };
+  }
+  
   // Build name object
   const nameParts = {
     first: record.given_name || '',
@@ -31,7 +51,7 @@ export function transformDbRecordToLegislatorInfo(record: any): LegislatorInfo {
     phoneArray.push(record.district_voice);
   }
   
-  const result = {
+  const result: LegislatorInfo = {
     party: record.current_party || '',
     email: emailArray,
     phone: phoneArray,

@@ -35,3 +35,8 @@ export async function setPersistentCachedLegislator(cacheKey: string, data: any)
     timestamp: Date.now()
   });
 }
+
+// Initialize the cache when this module is imported
+initializeCache().catch(error => {
+  console.error("Failed to initialize persistent cache:", error);
+});
