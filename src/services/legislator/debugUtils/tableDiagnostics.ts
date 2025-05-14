@@ -45,10 +45,13 @@ export async function checkLegislatorsTable() {
     // Get table columns - using a safer approach
     let columns: any[] = [];
     try {
-      // Using any type to resolve the type error
-      const tableParams: any = { table_name: 'IL_legislators' };
+      // Define parameter object with explicit any type to resolve the type error
+      const params: Record<string, any> = { 
+        table_name: 'IL_legislators' 
+      };
+      
       const { data: columnData, error: columnsError } = await supabase
-        .rpc('get_table_columns', tableParams);
+        .rpc('get_table_columns', params);
         
       if (!columnsError && columnData) {
         columns = columnData as any[];
@@ -61,7 +64,7 @@ export async function checkLegislatorsTable() {
     
     // Parse count properly with thorough null checking
     let recordCount = 0;
-    if (tables && typeof tables === 'object') {
+    if (tables !== null && tables !== undefined) {
       const count = tables.count;
       if (count !== null && count !== undefined) {
         recordCount = Number(count);
