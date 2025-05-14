@@ -15,6 +15,8 @@ function truncateText(text: string, maxTokens: number, isImportant = false): str
   // A very rough estimation: 1 token ≈ 4 characters for English text
   const estimatedMaxChars = maxTokens * 4;
   
+  if (!text) return "[Content missing]";
+  
   if (text.length <= estimatedMaxChars) {
     return text;
   }
@@ -29,60 +31,94 @@ function truncateText(text: string, maxTokens: number, isImportant = false): str
 
 // Improved content extraction - focus on getting the most relevant parts
 function extractSummaryPoints(text: string): string {
-  // Extract first 15% of text for high-level details (reduced from 20%)
-  const firstPartLength = Math.min(Math.floor(text.length * 0.15), 10000);
-  const firstPart = text.substring(0, firstPartLength);
+  if (!text) return "[No content available for extraction]";
   
-  // Get bill sections and important legal language
-  const sections: string[] = [];
-  const sectionMatches = text.matchAll(/Section\s+\d+[\.\s]+([^\n]+)/gi);
-  for (const match of sectionMatches) {
-    if (sections.length < 8 && match[0].length < 200) { // Limit number and size of sections
-      sections.push(match[0].trim());
+  try {
+    // Extract first 15% of text for high-level details (reduced from 20%)
+    const firstPartLength = Math.min(Math.floor(text.length * 0.15), 10000);
+    const firstPart = text.substring(0, firstPartLength);
+    
+    // Get bill sections and important legal language
+    const sections: string[] = [];
+    const sectionMatches = text.matchAll(/Section\s+\d+[\.\s]+([^\n]+)/gi);
+    for (const match of sectionMatches) {
+      if (sections.length < 8 && match[0].length < 200) { // Limit number and size of sections
+        sections.push(match[0].trim());
+      }
     }
-  }
-  
-  // Extract key changes focusing on legislative language
-  const changeKeywords = [
-    "amend", "add", "change", "delete", "revise", "modify",
-    "repeal", "insert", "remove", "substitute", "replace"
-  ];
-  
-  const changeRegexPattern = changeKeywords.map(word => `\\b${word}\\w*\\b`).join('|');
-  const changeRegex = new RegExp(`(.{0,80}(${changeRegexPattern}).{0,80})`, 'gi');
-  
-  const changes: string[] = [];
-  const changeMatches = text.matchAll(changeRegex);
-  for (const match of changeMatches) {
-    if (changes.length < 12 && match[0].length < 200) { // Limit number and size of changes
-      changes.push(match[0].trim().replace(/\s+/g, ' '));
+    
+    // Extract key changes focusing on legislative language
+    const changeKeywords = [
+      "amend", "add", "change", "delete", "revise", "modify",
+      "repeal", "insert", "remove", "substitute", "replace"
+    ];
+    
+    const changeRegexPattern = changeKeywords.map(word => `\\b${word}\\w*\\b`).join('|');
+    const changeRegex = new RegExp(`(.{0,80}(${changeRegexPattern}).{0,80})`, 'gi');
+    
+    const changes: string[] = [];
+    const changeMatches = text.matchAll(changeRegex);
+    for (const match of changeMatches) {
+      if (changes.length < 12 && match[0].length < 200) { // Limit number and size of changes
+        changes.push(match[0].trim().replace(/\s+/g, ' '));
+      }
     }
-  }
-  
-  // Get key definitions which are often important in bills
-  const definitions: string[] = [];
-  const definitionMatches = text.matchAll(/["']([^"']{10,100})["']\s+means\s+([^\.]{10,100})\./gi);
-  for (const match of definitionMatches) {
-    if (definitions.length < 5) {
-      definitions.push(match[0].trim());
+    
+    // Get key definitions which are often important in bills
+    const definitions: string[] = [];
+    const definitionMatches = text.matchAll(/["']([^"']{10,100})["']\s+means\s+([^\.]{10,100})\./gi);
+    for (const match of definitionMatches) {
+      if (definitions.length < 5) {
+        definitions.push(match[0].trim());
+      }
     }
+    
+    return [
+      "BILL OVERVIEW:",
+      firstPart.substring(0, 2000), // Limit the overview size
+      
+      sections.length > 0 ? "\nKEY SECTIONS:" : "",
+      sections.join("\n"),
+      
+      changes.length > 0 ? "\nKEY CHANGES:" : "",
+      changes.join("\n"),
+      
+      definitions.length > 0 ? "\nKEY DEFINITIONS:" : "",
+      definitions.join("\n"),
+      
+      "\n[Note: This is an automatically extracted summary. Please refer to the full bill text for complete details.]"
+    ].filter(section => section.length > 0).join("\n\n");
+  } catch (error) {
+    console.error("Error extracting summary points:", error);
+    return text.substring(0, 5000) + "\n\n[Error occurred during extraction. Using truncated text instead.]";
   }
-  
-  return [
-    "BILL OVERVIEW:",
-    firstPart.substring(0, 2000), // Limit the overview size
-    
-    sections.length > 0 ? "\nKEY SECTIONS:" : "",
-    sections.join("\n"),
-    
-    changes.length > 0 ? "\nKEY CHANGES:" : "",
-    changes.join("\n"),
-    
-    definitions.length > 0 ? "\nKEY DEFINITIONS:" : "",
-    definitions.join("\n"),
-    
-    "\n[Note: This is an automatically extracted summary. Please refer to the full bill text for complete details.]"
-  ].filter(section => section.length > 0).join("\n\n");
+}
+
+// New validation function to check if content is valid
+function validateBillContent(content: string | null | undefined): boolean {
+  if (!content) return false;
+  if (typeof content !== 'string') return false;
+  if (content.trim().length < 10) return false; // At least 10 chars of real content
+  return true;
+}
+
+// New function to provide a fallback summary when OpenAI is unavailable
+function generateFallbackSummary(originalTitle: string, amendedTitle: string): string {
+  return `
+# Comparison between "${originalTitle}" and "${amendedTitle}"
+
+Due to technical limitations, an AI-generated summary could not be created at this time.
+
+## Potential differences to look for manually:
+
+1. **New sections**: Look for completely new sections in the amended version
+2. **Removed sections**: Check for sections present in the original but missing in the amended version 
+3. **Changed numbers**: Pay attention to monetary amounts, dates, and other numerical changes
+4. **Definition changes**: Watch for changes in how terms are defined
+5. **Requirement modifications**: Note any changes in requirements, mandates, or prohibitions
+
+Please use the visual comparison tools to examine specific differences between the versions.
+`;
 }
 
 serve(async (req) => {
@@ -103,20 +139,28 @@ serve(async (req) => {
       originalTitle: requestData.originalTitle,
       amendedTitle: requestData.amendedTitle,
       // Don't log the full text contents to avoid cluttering logs
-      originalTextLength: requestData.originalText?.length,
-      amendedTextLength: requestData.amendedText?.length
+      originalTextLength: requestData.originalText?.length || 0,
+      amendedTextLength: requestData.amendedText?.length || 0
     }));
 
     const { originalTitle, amendedTitle, originalText, amendedText, billId, billTitle } = requestData;
 
-    // Check if we have the necessary data
-    if (!originalText || !amendedText) {
-      console.error("Missing required data:", {
-        hasOriginalText: !!originalText,
-        hasAmendedText: !!amendedText
+    // Enhanced validation with detailed logging
+    if (!validateBillContent(originalText) || !validateBillContent(amendedText)) {
+      console.error("Content validation failed:", {
+        originalTextValid: validateBillContent(originalText),
+        originalTextLength: originalText?.length || 0,
+        originalTextSample: originalText?.substring(0, 100),
+        amendedTextValid: validateBillContent(amendedText),
+        amendedTextLength: amendedText?.length || 0,
+        amendedTextSample: amendedText?.substring(0, 100)
       });
+      
       return new Response(
-        JSON.stringify({ error: 'Missing bill text content for comparison' }),
+        JSON.stringify({ 
+          error: 'Missing or invalid bill text content for comparison',
+          userMessage: 'The bill text appears to be empty or invalid. Please try comparing different versions.'
+        }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
       );
     }
@@ -127,17 +171,10 @@ serve(async (req) => {
     // Check for OpenAI API key
     if (!OPENAI_API_KEY) {
       console.warn("No OpenAI API key found in environment variables, returning mock summary");
-      const mockSummary = `
-This is a simulated summary of changes between "${originalTitle}" and "${amendedTitle}" for bill ${billId}.
-
-Key changes:
-1. Several definitions have been modified in Section 3
-2. Requirements for reporting in Section 5 have been expanded
-3. Funding allocations in Section 8 have increased by 15%
-4. A new Section 12 has been added regarding implementation timeline`;
+      const fallbackSummary = generateFallbackSummary(originalTitle, amendedTitle);
 
       return new Response(
-        JSON.stringify({ summary: mockSummary }),
+        JSON.stringify({ summary: fallbackSummary }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -180,7 +217,7 @@ Key changes:
       processedAmendedText = truncateText(processedAmendedText, halfMaxTokens);
     }
 
-    // Call OpenAI API to generate a summary of the differences
+    // Call OpenAI API to generate a summary of the differences with enhanced error handling
     try {
       console.log("Calling OpenAI API for summarization");
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -221,6 +258,21 @@ Please provide:
         }),
       });
 
+      // Additional status code check
+      if (!response.ok) {
+        console.error(`OpenAI API responded with status: ${response.status}`);
+        const errorText = await response.text();
+        console.error(`OpenAI API error response: ${errorText}`);
+        
+        if (response.status === 401) {
+          throw new Error("OpenAI API key authentication failed. Please check the API key.");
+        } else if (response.status === 429) {
+          throw new Error("OpenAI API rate limit exceeded. Please try again later.");
+        } else {
+          throw new Error(`OpenAI API error: ${response.status} ${response.statusText}`);
+        }
+      }
+
       const data = await response.json();
       
       if (data.error) {
@@ -237,7 +289,27 @@ Please provide:
       );
     } catch (error) {
       console.error("Error calling OpenAI API:", error);
-      throw new Error(`Error calling OpenAI API: ${error.message}`);
+      
+      // Generate a fallback summary when OpenAI API fails
+      const fallbackSummary = generateFallbackSummary(originalTitle, amendedTitle);
+      
+      // Determine if it's an authentication issue
+      const isAuthError = error.message && (
+        error.message.includes("authentication") || 
+        error.message.includes("API key") || 
+        error.message.includes("401")
+      );
+      
+      // Return a response that includes the fallback summary and error details
+      return new Response(
+        JSON.stringify({ 
+          summary: fallbackSummary,
+          error: error.message || String(error),
+          isAuthError: isAuthError,
+          fallbackProvided: true
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+      );
     }
   } catch (error) {
     console.error("Error in summarize-bill-changes function:", error);
@@ -245,7 +317,7 @@ Please provide:
     return new Response(
       JSON.stringify({ 
         error: error.message || String(error),
-        userMessage: "Unable to generate summary due to the size of the bill. We've improved our processing to handle large bills better - please try again."
+        userMessage: "Unable to generate summary. We've improved our error handling - please check if both bill versions have content and try again."
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
     );
