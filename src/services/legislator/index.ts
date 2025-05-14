@@ -8,4 +8,5 @@ export {
 } from './api';
 export { preloadLegislatorData } from './preloader';
 export { getLegislatorId, getSponsorName } from './utils';
+export { debugUtils } from './debugUtils';
 export type { LegislatorInfo, LegislatorName } from './types';

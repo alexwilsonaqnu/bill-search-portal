@@ -6,7 +6,7 @@ import LegislatorDetails from "./LegislatorDetails";
 import SponsorTooltip from "./SponsorTooltip";
 import { toast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
-import { RefreshCw } from "lucide-react";
+import { RefreshCw, Info } from "lucide-react";
 import { clearCache } from "@/services/legislator";
 
 interface SponsorHoverCardProps {
@@ -19,6 +19,7 @@ const SponsorHoverCard = ({ sponsorData, getSponsorName, legislatorId }: Sponsor
   const sponsorName = getSponsorName(sponsorData);
   const [isOpen, setIsOpen] = useState(false);
   const [forceRefresh, setForceRefresh] = useState(false);
+  const [debugInfo, setDebugInfo] = useState<any>(null);
   
   // Always log the sponsor data to help with debugging
   useEffect(() => {
@@ -56,6 +57,11 @@ const SponsorHoverCard = ({ sponsorData, getSponsorName, legislatorId }: Sponsor
         toast.error(`Unable to load information for ${sponsorName}`);
       } else if (!isLoading) {
         console.log('Legislator info loaded:', legislatorInfo);
+        // Store info for debugging
+        setDebugInfo({
+          receivedAt: new Date().toISOString(),
+          data: legislatorInfo
+        });
       }
     }
   }, [legislatorInfo, isLoading, error, isOpen, sponsorName]);
@@ -66,9 +72,27 @@ const SponsorHoverCard = ({ sponsorData, getSponsorName, legislatorId }: Sponsor
     clearCache(cacheKey);
     console.log(`Clearing cache with key: ${cacheKey}`);
     
+    // Also try clearing the entire cache as a more aggressive approach
+    console.log("Also clearing entire legislator cache for testing");
+    clearCache();
+    
     setForceRefresh(true);
     refetch();
     toast.info(`Refreshing information for ${sponsorName}...`);
+  };
+  
+  const handleDebugInfo = () => {
+    console.log("Debug info:", {
+      sponsorName,
+      legislatorId,
+      cachedInfo: debugInfo,
+      forceRefresh,
+      isLoading
+    });
+    
+    toast.info(`Debug info logged to console`, { 
+      description: `Check browser console for detailed information about ${sponsorName}` 
+    });
   };
   
   return (
@@ -89,7 +113,16 @@ const SponsorHoverCard = ({ sponsorData, getSponsorName, legislatorId }: Sponsor
             error={error}
             sponsorName={sponsorName}
           />
-          <div className="flex justify-end">
+          <div className="flex justify-between">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleDebugInfo}
+              className="text-xs"
+            >
+              <Info className="h-3 w-3 mr-1" />
+              Debug
+            </Button>
             <Button 
               variant="outline" 
               size="sm" 

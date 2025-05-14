@@ -36,6 +36,29 @@ export async function fetchLegislatorInfo(
     
     console.log(`Fetching legislator for ID: ${legislatorId || 'N/A'}, Name: ${sponsorName || 'N/A'}, Force refresh: ${forceRefresh}`);
     
+    // First let's check if the table exists and if it has any data
+    console.log("Checking IL_legislators table status...");
+    const { count, error: countError } = await supabase
+      .from('IL_legislators')
+      .select('*', { count: 'exact', head: true });
+      
+    if (countError) {
+      console.error("Error checking table:", countError.message);
+    } else {
+      console.log(`IL_legislators table contains ${count} records`);
+      
+      // If table is empty, return fallback right away
+      if (count === 0) {
+        console.warn("IL_legislators table is empty, using fallback");
+        if (sponsorName) {
+          const fallback = createBasicLegislatorFromName(sponsorName);
+          if (cacheKey) cacheLegislator(cacheKey, fallback);
+          return fallback;
+        }
+        return null;
+      }
+    }
+    
     // Query the database directly
     return await queryDatabase(legislatorId, sponsorName, cacheKey);
   } catch (error) {
@@ -55,7 +78,20 @@ async function queryDatabase(
   sponsorName?: string,
   cacheKey?: string
 ): Promise<LegislatorInfo | null> {
-  console.log("Querying IL_legislators table with params:", { legislatorId, sponsorName });
+  console.log("Starting database query with params:", { legislatorId, sponsorName });
+  
+  // First, let's dump a few records to see what's in the database
+  console.log("Fetching sample records to inspect data format:");
+  const { data: sampleData, error: sampleError } = await supabase
+    .from('IL_legislators')
+    .select('*')
+    .limit(3);
+    
+  if (sampleError) {
+    console.error("Error fetching sample data:", sampleError.message);
+  } else {
+    console.log("Sample records:", sampleData);
+  }
   
   // First attempt: Try with provided identifiers
   let result = null;
@@ -85,33 +121,38 @@ async function queryDatabase(
   if (sponsorName) {
     console.log(`Querying by exact name: "${sponsorName}"`);
     
-    // Check if the table exists
-    const { data: tableInfo, error: tableError } = await supabase
-      .from('IL_legislators')
-      .select('count(*)', { count: 'exact', head: true });
+    // Check the case sensitivity of the database
+    console.log("Testing case sensitivity with ILIKE vs EQ for name field");
     
-    if (tableError) {
-      console.error("Error checking IL_legislators table:", tableError.message);
-    } else {
-      console.log("IL_legislators table exists, records count:", tableInfo);
-    }
-    
-    // Query with exact name match
-    const { data, error } = await supabase
+    // First try case-sensitive match
+    const { data: exactData, error: exactError } = await supabase
       .from('IL_legislators')
       .select('*')
       .eq('name', sponsorName)
       .limit(1);
       
-    if (!error && data && data.length > 0) {
-      console.log("Found legislator by exact name:", data[0].name);
-      result = transformDbRecordToLegislatorInfo(data[0]);
+    if (!exactError && exactData && exactData.length > 0) {
+      console.log("Found legislator by exact name (case-sensitive):", exactData[0].name);
+      result = transformDbRecordToLegislatorInfo(exactData[0]);
       if (cacheKey) cacheLegislator(cacheKey, result);
       return result;
-    } else if (error) {
-      console.warn(`Error querying by exact name: ${error.message}`);
     } else {
-      console.log(`No exact name match for: "${sponsorName}"`);
+      console.log("No exact case-sensitive match found.");
+    }
+    
+    // Try with lowercase comparison
+    console.log("Trying case-insensitive search...");
+    const { data: lowerData, error: lowerError } = await supabase
+      .from('IL_legislators')
+      .select('*')
+      .ilike('name', sponsorName)
+      .limit(1);
+      
+    if (!lowerError && lowerData && lowerData.length > 0) {
+      console.log("Found legislator by case-insensitive name:", lowerData[0].name);
+      result = transformDbRecordToLegislatorInfo(lowerData[0]);
+      if (cacheKey) cacheLegislator(cacheKey, result);
+      return result;
     }
     
     // If exact match fails, try with the given_name + family_name fields
@@ -121,6 +162,8 @@ async function queryDatabase(
     if (nameParts.length > 1) {
       const firstName = nameParts[0];
       const lastName = nameParts[nameParts.length - 1];
+      
+      console.log(`Searching with firstName="${firstName}", lastName="${lastName}"`);
       
       const { data: namePartsData, error: namePartsError } = await supabase
         .from('IL_legislators')
@@ -134,10 +177,12 @@ async function queryDatabase(
         result = transformDbRecordToLegislatorInfo(namePartsData[0]);
         if (cacheKey) cacheLegislator(cacheKey, result);
         return result;
+      } else {
+        console.log("No match found with given_name and family_name");
       }
     }
     
-    // If name parts search fails, try ILIKE on name
+    // Try flexible name search with wildcards
     console.log(`Trying flexible name search for: "${sponsorName}"`);
     const { data: flexData, error: flexError } = await supabase
       .from('IL_legislators')
@@ -150,9 +195,11 @@ async function queryDatabase(
       result = transformDbRecordToLegislatorInfo(flexData[0]);
       if (cacheKey) cacheLegislator(cacheKey, result);
       return result;
+    } else {
+      console.log("No flexible name match found");
     }
     
-    // Try even more flexible search - match on just family_name
+    // Try matching only on family name as last resort
     if (nameParts.length > 0) {
       const lastName = nameParts[nameParts.length - 1];
       console.log(`Trying family_name search for: "${lastName}"`);
@@ -168,25 +215,25 @@ async function queryDatabase(
         result = transformDbRecordToLegislatorInfo(lastNameData[0]);
         if (cacheKey) cacheLegislator(cacheKey, result);
         return result;
+      } else {
+        console.log("No match found with family_name");
       }
     }
     
-    // Last resort: try current_party
-    console.log(`Trying any search with current_party:`);
-    const { data: partyData, error: partyError } = await supabase
+    // Final attempt: get the first record from the table to see if there's any data
+    console.log(`Last resort: querying any record from the table`);
+    const { data: anyData, error: anyError } = await supabase
       .from('IL_legislators')
       .select('*')
       .limit(1);
       
-    if (!partyError && partyData && partyData.length > 0) {
-      console.log("Found legislator using first record:", partyData[0]);
-      result = transformDbRecordToLegislatorInfo(partyData[0]);
-      if (cacheKey) cacheLegislator(cacheKey, result);
-      return result;
-    } else if (partyError) {
-      console.error("Error in party search:", partyError.message);
+    if (!anyError && anyData && anyData.length > 0) {
+      console.log("Found a legislator record:", anyData[0]);
+      // Don't return this as a match, but it confirms data exists
+    } else if (anyError) {
+      console.error("Error in last resort query:", anyError.message);
     } else {
-      console.log("No records found in IL_legislators");
+      console.log("No records found in IL_legislators at all");
     }
     
     // Last resort: return fallback legislator data
