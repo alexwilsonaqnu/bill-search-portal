@@ -39,3 +39,7 @@ export function setCachedValue(key: string, value: any): void {
 export function cacheHasKey(key: string): boolean {
   return key in memoryCache;
 }
+
+// Export specific functions with the names expected by cache.ts
+export const getPersistentCachedLegislator = getCachedValue;
+export const setPersistentCachedLegislator = setCachedValue;
