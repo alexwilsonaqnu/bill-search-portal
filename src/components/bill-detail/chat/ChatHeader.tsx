@@ -1,24 +1,15 @@
 
-import { MessageSquare, X } from "lucide-react";
-
-interface ChatHeaderProps {
-  onClose: () => void;
-}
+import { Button } from "@/components/ui/button";
+import { X } from "lucide-react";
+import { ChatHeaderProps } from "./types";
 
 const ChatHeader = ({ onClose }: ChatHeaderProps) => {
   return (
-    <div className="border-b p-4 flex items-center justify-between bg-gray-50">
-      <div className="flex items-center gap-2">
-        <MessageSquare className="h-5 w-5 text-blue-600" />
-        <h3 className="font-semibold">Chat with the Bill</h3>
-      </div>
-      <button 
-        onClick={onClose} 
-        className="text-gray-500 hover:text-gray-700 rounded-full p-1 hover:bg-gray-100"
-        aria-label="Close chat"
-      >
+    <div className="flex justify-between items-center p-4 border-b">
+      <h2 className="font-semibold text-lg">Chat with Bill Assistant</h2>
+      <Button variant="ghost" size="icon" onClick={onClose}>
         <X className="h-4 w-4" />
-      </button>
+      </Button>
     </div>
   );
 };

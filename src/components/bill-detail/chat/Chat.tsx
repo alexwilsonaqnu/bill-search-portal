@@ -1,11 +1,11 @@
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import ChatMessages from "./ChatMessages";
 import ChatInput from "./ChatInput";
 import ChatHeader from "./ChatHeader";
-import { Message } from "./types";
+import { Message, ChatProps } from "./types";
 
-export default function Chat({ content, billText }: { content?: string | null; billText?: string | null }) {
+export default function Chat({ billText, onClose }: ChatProps) {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",
@@ -16,11 +16,20 @@ export default function Chat({ content, billText }: { content?: string | null; b
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  useEffect(() => {
+    // Scroll to bottom whenever messages change
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
   const handleSendMessage = async () => {
     if (!inputMessage.trim()) return;
     
     // Add user message to the chat
     setMessages((prev) => [...prev, { role: "user", content: inputMessage }]);
+    
+    // Clear the input after sending
+    const sentMessage = inputMessage;
+    setInputMessage("");
     
     setIsLoading(true);
     try {
@@ -31,7 +40,7 @@ export default function Chat({ content, billText }: { content?: string | null; b
           ...prev,
           {
             role: "assistant",
-            content: `I'm analyzing your question about "${inputMessage.substring(0, 30)}...". This is a simulated response as the AI chat functionality is not fully implemented yet.`
+            content: `I'm analyzing your question about "${sentMessage.substring(0, 30)}${sentMessage.length > 30 ? '...' : ''}". This is a simulated response as the AI chat functionality is not fully implemented yet.`
           }
         ]);
         setIsLoading(false);
@@ -49,15 +58,9 @@ export default function Chat({ content, billText }: { content?: string | null; b
     }
   };
 
-  // Handler for closing the chat, this will be passed to ChatHeader
-  const handleClose = () => {
-    // This is a placeholder. In the real implementation, this would be passed from parent
-    console.log("Chat close requested");
-  };
-
   return (
     <div className="flex flex-col h-full">
-      <ChatHeader onClose={handleClose} />
+      <ChatHeader onClose={onClose || (() => console.log("Close not implemented"))} />
       <ChatMessages 
         messages={messages} 
         isLoading={isLoading} 

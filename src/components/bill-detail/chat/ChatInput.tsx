@@ -1,14 +1,9 @@
 
-import { Send } from "lucide-react";
+import { FormEvent } from "react";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-
-interface ChatInputProps {
-  inputMessage: string;
-  setInputMessage: (message: string) => void;
-  handleSendMessage: () => void;
-  isLoading: boolean;
-}
+import { Input } from "@/components/ui/input";
+import { Send } from "lucide-react";
+import { ChatInputProps } from "./types";
 
 const ChatInput = ({ 
   inputMessage, 
@@ -16,32 +11,28 @@ const ChatInput = ({
   handleSendMessage, 
   isLoading 
 }: ChatInputProps) => {
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSendMessage();
-    }
+  const onSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    handleSendMessage();
   };
 
   return (
-    <div className="flex space-x-2">
-      <Textarea
+    <form onSubmit={onSubmit} className="flex gap-2">
+      <Input
+        placeholder="Ask a question about this bill..."
         value={inputMessage}
         onChange={(e) => setInputMessage(e.target.value)}
-        onKeyDown={handleKeyDown}
-        placeholder="Ask about this bill..."
-        className="resize-none min-h-[60px]"
         disabled={isLoading}
+        className="flex-1"
       />
       <Button 
-        onClick={handleSendMessage}
-        disabled={isLoading || !inputMessage.trim()}
+        type="submit" 
+        disabled={isLoading || !inputMessage.trim()} 
         size="icon"
-        className="h-[60px] bg-brand-primary hover:bg-brand-primary/90"
       >
-        <Send className="h-5 w-5" />
+        <Send className="h-4 w-4" />
       </Button>
-    </div>
+    </form>
   );
 };
 
