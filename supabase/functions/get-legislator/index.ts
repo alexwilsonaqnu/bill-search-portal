@@ -1,55 +1,40 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { handleRequest } from "./handlers.ts";
 import { corsHeaders } from "./utils.ts";
-import { initializeCache } from "./persistentCache.ts";
+import { handleRequest } from "./handlers.ts";
+import "./persistentCache.ts"; // This initializes the persistent cache
 
-// Initialize persistent cache on startup
 console.log("Starting get-legislator function");
-await initializeCache();
-console.log("Cache initialized");
 
-// Handle CORS preflight requests
-const handleCors = (req: Request) => {
-  if (req.method === "OPTIONS") {
-    console.log("Handling CORS preflight request");
-    return new Response(null, { headers: corsHeaders, status: 204 });
-  }
-  return null;
-};
-
-// Main function to serve requests
 serve(async (req) => {
   console.log(`[${new Date().toISOString()}] Received request: ${req.method} ${req.url}`);
-  
-  // Handle CORS
-  const corsResponse = handleCors(req);
-  if (corsResponse) return corsResponse;
+
+  // Handle CORS preflight requests
+  if (req.method === "OPTIONS") {
+    console.log("Handling CORS preflight request");
+    return new Response(null, {
+      status: 204,
+      headers: corsHeaders,
+    });
+  }
 
   try {
-    // Add timeout to prevent hanging requests
-    const timeoutPromise = new Promise<Response>((_, reject) => {
-      setTimeout(() => {
-        reject(new Error("Request timeout after 8 seconds"));
-      }, 8000);
-    });
-
-    // Race the actual request against the timeout
-    return await Promise.race([
-      handleRequest(req),
-      timeoutPromise
-    ]);
+    // Handle the request
+    return await handleRequest(req);
   } catch (error) {
-    console.error("Error processing request:", error);
+    console.error("Unhandled error in get-legislator function:", error);
     return new Response(
-      JSON.stringify({ 
-        error: "Internal server error", 
-        message: error.message || "Unknown error",
-        success: false
+      JSON.stringify({
+        error: "Internal server error",
+        message: error.message,
+        stack: Deno.env.get("ENVIRONMENT") === "development" ? error.stack : undefined,
       }),
-      { 
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 500 
+      {
+        status: 500,
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json",
+        },
       }
     );
   }

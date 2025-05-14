@@ -52,6 +52,8 @@ export async function fetchMultipleLegislators(legislatorIds: string[]): Promise
 
 async function fetchUncachedLegislators(uncachedIds: string[]): Promise<{id: string, data: LegislatorInfo}[]> {
   try {
+    console.log("Fetching legislators with IDs:", uncachedIds);
+
     // Fetch all uncached legislators in one query
     const { data, error } = await supabase
       .from('IL_legislators')

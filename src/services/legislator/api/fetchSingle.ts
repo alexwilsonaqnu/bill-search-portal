@@ -97,7 +97,15 @@ async function queryDatabaseDirectly(
   cacheKey?: string,
   startTime?: number
 ): Promise<LegislatorInfo | null> {
-  // Use the correct table name case as defined in the database: 'IL_legislators'
+  // Use the exact table name as it appears in the database
+  console.log("Checking database tables available...");
+  const { data: tables } = await supabase.from('pg_catalog.pg_tables')
+    .select('tablename')
+    .eq('schemaname', 'public');
+  
+  console.log("Available tables:", tables);
+
+  // Use the correct table name case as defined in the database
   let query = supabase.from('IL_legislators').select('*');
   
   if (legislatorId) {
@@ -175,7 +183,7 @@ async function queryDatabaseDirectly(
 async function tryFlexibleNameSearch(sponsorName: string) {
   console.log(`No exact match for name "${sponsorName}", trying flexible search with ilike`);
   
-  // Use the correct table name case as defined in the database: 'IL_legislators'
+  // Use the correct table name case as defined in the database
   const { data: flexData, error: flexError } = await supabase
     .from('IL_legislators')
     .select('*')

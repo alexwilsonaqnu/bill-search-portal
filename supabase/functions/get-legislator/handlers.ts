@@ -6,7 +6,16 @@ import { createEnhancedLegislatorFromName } from "./fallbackData.ts";
 // Main request handler
 export async function handleRequest(req: Request) {
   // Parse the request body
-  const { legislatorId, sponsorName } = await req.json();
+  let body;
+  try {
+    body = await req.json();
+    console.log("Parsed request body:", body);
+  } catch (error) {
+    console.error("Error parsing request body:", error);
+    return createResponse({ error: "Invalid JSON in request body" }, 400);
+  }
+  
+  const { legislatorId, sponsorName } = body;
   
   if (!legislatorId && !sponsorName) {
     console.log("Error: Missing required parameters - both legislatorId and sponsorName are empty");
