@@ -12,11 +12,17 @@ export async function checkLegislatorsTable() {
     // Check if the table exists
     const { data: tables, error: tablesError } = await supabase
       .from('IL_legislators')
-      .select('count(*)', { count: 'exact', head: true });
+      .select('count(*)') // Changed from 'count(*)'
+      .limit(1)
+      .single();
       
     if (tablesError) {
       console.error("Error checking table existence:", tablesError.message);
-      toast.error("Database error: Unable to access legislators table");
+      toast({
+        title: "Database error",
+        description: "Unable to access legislators table",
+        variant: "destructive"
+      });
       return { success: false, error: tablesError.message };
     }
     
@@ -28,22 +34,38 @@ export async function checkLegislatorsTable() {
       
     if (recordsError) {
       console.error("Error fetching sample records:", recordsError.message);
-      toast.error("Database error: Could not fetch legislator records");
+      toast({
+        title: "Database error",
+        description: "Could not fetch legislator records",
+        variant: "destructive"
+      });
       return { success: false, error: recordsError.message };
     }
     
-    // Get table columns
-    const { data: columns, error: columnsError } = await supabase
-      .rpc('get_table_columns', { table_name: 'IL_legislators' });
-      
-    if (columnsError) {
-      console.log("Could not fetch schema details:", columnsError.message);
+    // Get table columns - using a safer approach
+    let columns = [];
+    try {
+      const { data: columnData, error: columnsError } = await supabase
+        .rpc('get_table_columns', { table_name: 'IL_legislators' });
+        
+      if (!columnsError && columnData) {
+        columns = columnData;
+      } else {
+        console.log("Could not fetch schema details:", columnsError?.message);
+      }
+    } catch (columnFetchError) {
+      console.log("Error fetching columns:", columnFetchError);
     }
+    
+    // Parse count properly - tables might contain different structures based on the query
+    const recordCount = typeof tables === 'object' && tables && 'count' in tables ? 
+      Number(tables.count) : 
+      (records ? records.length : 0);
     
     // Prepare diagnostic info
     const diagnosticInfo = {
       success: true,
-      count: tables?.count || 0,
+      count: recordCount,
       hasRecords: records && records.length > 0,
       sampleRecords: records,
       columns: columns || [],
@@ -53,15 +75,27 @@ export async function checkLegislatorsTable() {
     console.log("IL_legislators table diagnostic results:", diagnosticInfo);
     
     if (diagnosticInfo.count === 0) {
-      toast.warning("The legislators table exists but contains no data");
+      toast({
+        title: "Warning",
+        description: "The legislators table exists but contains no data",
+        variant: "warning"
+      });
     } else {
-      toast.success(`Found ${diagnosticInfo.count} legislators in database`);
+      toast({
+        title: "Success",
+        description: `Found ${diagnosticInfo.count} legislators in database`,
+        variant: "default"
+      });
     }
     
     return diagnosticInfo;
   } catch (error) {
     console.error("Unhandled error in diagnostic check:", error);
-    toast.error("Failed to complete database diagnostic check");
+    toast({
+      title: "Error",
+      description: "Failed to complete database diagnostic check",
+      variant: "destructive"
+    });
     return { success: false, error: error.message };
   }
 }
@@ -138,22 +172,42 @@ export async function searchLegislatorDebug(name: string) {
     // Show toast with summary
     let foundAny = false;
     if (searchResults.exactMatch.count > 0) {
-      toast.success(`Found exact match for "${name}"`);
+      toast({
+        title: "Success",
+        description: `Found exact match for "${name}"`,
+        variant: "default"
+      });
       foundAny = true;
     } else if (searchResults.partialMatch.count > 0) {
-      toast.success(`Found ${searchResults.partialMatch.count} partial matches for "${name}"`);
+      toast({
+        title: "Success",
+        description: `Found ${searchResults.partialMatch.count} partial matches for "${name}"`,
+        variant: "default"
+      });
       foundAny = true;
     } else if (searchResults.lastNameMatch?.count > 0) {
-      toast.success(`Found ${searchResults.lastNameMatch.count} matches by last name`);
+      toast({
+        title: "Success",
+        description: `Found ${searchResults.lastNameMatch.count} matches by last name`,
+        variant: "default"
+      });
       foundAny = true;
     } else {
-      toast.warning(`No legislators found matching "${name}"`);
+      toast({
+        title: "Warning",
+        description: `No legislators found matching "${name}"`,
+        variant: "warning"
+      });
     }
     
     return { success: true, foundAny, results: searchResults };
   } catch (error) {
     console.error("Error in legislator search debug:", error);
-    toast.error("Search debug operation failed");
+    toast({
+      title: "Error",
+      description: "Search debug operation failed",
+      variant: "destructive"
+    });
     return { success: false, error: error.message };
   }
 }
