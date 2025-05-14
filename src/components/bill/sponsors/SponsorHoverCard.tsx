@@ -94,7 +94,7 @@ const SponsorHoverCard = ({ sponsorData, getSponsorName, legislatorId }: Sponsor
               <p className="text-sm text-gray-600">
                 Party: {legislatorInfo.party === 'D' ? 'Democratic' : 
                        legislatorInfo.party === 'R' ? 'Republican' : 
-                       legislatorInfo.party}
+                       legislatorInfo.party || 'Unknown'}
               </p>
               {legislatorInfo.role && legislatorInfo.district && (
                 <p className="text-sm text-gray-600">

@@ -5,11 +5,14 @@ import { corsHeaders } from "./utils.ts";
 import { initializeCache } from "./persistentCache.ts";
 
 // Initialize persistent cache on startup
+console.log("Starting get-legislator function");
 await initializeCache();
+console.log("Cache initialized");
 
 // Handle CORS preflight requests
 const handleCors = (req: Request) => {
   if (req.method === "OPTIONS") {
+    console.log("Handling CORS preflight request");
     return new Response(null, { headers: corsHeaders, status: 204 });
   }
   return null;
@@ -17,6 +20,8 @@ const handleCors = (req: Request) => {
 
 // Main function to serve requests
 serve(async (req) => {
+  console.log(`[${new Date().toISOString()}] Received request: ${req.method} ${req.url}`);
+  
   // Handle CORS
   const corsResponse = handleCors(req);
   if (corsResponse) return corsResponse;

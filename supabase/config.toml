@@ -12,5 +12,3 @@ verify_jwt = true
 
 [functions.get-legislator]
 verify_jwt = false
-
-

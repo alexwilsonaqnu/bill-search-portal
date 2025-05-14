@@ -22,12 +22,17 @@ export async function fetchLegislatorById(legislatorId: string) {
   
   const cacheKey = `id-${legislatorId}`;
   const cachedData = getCachedLegislator(cacheKey);
-  if (cachedData) return cachedData;
+  if (cachedData) {
+    console.log(`Using cached legislator data for ID: ${legislatorId}`);
+    return cachedData;
+  }
 
   try {
+    console.log(`Cache miss - fetching fresh data for legislator ID: ${legislatorId}`);
     const OPENSTATES_API_KEY = getApiKey();
 
     // Use backoff mechanism to handle rate limiting
+    console.log(`Making API request to OpenStates for legislator ID: ${legislatorId}`);
     const response = await fetchWithBackoff(`https://v3.openstates.org/people/${legislatorId}?include=offices`, {
       headers: {
         "X-API-Key": OPENSTATES_API_KEY,
@@ -35,10 +40,11 @@ export async function fetchLegislatorById(legislatorId: string) {
     }, 2, 1000);
 
     if (!response.ok) {
-      console.error(`Error response from OpenStates API: ${response.status}`);
+      console.error(`Error response from OpenStates API: ${response.status} ${response.statusText}`);
       
       // For 429 (Too Many Requests) errors, return a fallback object
       if (response.status === 429) {
+        console.log(`Rate limit hit (429) for legislator ID: ${legislatorId}, using fallback`);
         return createFallbackLegislator(legislatorId);
       }
       
@@ -46,11 +52,13 @@ export async function fetchLegislatorById(legislatorId: string) {
     }
 
     const data = await response.json();
+    console.log(`Successfully fetched data from OpenStates for ID: ${legislatorId}`);
     const processed = processOpenStatesResponse(data);
+    console.log(`Processed OpenStates response for ID: ${legislatorId}`);
     setCachedLegislator(cacheKey, processed);
     return processed;
   } catch (error) {
-    console.error("Error fetching from OpenStates:", error);
+    console.error(`Exception in fetchLegislatorById for ${legislatorId}:`, error);
     return createFallbackLegislator(legislatorId);
   }
 }
@@ -62,12 +70,16 @@ export async function searchLegislatorByName(name: string) {
   const cleanedName = cleanNameForSearch(name);
   const cacheKey = `name-${cleanedName}`;
   const cachedData = getCachedLegislator(cacheKey);
-  if (cachedData) return cachedData;
+  if (cachedData) {
+    console.log(`Using cached legislator data for name: ${cleanedName}`);
+    return cachedData;
+  }
 
   try {
-    console.log(`Searching for legislator with name: ${cleanedName}`);
+    console.log(`Cache miss - searching for legislator with name: ${cleanedName}`);
     const OPENSTATES_API_KEY = getApiKey();
 
+    console.log(`Making API request to OpenStates for name search: ${cleanedName}`);
     const response = await fetchWithBackoff(`https://v3.openstates.org/people?name=${encodeURIComponent(cleanedName)}&include=offices`, {
       headers: {
         "X-API-Key": OPENSTATES_API_KEY,
@@ -75,27 +87,27 @@ export async function searchLegislatorByName(name: string) {
     }, 2, 1000);
 
     if (!response.ok) {
-      console.error(`Error response from OpenStates API: ${response.status}`);
+      console.error(`Error response from OpenStates API: ${response.status} ${response.statusText}`);
       // If we hit a rate limit, return a basic legislator object
       return createEnhancedLegislatorFromName(name);
     }
 
     const data = await response.json();
-    
-    // Debug the results
-    console.log(`Search returned ${data.results?.length || 0} results`);
+    console.log(`Search returned ${data.results?.length || 0} results for "${cleanedName}"`);
     
     if (!data.results || data.results.length === 0) {
       // Return basic info if no results found
+      console.log(`No results found for name search: ${cleanedName}, creating fallback`);
       return createEnhancedLegislatorFromName(name);
     }
 
     // Find best match - for simplicity, just take the first result
+    console.log(`Processing first match for name: ${cleanedName}`);
     const processed = processOpenStatesResponse(data.results[0]);
     setCachedLegislator(cacheKey, processed);
     return processed;
   } catch (error) {
-    console.error("Error searching OpenStates:", error);
+    console.error(`Exception in searchLegislatorByName for ${name}:`, error);
     return createEnhancedLegislatorFromName(name);
   }
 }

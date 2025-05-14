@@ -34,7 +34,26 @@ export async function fetchLegislatorInfo(
     // Track API call start time for analytics
     const startTime = Date.now();
     
-    // Fetch from Supabase IL_Legislators table instead of using the edge function
+    // Try using the edge function first if it's available
+    try {
+      const { data: edgeFunctionData, error: edgeFunctionError } = await supabase.functions.invoke('get-legislator', {
+        body: { legislatorId, sponsorName },
+      });
+      
+      if (!edgeFunctionError && edgeFunctionData) {
+        console.log('Successfully retrieved legislator data from edge function:', edgeFunctionData);
+        cacheLegislator(cacheKey, edgeFunctionData);
+        return edgeFunctionData;
+      }
+      
+      if (edgeFunctionError) {
+        console.warn('Edge function error, falling back to direct DB query:', edgeFunctionError);
+      }
+    } catch (edgeError) {
+      console.warn('Error calling edge function, falling back to direct DB query:', edgeError);
+    }
+
+    // Fallback to direct Supabase IL_Legislators table query
     let query = supabase.from('IL_legislators').select('*');
     
     if (legislatorId) {
