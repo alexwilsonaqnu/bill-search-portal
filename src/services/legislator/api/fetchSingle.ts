@@ -55,30 +55,77 @@ async function queryDatabase(
   sponsorName?: string,
   cacheKey?: string
 ): Promise<LegislatorInfo | null> {
-  // Use lowercase 'l' in 'IL_legislators' to match the actual table name in Supabase
-  let query = supabase.from('IL_legislators').select('*');
+  console.log("Querying IL_legislators table with params:", { legislatorId, sponsorName });
   
+  // First attempt: Try with provided identifiers
+  let result = null;
+  
+  // First try using ID if available
   if (legislatorId) {
-    // If we have an ID, use it as the primary lookup
-    query = query.eq('id', legislatorId);
-    console.log(`Querying with ID: ${legislatorId}`);
-  } else if (sponsorName) {
-    // If we only have a name, try to find match on name field
-    query = query.eq('name', sponsorName);
-    console.log(`Querying with exact name: ${sponsorName}`);
+    console.log(`Querying by ID: ${legislatorId}`);
+    const { data, error } = await supabase
+      .from('IL_legislators')
+      .select('*')
+      .eq('id', legislatorId)
+      .limit(1);
+    
+    if (!error && data && data.length > 0) {
+      console.log("Found legislator by ID:", data[0].name);
+      result = transformDbRecordToLegislatorInfo(data[0]);
+      if (cacheKey) cacheLegislator(cacheKey, result);
+      return result;
+    } else if (error) {
+      console.warn(`Error querying by ID: ${error.message}`);
+    } else {
+      console.log(`No legislator found with ID: ${legislatorId}`);
+    }
   }
   
-  let { data, error } = await query.limit(1);
-  
-  console.log('Database query results:', { 
-    found: !!data && data.length > 0, 
-    error: error?.message 
-  });
-  
-  // If exact match fails and we're searching by name, try a flexible search
-  if ((!data || data.length === 0) && sponsorName && !legislatorId) {
-    console.log(`No exact match for "${sponsorName}", trying flexible search`);
+  // Then try exact name match if available
+  if (sponsorName) {
+    console.log(`Querying by exact name: "${sponsorName}"`);
+    const { data, error } = await supabase
+      .from('IL_legislators')
+      .select('*')
+      .eq('name', sponsorName)
+      .limit(1);
+      
+    if (!error && data && data.length > 0) {
+      console.log("Found legislator by exact name:", data[0].name);
+      result = transformDbRecordToLegislatorInfo(data[0]);
+      if (cacheKey) cacheLegislator(cacheKey, result);
+      return result;
+    } else if (error) {
+      console.warn(`Error querying by exact name: ${error.message}`);
+    } else {
+      console.log(`No exact name match for: "${sponsorName}"`);
+    }
     
+    // If exact match fails, try with the given_name + family_name fields
+    console.log(`Trying given_name + family_name search for: "${sponsorName}"`);
+    const nameParts = sponsorName.trim().split(' ');
+    
+    if (nameParts.length > 1) {
+      const firstName = nameParts[0];
+      const lastName = nameParts[nameParts.length - 1];
+      
+      const { data: namePartsData, error: namePartsError } = await supabase
+        .from('IL_legislators')
+        .select('*')
+        .eq('given_name', firstName)
+        .eq('family_name', lastName)
+        .limit(1);
+        
+      if (!namePartsError && namePartsData && namePartsData.length > 0) {
+        console.log("Found legislator by first+last name:", namePartsData[0].name);
+        result = transformDbRecordToLegislatorInfo(namePartsData[0]);
+        if (cacheKey) cacheLegislator(cacheKey, result);
+        return result;
+      }
+    }
+    
+    // If name parts search fails, try ILIKE on name
+    console.log(`Trying flexible name search for: "${sponsorName}"`);
     const { data: flexData, error: flexError } = await supabase
       .from('IL_legislators')
       .select('*')
@@ -86,44 +133,38 @@ async function queryDatabase(
       .limit(1);
       
     if (!flexError && flexData && flexData.length > 0) {
-      console.log('Found match with flexible search:', flexData[0].name);
-      data = flexData;
-      error = null;
-    }
-  }
-  
-  if (error) {
-    console.warn(`Database error: ${error.message}`);
-    
-    // Create basic fallback for name searches
-    if (sponsorName) {
-      const fallback = createBasicLegislatorFromName(sponsorName);
-      if (cacheKey) cacheLegislator(cacheKey, fallback);
-      return fallback;
+      console.log("Found legislator by flexible name search:", flexData[0].name);
+      result = transformDbRecordToLegislatorInfo(flexData[0]);
+      if (cacheKey) cacheLegislator(cacheKey, result);
+      return result;
     }
     
-    return null;
-  }
-  
-  if (!data || data.length === 0) {
-    console.log(`No legislator found for ${legislatorId ? `ID: ${legislatorId}` : `name: ${sponsorName}`}`);
-    
-    if (sponsorName) {
-      const fallback = createBasicLegislatorFromName(sponsorName);
-      if (cacheKey) cacheLegislator(cacheKey, fallback);
-      return fallback;
+    // Try even more flexible search - match on just family_name
+    if (nameParts.length > 0) {
+      const lastName = nameParts[nameParts.length - 1];
+      console.log(`Trying family_name search for: "${lastName}"`);
+      
+      const { data: lastNameData, error: lastNameError } = await supabase
+        .from('IL_legislators')
+        .select('*')
+        .ilike('family_name', `%${lastName}%`)
+        .limit(1);
+        
+      if (!lastNameError && lastNameData && lastNameData.length > 0) {
+        console.log("Found legislator by family name:", lastNameData[0].name);
+        result = transformDbRecordToLegislatorInfo(lastNameData[0]);
+        if (cacheKey) cacheLegislator(cacheKey, result);
+        return result;
+      }
     }
     
-    return null;
+    // Last resort: return fallback legislator data
+    console.log(`No match found for "${sponsorName}", creating fallback data`);
+    const fallback = createBasicLegislatorFromName(sponsorName);
+    if (cacheKey) cacheLegislator(cacheKey, fallback);
+    return fallback;
   }
   
-  // Transform database record to LegislatorInfo format
-  const legislatorInfo = transformDbRecordToLegislatorInfo(data[0]);
-  
-  // Store in cache
-  if (cacheKey) {
-    cacheLegislator(cacheKey, legislatorInfo);
-  }
-  
-  return legislatorInfo;
+  console.log("No legislator found with provided parameters");
+  return null;
 }

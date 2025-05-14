@@ -7,6 +7,7 @@ import SponsorTooltip from "./SponsorTooltip";
 import { toast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
 import { RefreshCw } from "lucide-react";
+import { clearCache } from "@/services/legislator";
 
 interface SponsorHoverCardProps {
   sponsorData: any;
@@ -23,9 +24,10 @@ const SponsorHoverCard = ({ sponsorData, getSponsorName, legislatorId }: Sponsor
   useEffect(() => {
     console.log('SponsorHoverCard data:', { 
       sponsorName,
-      legislatorId
+      legislatorId,
+      sponsorData
     });
-  }, [sponsorName, legislatorId]);
+  }, [sponsorName, legislatorId, sponsorData]);
   
   // If we don't have a legislator ID or name, use a simpler tooltip
   if (!legislatorId && !sponsorName) {
@@ -59,6 +61,10 @@ const SponsorHoverCard = ({ sponsorData, getSponsorName, legislatorId }: Sponsor
   }, [legislatorInfo, isLoading, error, isOpen, sponsorName]);
 
   const handleRefresh = () => {
+    // Clear the cache for this specific legislator
+    const cacheKey = legislatorId ? `id:${legislatorId}` : `name:${sponsorName}`;
+    clearCache(cacheKey);
+    
     setForceRefresh(true);
     refetch();
     toast.info(`Refreshing information for ${sponsorName}...`);
