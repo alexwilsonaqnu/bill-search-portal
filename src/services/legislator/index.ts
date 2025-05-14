@@ -3,7 +3,8 @@
 export { 
   fetchLegislatorInfo, 
   fetchMultipleLegislators, 
-  searchLegislatorDebounced
+  searchLegislatorDebounced,
+  clearCache
 } from './api';
 export { preloadLegislatorData } from './preloader';
 export { getLegislatorId, getSponsorName } from './utils';

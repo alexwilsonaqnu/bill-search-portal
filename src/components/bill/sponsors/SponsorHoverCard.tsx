@@ -5,6 +5,8 @@ import { useLegislatorInfo } from "@/hooks/useLegislatorInfo";
 import LegislatorDetails from "./LegislatorDetails";
 import SponsorTooltip from "./SponsorTooltip";
 import { toast } from "@/components/ui/use-toast";
+import { Button } from "@/components/ui/button";
+import { RefreshCw } from "lucide-react";
 
 interface SponsorHoverCardProps {
   sponsorData: any;
@@ -15,6 +17,7 @@ interface SponsorHoverCardProps {
 const SponsorHoverCard = ({ sponsorData, getSponsorName, legislatorId }: SponsorHoverCardProps) => {
   const sponsorName = getSponsorName(sponsorData);
   const [isOpen, setIsOpen] = useState(false);
+  const [forceRefresh, setForceRefresh] = useState(false);
   
   // Always log the sponsor data to help with debugging
   useEffect(() => {
@@ -30,23 +33,36 @@ const SponsorHoverCard = ({ sponsorData, getSponsorName, legislatorId }: Sponsor
   }
   
   // Only fetch data when the popover is opened to reduce API calls
-  const { data: legislatorInfo, isLoading, error } = useLegislatorInfo(
+  const { data: legislatorInfo, isLoading, error, refetch } = useLegislatorInfo(
     isOpen ? legislatorId : undefined, 
-    isOpen ? sponsorName : undefined
+    isOpen ? sponsorName : undefined,
+    { forceRefresh }
   );
+
+  // Reset forceRefresh after data is loaded
+  useEffect(() => {
+    if (!isLoading && forceRefresh) {
+      setForceRefresh(false);
+    }
+  }, [isLoading, forceRefresh]);
 
   // Log when legislator info changes
   useEffect(() => {
     if (isOpen) {
       if (error) {
         console.error(`Error loading legislator: ${error.message}`);
-        // Fix: Using the correct toast function signature for sonner
         toast.error(`Unable to load information for ${sponsorName}`);
       } else if (!isLoading) {
         console.log('Legislator info loaded:', legislatorInfo);
       }
     }
   }, [legislatorInfo, isLoading, error, isOpen, sponsorName]);
+
+  const handleRefresh = () => {
+    setForceRefresh(true);
+    refetch();
+    toast.info(`Refreshing information for ${sponsorName}...`);
+  };
   
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
@@ -56,12 +72,26 @@ const SponsorHoverCard = ({ sponsorData, getSponsorName, legislatorId }: Sponsor
         {sponsorName || "Unknown Sponsor"}
       </PopoverTrigger>
       <PopoverContent className="w-80 p-4">
-        <LegislatorDetails 
-          legislatorInfo={legislatorInfo}
-          isLoading={isLoading}
-          error={error}
-          sponsorName={sponsorName}
-        />
+        <div className="flex flex-col space-y-3">
+          <LegislatorDetails 
+            legislatorInfo={legislatorInfo}
+            isLoading={isLoading}
+            error={error}
+            sponsorName={sponsorName}
+          />
+          <div className="flex justify-end">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleRefresh} 
+              disabled={isLoading || forceRefresh}
+              className="text-xs"
+            >
+              <RefreshCw className="h-3 w-3 mr-1" />
+              Refresh
+            </Button>
+          </div>
+        </div>
       </PopoverContent>
     </Popover>
   );

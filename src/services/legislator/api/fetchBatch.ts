@@ -6,8 +6,13 @@ import { transformDbRecordToLegislatorInfo } from './transformers';
 
 /**
  * Batch fetch multiple legislators at once
+ * @param legislatorIds Array of legislator IDs to fetch
+ * @param forceRefresh Whether to force refresh from database
  */
-export async function fetchMultipleLegislators(legislatorIds: string[]): Promise<(LegislatorInfo | null)[]> {
+export async function fetchMultipleLegislators(
+  legislatorIds: string[],
+  forceRefresh = false
+): Promise<(LegislatorInfo | null)[]> {
   if (!legislatorIds || legislatorIds.length === 0) {
     return [];
   }
@@ -15,12 +20,12 @@ export async function fetchMultipleLegislators(legislatorIds: string[]): Promise
   // Filter out any duplicates
   const uniqueIds = [...new Set(legislatorIds)];
   
-  // Check how many we can get from cache first
+  // Check how many we can get from cache first (unless force refresh is requested)
   const cachedResults = uniqueIds.map(id => {
     const cacheKey = `id:${id}`;
     return { 
       id, 
-      cached: getCachedLegislator(cacheKey) 
+      cached: forceRefresh ? null : getCachedLegislator(cacheKey) 
     };
   });
   
@@ -28,7 +33,7 @@ export async function fetchMultipleLegislators(legislatorIds: string[]): Promise
   const cachedIds = cachedResults.filter(r => r.cached).map(r => r.id);
   const uncachedIds = cachedResults.filter(r => !r.cached).map(r => r.id);
   
-  console.log(`Batch legislator fetch: ${cachedIds.length} from cache, ${uncachedIds.length} need fetching`);
+  console.log(`Batch legislator fetch: ${cachedIds.length} from cache, ${uncachedIds.length} need fetching${forceRefresh ? ' (force refresh)' : ''}`);
   
   // If we have uncached IDs that need fetching, fetch from Supabase table
   let databaseResults: {id: string, data: LegislatorInfo}[] = [];
@@ -39,9 +44,9 @@ export async function fetchMultipleLegislators(legislatorIds: string[]): Promise
   
   // Combine cached and fresh results in original order
   return uniqueIds.map(id => {
-    // First check if we have it cached
+    // First check if we have it cached (and not force refreshing)
     const cacheKey = `id:${id}`;
-    const cached = getCachedLegislator(cacheKey);
+    const cached = forceRefresh ? null : getCachedLegislator(cacheKey);
     if (cached) return cached;
     
     // Then check if we got it fresh from the database

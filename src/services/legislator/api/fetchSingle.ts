@@ -8,10 +8,14 @@ import { createBasicLegislatorFromName } from './fallbacks';
 
 /**
  * Fetches legislator information by ID or name
+ * @param legislatorId Optional ID of the legislator
+ * @param sponsorName Optional name of the legislator
+ * @param forceRefresh Optional flag to force refresh from database
  */
 export async function fetchLegislatorInfo(
   legislatorId?: string, 
-  sponsorName?: string
+  sponsorName?: string,
+  forceRefresh = false
 ): Promise<LegislatorInfo | null> {
   try {
     // Validate we have at least one identifier
@@ -23,14 +27,14 @@ export async function fetchLegislatorInfo(
     // Create cache key based on available identifiers
     const cacheKey = legislatorId ? `id:${legislatorId}` : `name:${sponsorName}`;
     
-    // Check cache first
-    const cached = getCachedLegislator(cacheKey);
+    // Check cache first (unless force refresh is requested)
+    const cached = getCachedLegislator(cacheKey, forceRefresh);
     if (cached) {
       console.log(`Using cached legislator data for ${cacheKey}`);
       return cached;
     }
     
-    console.log(`Fetching legislator for ID: ${legislatorId || 'N/A'}, Name: ${sponsorName || 'N/A'}`);
+    console.log(`Fetching legislator for ID: ${legislatorId || 'N/A'}, Name: ${sponsorName || 'N/A'}, Force refresh: ${forceRefresh}`);
     
     // Query the database directly
     return await queryDatabase(legislatorId, sponsorName, cacheKey);
