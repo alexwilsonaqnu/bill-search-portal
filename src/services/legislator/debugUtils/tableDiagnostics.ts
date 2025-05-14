@@ -45,12 +45,12 @@ export async function checkLegislatorsTable() {
     // Get table columns - using a safer approach
     let columns: any[] = [];
     try {
-      // Use explicit type casting to resolve type error on line 49
+      // Fix for error on line 50 - explicitly cast the parameter to any
       const { data: columnData, error: columnsError } = await supabase
         .rpc('get_table_columns', { table_name: 'IL_legislators' } as any);
         
       if (!columnsError && columnData) {
-        // Fix for error on line 49 - explicitly cast columnData to any[]
+        // Explicitly cast columnData to any[]
         columns = columnData as any[];
       } else {
         console.log("Could not fetch schema details:", columnsError?.message);
@@ -59,9 +59,9 @@ export async function checkLegislatorsTable() {
       console.log("Error fetching columns:", columnFetchError);
     }
     
-    // Parse count properly
+    // Parse count properly - Fix for error on line 66
     let recordCount = 0;
-    // Fix for error on lines 66-67
+    // Add proper null checking
     if (tables !== null && typeof tables === 'object') {
       const count = tables?.count;
       if (count !== null && count !== undefined) {
