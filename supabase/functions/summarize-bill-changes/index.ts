@@ -86,17 +86,35 @@ function extractSummaryPoints(text: string): string {
 }
 
 serve(async (req) => {
+  console.log("summarize-bill-changes function invoked");
+  
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
+    console.log("Handling CORS preflight request");
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
     // Parse request body
-    const { originalTitle, amendedTitle, originalText, amendedText, billId, billTitle } = await req.json();
+    const requestData = await req.json();
+    console.log("Request received with parameters:", JSON.stringify({
+      billId: requestData.billId,
+      billTitle: requestData.billTitle,
+      originalTitle: requestData.originalTitle,
+      amendedTitle: requestData.amendedTitle,
+      // Don't log the full text contents to avoid cluttering logs
+      originalTextLength: requestData.originalText?.length,
+      amendedTextLength: requestData.amendedText?.length
+    }));
+
+    const { originalTitle, amendedTitle, originalText, amendedText, billId, billTitle } = requestData;
 
     // Check if we have the necessary data
     if (!originalText || !amendedText) {
+      console.error("Missing required data:", {
+        hasOriginalText: !!originalText,
+        hasAmendedText: !!amendedText
+      });
       return new Response(
         JSON.stringify({ error: 'Missing bill text content for comparison' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
@@ -106,7 +124,7 @@ serve(async (req) => {
     console.log(`Summarizing changes for bill ${billId}: ${billTitle}`);
     console.log(`Comparing "${originalTitle}" with "${amendedTitle}"`);
 
-    // If no OpenAI API key, return a mock summary for development
+    // Check for OpenAI API key
     if (!OPENAI_API_KEY) {
       console.warn("No OpenAI API key found in environment variables, returning mock summary");
       const mockSummary = `
@@ -128,6 +146,10 @@ Key changes:
     const totalLength = (originalText.length + amendedText.length);
     let processedOriginalText = originalText;
     let processedAmendedText = amendedText;
+
+    console.log(`Original bill text size: ${originalText.length} chars`);
+    console.log(`Amended bill text size: ${amendedText.length} chars`);
+    console.log(`Total text size: ${totalLength} chars`);
 
     // Lower threshold for switching to summary mode (from 400k to 200k chars)
     if (totalLength > 200000) {
@@ -160,6 +182,7 @@ Key changes:
 
     // Call OpenAI API to generate a summary of the differences
     try {
+      console.log("Calling OpenAI API for summarization");
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -206,6 +229,7 @@ Please provide:
       }
 
       const summary = data.choices[0].message.content;
+      console.log("Successfully generated summary");
 
       return new Response(
         JSON.stringify({ summary }),

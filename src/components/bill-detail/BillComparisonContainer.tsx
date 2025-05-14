@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Bill } from "@/types";
 import VersionComparison from "@/components/VersionComparison";
@@ -61,6 +62,8 @@ const BillComparisonContainer = ({ bill }: BillComparisonContainerProps) => {
         .map(s => `${s.title}: ${s.content}`)
         .join('\n\n');
 
+      console.log(`Calling summarize-bill-changes function for bill ${bill.id}`);
+      
       // Call the Edge Function to get a summary of the differences
       const { data, error } = await supabase.functions.invoke('summarize-bill-changes', {
         body: {
@@ -75,16 +78,24 @@ const BillComparisonContainer = ({ bill }: BillComparisonContainerProps) => {
 
       if (error) {
         console.error("Error invoking function:", error);
-        throw new Error(`Error invoking function: ${error.message}`);
+        const statusCode = error.status || 'unknown';
+        const errorMessage = error.message || 'Unknown error';
+        throw new Error(`Error invoking function (${statusCode}): ${errorMessage}`);
       }
 
-      if (data.error) {
+      if (data?.error) {
         console.error("Function returned error:", data.error);
         throw new Error(data.error);
+      }
+      
+      if (!data?.summary) {
+        console.error("No summary returned from function:", data);
+        throw new Error("No summary was returned from the function");
       }
 
       setSummary(data.summary);
       setShowFallbackMessage(false);
+      toast.success("Summary generated successfully");
     } catch (error) {
       console.error("Error generating summary:", error);
       
@@ -100,6 +111,15 @@ const BillComparisonContainer = ({ bill }: BillComparisonContainerProps) => {
         // It's likely a size/timeout issue
         setShowFallbackMessage(true);
         userFriendlyMessage += " The bill text is too large for our automatic comparison tool.";
+      } else if (errorMessage.includes("401") || errorMessage.includes("403") || errorMessage.includes("auth")) {
+        // Authentication issue
+        userFriendlyMessage += " Authentication error. Please try again later.";
+      } else if (errorMessage.includes("429")) {
+        // Rate limit
+        userFriendlyMessage += " Rate limit reached. Please try again in a few minutes.";
+      } else if (errorMessage.includes("500") || errorMessage.includes("502") || errorMessage.includes("503")) {
+        // Server error
+        userFriendlyMessage += " Server error encountered. Our team has been notified.";
       } else {
         // Other error
         userFriendlyMessage += " Please try again later.";
@@ -107,7 +127,7 @@ const BillComparisonContainer = ({ bill }: BillComparisonContainerProps) => {
       
       // Set a user-friendly error message
       setSummaryError(userFriendlyMessage);
-      toast.error(`Summary generation failed: ${errorMessage}`);
+      toast.error(`Summary generation failed: ${userFriendlyMessage}`);
     } finally {
       setSummarizing(false);
     }

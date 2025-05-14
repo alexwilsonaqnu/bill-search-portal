@@ -12,3 +12,6 @@ verify_jwt = true
 
 [functions.get-legislator]
 verify_jwt = false
+
+[functions.summarize-bill-changes]
+verify_jwt = false
