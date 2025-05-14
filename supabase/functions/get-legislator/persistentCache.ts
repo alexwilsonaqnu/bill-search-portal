@@ -1,9 +1,15 @@
 
-// Simple placeholder implementation for persistent cache
+// Simple implementation for persistent cache
 // This could be enhanced to use KV or another storage mechanism
 
 const persistentCache = new Map<string, { data: any; timestamp: number }>();
 const PERSISTENT_CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
+
+// Initialize the cache
+export async function initializeCache(): Promise<void> {
+  console.log("Initializing persistent cache for legislators");
+  // This is where you would load persisted data if needed
+}
 
 // Get cached legislator from persistent storage
 export async function getPersistentCachedLegislator(cacheKey: string): Promise<any | null> {
