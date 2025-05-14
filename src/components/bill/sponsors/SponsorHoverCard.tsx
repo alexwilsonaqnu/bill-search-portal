@@ -1,13 +1,13 @@
 
 import { useState, useEffect } from "react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { useLegislatorInfo } from "@/hooks/useLegislatorInfo";
+import { useLegislator } from "@/hooks/useLegislatorSimple";
 import LegislatorDetails from "./LegislatorDetails";
 import SponsorTooltip from "./SponsorTooltip";
 import { toast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
 import { RefreshCw, Info } from "lucide-react";
-import { clearCache } from "@/services/legislator";
+import { clearLegislatorCache } from "@/services/legislator/simple";
 
 interface SponsorHoverCardProps {
   sponsorData: any;
@@ -21,7 +21,7 @@ const SponsorHoverCard = ({ sponsorData, getSponsorName, legislatorId }: Sponsor
   const [forceRefresh, setForceRefresh] = useState(false);
   const [debugInfo, setDebugInfo] = useState<any>(null);
   
-  // Always log the sponsor data to help with debugging
+  // Log sponsor data for debugging
   useEffect(() => {
     console.log('SponsorHoverCard data:', { 
       sponsorName,
@@ -35,8 +35,8 @@ const SponsorHoverCard = ({ sponsorData, getSponsorName, legislatorId }: Sponsor
     return <SponsorTooltip sponsorName={"Unknown Sponsor"} />;
   }
   
-  // Only fetch data when the popover is opened to reduce API calls
-  const { data: legislatorInfo, isLoading, error, refetch } = useLegislatorInfo(
+  // Using our new simplified hook
+  const { data: legislatorInfo, isLoading, error, refetch } = useLegislator(
     isOpen ? legislatorId : undefined, 
     isOpen ? sponsorName : undefined,
     { forceRefresh }
@@ -49,7 +49,7 @@ const SponsorHoverCard = ({ sponsorData, getSponsorName, legislatorId }: Sponsor
     }
   }, [isLoading, forceRefresh]);
 
-  // Log when legislator info changes
+  // Store debug info when data changes
   useEffect(() => {
     if (isOpen) {
       if (error) {
@@ -57,7 +57,6 @@ const SponsorHoverCard = ({ sponsorData, getSponsorName, legislatorId }: Sponsor
         toast.error(`Unable to load information for ${sponsorName}`);
       } else if (!isLoading) {
         console.log('Legislator info loaded:', legislatorInfo);
-        // Store info for debugging
         setDebugInfo({
           receivedAt: new Date().toISOString(),
           data: legislatorInfo
@@ -69,12 +68,8 @@ const SponsorHoverCard = ({ sponsorData, getSponsorName, legislatorId }: Sponsor
   const handleRefresh = () => {
     // Clear the cache for this specific legislator
     const cacheKey = legislatorId ? `id:${legislatorId}` : `name:${sponsorName}`;
-    clearCache(cacheKey);
+    clearLegislatorCache(cacheKey);
     console.log(`Clearing cache with key: ${cacheKey}`);
-    
-    // Also try clearing the entire cache as a more aggressive approach
-    console.log("Also clearing entire legislator cache for testing");
-    clearCache();
     
     setForceRefresh(true);
     refetch();
