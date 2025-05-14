@@ -43,7 +43,7 @@ export async function checkLegislatorsTable() {
     }
     
     // Get table columns - using a safer approach
-    let columns = [];
+    let columns: any[] = [];
     try {
       const { data: columnData, error: columnsError } = await supabase
         .rpc('get_table_columns', { table_name: 'IL_legislators' });
@@ -62,7 +62,7 @@ export async function checkLegislatorsTable() {
     let recordCount = 0;
     if (tables && typeof tables === 'object') {
       if ('count' in tables) {
-        recordCount = Number(tables.count);
+        recordCount = Number(tables.count || 0);
       }
     }
     
@@ -93,7 +93,7 @@ export async function checkLegislatorsTable() {
     }
     
     return diagnosticInfo;
-  } catch (error) {
+  } catch (error: any) {
     console.error("Unhandled error in diagnostic check:", error);
     toast({
       title: "Error",
@@ -205,7 +205,7 @@ export async function searchLegislatorDebug(name: string) {
     }
     
     return { success: true, foundAny, results: searchResults };
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error in legislator search debug:", error);
     toast({
       title: "Error",
