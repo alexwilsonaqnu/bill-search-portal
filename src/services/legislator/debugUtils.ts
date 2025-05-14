@@ -59,12 +59,13 @@ export async function checkLegislatorsTable() {
     }
     
     // Parse count properly - tables might contain different structures based on the query
-    // Fix for error on line 62-65
+    // Fix for error on lines 66-67
     let recordCount = 0;
     if (tables !== null && typeof tables === 'object') {
       // Safe access to the count property with null check
-      if ('count' in tables && tables.count !== null) {
-        recordCount = Number(tables.count);
+      const count = tables.count;
+      if (count !== null && count !== undefined) {
+        recordCount = Number(count);
       }
     }
     
