@@ -1,5 +1,6 @@
 
-import { fetchLegislatorInfo, fetchMultipleLegislators } from './core';
+import { fetchLegislatorInfo } from './fetchSingle';
+import { fetchMultipleLegislators } from './fetchBatch';
 import { createBasicLegislatorFromName } from './fallbacks';
 import { transformDbRecordToLegislatorInfo } from './transformers';
 import { debounce } from './debounce';
