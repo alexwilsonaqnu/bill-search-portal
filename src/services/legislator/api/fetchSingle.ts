@@ -97,17 +97,17 @@ async function queryDatabaseDirectly(
   cacheKey?: string,
   startTime?: number
 ): Promise<LegislatorInfo | null> {
-  // Ensure we use the correct case for the table name: 'IL_Legislators'
-  let query = supabase.from('IL_Legislators').select('*');
+  // Use the correct table name case as defined in the database: 'IL_legislators'
+  let query = supabase.from('IL_legislators').select('*');
   
   if (legislatorId) {
     // If we have an ID, use it as the primary lookup
     query = query.eq('id', legislatorId);
-    console.log(`Querying IL_Legislators with ID: ${legislatorId}`);
+    console.log(`Querying IL_legislators with ID: ${legislatorId}`);
   } else if (sponsorName) {
     // If we only have a name, try to find match on name field
     query = query.eq('name', sponsorName);
-    console.log(`Querying IL_Legislators with exact name: ${sponsorName}`);
+    console.log(`Querying IL_legislators with exact name: ${sponsorName}`);
   }
   
   let { data, error } = await query.limit(1);
@@ -175,9 +175,9 @@ async function queryDatabaseDirectly(
 async function tryFlexibleNameSearch(sponsorName: string) {
   console.log(`No exact match for name "${sponsorName}", trying flexible search with ilike`);
   
-  // Ensure we use the correct case for the table name: 'IL_Legislators'
+  // Use the correct table name case as defined in the database: 'IL_legislators'
   const { data: flexData, error: flexError } = await supabase
-    .from('IL_Legislators')
+    .from('IL_legislators')
     .select('*')
     .ilike('name', `%${sponsorName}%`)
     .limit(1);
