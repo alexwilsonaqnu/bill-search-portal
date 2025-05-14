@@ -2,107 +2,87 @@
 import { supabase } from "@/integrations/supabase/client";
 
 /**
- * Check the IL_legislators table in the database
- * Returns diagnostics about the table structure and data
+ * Check if the IL_legislators table has data and appropriate columns
+ * This is useful for debugging database issues
  */
 export async function checkILLegislatorsTable() {
+  console.log("Checking IL_legislators table...");
+  
   try {
-    console.log("Running diagnostics on IL_legislators table...");
-    
-    // First check if the table exists
+    // Check if table exists
     const { data: tablesData, error: tablesError } = await supabase
-      .rpc('check_table_exists', { table_name: 'il_legislators' });
-    
+      .rpc('get_tables');
+      
     if (tablesError) {
-      console.error("Error checking if table exists:", tablesError);
+      console.error("Error checking tables:", tablesError.message);
       return {
         exists: false,
         error: tablesError.message,
-        columnCount: 0,
-        rowCount: 0,
-        sampleData: null
+        record_count: 0,
+        columns: []
       };
     }
     
-    console.log("Table exists check result:", tablesData);
+    // Convert table names to lowercase for case-insensitive comparison
+    const tables = tablesData as any[] || [];
+    const tableExists = tables.some(
+      table => table.table_name?.toLowerCase() === 'il_legislators'
+    );
     
-    if (!tablesData || tablesData.length === 0 || !tablesData[0].exists) {
+    console.log(`IL_legislators table exists: ${tableExists}`);
+    console.log(`Found ${tables.length} tables in the database`);
+    
+    if (!tableExists) {
       return {
         exists: false,
-        error: "Table does not exist",
-        columnCount: 0,
-        rowCount: 0,
-        sampleData: null
+        error: "Table IL_legislators not found",
+        record_count: 0,
+        columns: []
       };
     }
     
-    // Get column information
+    // Check columns in the table
     const { data: columnsData, error: columnsError } = await supabase
-      .rpc('get_table_columns', { table_name: 'il_legislators' });
-    
+      .rpc('get_columns', { table_name: 'IL_legislators' });
+      
     if (columnsError) {
-      console.error("Error getting table columns:", columnsError);
+      console.error("Error checking columns:", columnsError.message);
       return {
         exists: true,
         error: columnsError.message,
-        columnCount: 0,
-        rowCount: 0,
-        sampleData: null
+        record_count: 0,
+        columns: []
       };
     }
     
-    // Get row count
-    const { count, error: countError } = await supabase
-      .from('il_legislators')
-      .select('*', { count: 'exact', head: true });
-    
+    // Count records in the table
+    const { data: countData, error: countError } = await supabase
+      .from('IL_legislators')
+      .select('id', { count: 'exact', head: true });
+      
     if (countError) {
-      console.error("Error counting rows:", countError);
+      console.error("Error counting records:", countError.message);
       return {
         exists: true,
-        columns: columnsData,
-        columnCount: columnsData?.length || 0,
         error: countError.message,
-        rowCount: 0,
-        sampleData: null
-      };
-    }
-    
-    // Get a sample row
-    const { data: sampleData, error: sampleError } = await supabase
-      .from('il_legislators')
-      .select('*')
-      .limit(1);
-    
-    if (sampleError) {
-      console.error("Error getting sample data:", sampleError);
-      return {
-        exists: true,
-        columns: columnsData,
-        columnCount: columnsData?.length || 0,
-        rowCount: count || 0,
-        error: sampleError.message,
-        sampleData: null
+        record_count: 0,
+        columns: columnsData ? columnsData.map((col: any) => col.column_name) : []
       };
     }
     
     return {
       exists: true,
-      columns: columnsData,
-      columnCount: columnsData?.length || 0,
-      rowCount: count || 0,
-      sampleData: sampleData && sampleData.length > 0 ? sampleData[0] : null,
-      error: null
+      error: null,
+      record_count: countData ? (countData as any).count : 0,
+      columns: columnsData ? columnsData.map((col: any) => col.column_name) : []
     };
-    
   } catch (error) {
     console.error("Exception in checkILLegislatorsTable:", error);
     return {
       exists: false,
-      error: error.message,
-      columnCount: 0,
-      rowCount: 0,
-      sampleData: null
+      error: error instanceof Error ? error.message : String(error),
+      record_count: 0,
+      columns: []
     };
   }
 }
