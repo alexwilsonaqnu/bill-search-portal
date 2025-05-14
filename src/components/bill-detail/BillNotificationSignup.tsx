@@ -38,7 +38,7 @@ const BillNotificationSignup = ({ bill }: BillNotificationSignupProps) => {
       console.log("Notification signup for bill:", bill.id, "with email:", data.email);
       
       // Show success toast
-      toast("Notification Signup Successful", {
+      toast.success("Notification Signup Successful", {
         description: `You'll be notified of updates to ${bill.title}`
       });
       
@@ -46,7 +46,7 @@ const BillNotificationSignup = ({ bill }: BillNotificationSignupProps) => {
       form.reset();
     } catch (error) {
       console.error("Error signing up for notifications:", error);
-      toast("Signup Failed", {
+      toast.error("Signup Failed", {
         description: "There was a problem signing up for notifications. Please try again.",
       });
     } finally {

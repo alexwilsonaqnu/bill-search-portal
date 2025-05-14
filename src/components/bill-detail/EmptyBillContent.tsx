@@ -28,16 +28,16 @@ const EmptyBillContent = ({ bill, ilgaUrl }: EmptyBillContentProps) => {
   const fetchLegiscanText = async () => {
     setIsLoading(true);
     setError(null);
-    toast("Fetching bill text from LegiScan...");
+    toast.info("Fetching bill text from LegiScan...");
     
     try {
       await fetchBillText(bill.id);
-      toast("Successfully loaded bill text");
+      toast.success("Successfully loaded bill text");
       window.location.reload();
     } catch (error) {
       console.error("Failed to fetch bill text:", error);
       const errorMessage = error instanceof Error ? error.message : String(error);
-      toast("Failed to fetch bill text from LegiScan");
+      toast.error("Failed to fetch bill text from LegiScan");
       setError(errorMessage);
       
       // Use fallback text after API failure

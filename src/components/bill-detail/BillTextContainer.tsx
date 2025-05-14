@@ -93,19 +93,19 @@ const BillTextContainer = ({ bill }: BillTextContainerProps) => {
   const handleFetchText = async () => {
     setIsLoading(true);
     setErrorMessage(null);
-    toast("Fetching bill text", {
+    toast.info("Fetching bill text", {
       description: "Loading text from LegiScan..."
     });
     
     try {
       await fetchBillText(bill.id);
       setTextLoaded(true);
-      toast("Success", {
+      toast.success("Success", {
         description: "Successfully loaded bill text"
       });
     } catch (error) {
       console.error("Failed to fetch bill text:", error);
-      toast("Error", {
+      toast.error("Error", {
         description: "Failed to fetch bill text from LegiScan"
       });
       setErrorMessage(error instanceof Error ? error.message : "Failed to load bill text");
