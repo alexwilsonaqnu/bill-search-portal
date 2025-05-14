@@ -2,87 +2,92 @@
 import { supabase } from "@/integrations/supabase/client";
 
 /**
- * Check if the IL_legislators table has data and appropriate columns
- * This is useful for debugging database issues
+ * Utility to check the IL_legislators table structure and data
  */
 export async function checkILLegislatorsTable() {
-  console.log("Checking IL_legislators table...");
+  console.log("🔍 Diagnosing IL_legislators table...");
   
   try {
     // Check if table exists
-    const { data: tablesData, error: tablesError } = await supabase
-      .rpc('get_tables');
-      
-    if (tablesError) {
-      console.error("Error checking tables:", tablesError.message);
-      return {
-        exists: false,
-        error: tablesError.message,
-        record_count: 0,
-        columns: []
-      };
-    }
-    
-    // Convert table names to lowercase for case-insensitive comparison
-    const tables = tablesData as any[] || [];
-    const tableExists = tables.some(
-      table => table.table_name?.toLowerCase() === 'il_legislators'
-    );
-    
-    console.log(`IL_legislators table exists: ${tableExists}`);
-    console.log(`Found ${tables.length} tables in the database`);
-    
-    if (!tableExists) {
-      return {
-        exists: false,
-        error: "Table IL_legislators not found",
-        record_count: 0,
-        columns: []
-      };
-    }
-    
-    // Check columns in the table
-    const { data: columnsData, error: columnsError } = await supabase
-      .rpc('get_columns', { table_name: 'IL_legislators' });
-      
-    if (columnsError) {
-      console.error("Error checking columns:", columnsError.message);
-      return {
-        exists: true,
-        error: columnsError.message,
-        record_count: 0,
-        columns: []
-      };
-    }
-    
-    // Count records in the table
-    const { data: countData, error: countError } = await supabase
+    const { data: tableData, error: tableError } = await supabase
       .from('IL_legislators')
-      .select('id', { count: 'exact', head: true });
-      
+      .select('*')
+      .limit(1);
+    
+    if (tableError) {
+      console.error("❌ Error accessing IL_legislators table:", tableError.message);
+      return {
+        exists: false,
+        error: tableError.message,
+        records: 0,
+        sample: null
+      };
+    }
+    
+    // Count total records
+    const { count, error: countError } = await supabase
+      .from('IL_legislators')
+      .select('*', { count: 'exact', head: true });
+    
     if (countError) {
-      console.error("Error counting records:", countError.message);
+      console.error("❌ Error counting records:", countError.message);
       return {
         exists: true,
         error: countError.message,
-        record_count: 0,
-        columns: columnsData ? columnsData.map((col: any) => col.column_name) : []
+        records: 'unknown',
+        sample: tableData && tableData.length > 0 ? tableData[0] : null
       };
     }
     
+    // Get a few sample records
+    const { data: sampleData, error: sampleError } = await supabase
+      .from('IL_legislators')
+      .select('*')
+      .limit(3);
+    
+    if (sampleError) {
+      console.error("❌ Error fetching sample data:", sampleError.message);
+      return {
+        exists: true,
+        records: count,
+        error: sampleError.message,
+        sample: null
+      };
+    }
+    
+    // Extract column names from first record
+    const columnNames = sampleData && sampleData.length > 0 
+      ? Object.keys(sampleData[0]) 
+      : [];
+    
+    // Get values for a specific set of important columns
+    const importantColumns = ['id', 'name', 'current_party', 'current_district', 'email'];
+    const columnSamples = sampleData && sampleData.length > 0 
+      ? importantColumns.map(col => ({
+          column: col,
+          present: columnNames.includes(col),
+          sample: sampleData[0][col]
+        }))
+      : [];
+    
+    console.log(`✅ IL_legislators table exists with ${count} records`);
+    console.log("📊 Column samples:", columnSamples);
+    
     return {
       exists: true,
-      error: null,
-      record_count: countData ? (countData as any).count : 0,
-      columns: columnsData ? columnsData.map((col: any) => col.column_name) : []
+      records: count,
+      columns: columnNames,
+      columnSamples,
+      sample: sampleData && sampleData.length > 0 ? sampleData[0] : null,
+      sampleRecords: sampleData
     };
   } catch (error) {
-    console.error("Exception in checkILLegislatorsTable:", error);
+    console.error("❌ Unexpected error during table diagnosis:", error);
     return {
       exists: false,
-      error: error instanceof Error ? error.message : String(error),
-      record_count: 0,
-      columns: []
+      error: error.message,
+      records: 0,
+      sample: null
     };
   }
 }
