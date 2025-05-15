@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Bill } from "@/types";
 import VersionComparison from "@/components/VersionComparison";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { RefreshCcw, AlertCircle, FileText, Info } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { fetchBillVersions } from "@/services/legiscan/fetchVersions";
+import BillDataExtractor from "./BillDataExtractor";
 
 interface BillComparisonContainerProps {
   bill: Bill;
@@ -19,16 +21,48 @@ const BillComparisonContainer = ({ bill }: BillComparisonContainerProps) => {
   const [summaryError, setSummaryError] = useState<string | null>(null);
   const [showFallbackMessage, setShowFallbackMessage] = useState(false);
   const [validationMessages, setValidationMessages] = useState<string[]>([]);
+  const [isLoadingVersions, setIsLoadingVersions] = useState(false);
+  const [versions, setVersions] = useState(bill.versions || []);
+  
+  // Extract bill state and number for API calls
+  const { state, billNumber, legiscanBillId } = BillDataExtractor({ bill });
+  
+  // Fetch versions when the component mounts or bill changes
+  useEffect(() => {
+    const loadVersions = async () => {
+      // Only load if we don't already have versions
+      if ((bill.versions?.length === 0 || !bill.versions) && legiscanBillId) {
+        setIsLoadingVersions(true);
+        try {
+          const fetchedVersions = await fetchBillVersions(legiscanBillId, state);
+          if (fetchedVersions.length > 0) {
+            setVersions(fetchedVersions);
+            console.log(`Loaded ${fetchedVersions.length} bill versions`);
+          }
+        } catch (error) {
+          console.error("Failed to load bill versions:", error);
+          toast.error("Failed to load bill versions");
+        } finally {
+          setIsLoadingVersions(false);
+        }
+      } else {
+        // Use existing versions
+        setVersions(bill.versions || []);
+      }
+    };
+    
+    loadVersions();
+  }, [bill.id, legiscanBillId, state]);
   
   // Limit versions to improve performance and prevent browser crashes
   // Updated: Increased from 5 to 10 versions
-  const safeVersions = bill.versions ? 
+  const safeVersions = versions ? 
     // Only use the first 10 versions to prevent performance issues
-    bill.versions.slice(0, 10) : 
+    versions.slice(0, 10) : 
     [];
   
   // Add a warning if we're limiting versions
-  const hasLimitedVersions = bill.versions && bill.versions.length > 10;
+  const hasLimitedVersions = versions && versions.length > 10;
 
   // Add validation function to check if versions have content
   const validateVersionsHaveContent = (versions: any[]) => {
@@ -233,11 +267,16 @@ const BillComparisonContainer = ({ bill }: BillComparisonContainerProps) => {
       {hasLimitedVersions && (
         <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-md text-amber-700 text-sm">
           <strong>Performance Notice:</strong> Only showing the first 10 versions to prevent browser performance issues.
-          This bill has {bill.versions?.length} versions total.
+          This bill has {versions?.length} versions total.
         </div>
       )}
 
-      {safeVersions && safeVersions.length > 1 ? (
+      {isLoadingVersions ? (
+        <div className="p-8 text-center">
+          <Skeleton className="h-4 w-3/4 mx-auto mb-4" />
+          <Skeleton className="h-4 w-1/2 mx-auto" />
+        </div>
+      ) : safeVersions && safeVersions.length > 1 ? (
         <>
           {/* Summary Section */}
           <div className="mb-8 p-4 bg-gray-50 rounded-lg border border-gray-200">
@@ -321,7 +360,38 @@ const BillComparisonContainer = ({ bill }: BillComparisonContainerProps) => {
           </Tabs>
         </>
       ) : (
-        <p className="text-gray-500">This bill only has one version. Comparison is not available.</p>
+        <div className="p-6 bg-gray-50 rounded-lg border border-gray-200 text-center">
+          <p className="text-gray-500">
+            {safeVersions && safeVersions.length === 1 
+              ? "This bill only has one version. Comparison is not available." 
+              : "No versions available for this bill. Version comparison is not available."}
+          </p>
+          <Button
+            className="mt-4"
+            variant="outline"
+            size="sm"
+            onClick={async () => {
+              setIsLoadingVersions(true);
+              try {
+                const refreshedVersions = await fetchBillVersions(legiscanBillId || bill.id, state);
+                setVersions(refreshedVersions);
+                if (refreshedVersions.length > 0) {
+                  toast.success(`Loaded ${refreshedVersions.length} versions`);
+                } else {
+                  toast.info("No versions found for this bill");
+                }
+              } catch (error) {
+                console.error("Error refreshing versions:", error);
+                toast.error("Failed to refresh versions");
+              } finally {
+                setIsLoadingVersions(false);
+              }
+            }}
+          >
+            <RefreshCcw className="h-4 w-4 mr-2" />
+            Refresh Versions
+          </Button>
+        </div>
       )}
     </div>
   );

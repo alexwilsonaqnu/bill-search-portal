@@ -16,7 +16,7 @@ serve(async (req) => {
   }
 
   try {
-    const { billId } = await req.json();
+    const { billId, state = 'IL' } = await req.json();
     
     if (!billId) {
       return new Response(
@@ -34,98 +34,161 @@ serve(async (req) => {
       );
     }
 
-    console.log(`Fetching versions for bill ID: ${billId}`);
+    console.log(`Fetching versions for bill ID: ${billId}, state: ${state}`);
+    
+    if (!LEGISCAN_API_KEY) {
+      console.error('LEGISCAN_API_KEY environment variable not set');
+      return new Response(
+        JSON.stringify({ 
+          error: 'API key not configured',
+          message: 'LegiScan API key is not configured on the server.'
+        }),
+        { 
+          status: 500,
+          headers: {
+            'Content-Type': 'application/json',
+            ...corsHeaders
+          }
+        }
+      );
+    }
     
     // Call LegiScan API to get bill details which includes versions
-    const url = `https://api.legiscan.com/?key=${LEGISCAN_API_KEY}&op=getBill&id=${billId}`;
+    const url = `https://api.legiscan.com/?key=${LEGISCAN_API_KEY}&op=getBill&id=${billId}&state=${state}`;
     
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error(`LegiScan API error: ${response.status} ${response.statusText}`);
-    }
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
+    
+    try {
+      const response = await fetch(url, { signal: controller.signal });
+      clearTimeout(timeoutId);
+      
+      if (!response.ok) {
+        throw new Error(`LegiScan API error: ${response.status} ${response.statusText}`);
+      }
 
-    const data = await response.json();
-    
-    if (data.status !== 'OK' || !data.bill) {
-      console.error('Invalid response from LegiScan:', data);
-      throw new Error('Failed to retrieve bill information');
-    }
+      const data = await response.json();
+      
+      if (data.status !== 'OK' || !data.bill) {
+        console.error('Invalid response from LegiScan:', data);
+        throw new Error('Failed to retrieve bill information');
+      }
 
-    // Extract bill versions (texts) and process them
-    const versions = data.bill.texts || [];
-    console.log(`Found ${versions.length} versions for bill ${billId}`);
-    
-    // For each version, we need to fetch the full text content
-    const processedVersions = await Promise.all(versions.map(async (version) => {
-      try {
-        if (!version.doc_id) {
-          return {
-            ...version,
-            sections: [{
-              title: "Full text",
-              content: "No text content available for this version."
-            }]
-          };
-        }
-        
-        // Fetch the text content for this version
-        const textUrl = `https://api.legiscan.com/?key=${LEGISCAN_API_KEY}&op=getBillText&id=${version.doc_id}`;
-        const textResponse = await fetch(textUrl);
-        const textData = await textResponse.json();
-        
-        if (textData.status !== 'OK' || !textData.text) {
-          console.warn(`Could not fetch text for version ${version.doc_id}`);
-          return {
-            ...version,
-            sections: [{
-              title: "Full text",
-              content: "Could not load text content for this version."
-            }]
-          };
-        }
-        
-        // Decode base64 text content
-        let textContent;
+      // Extract bill versions (texts) and process them
+      const versions = data.bill.texts || [];
+      console.log(`Found ${versions.length} versions for bill ${billId}`);
+      
+      if (versions.length === 0) {
+        console.warn(`No versions found for bill ${billId}`);
+        return new Response(
+          JSON.stringify({ 
+            versions: [],
+            message: 'No versions available for this bill.'
+          }),
+          {
+            headers: {
+              'Content-Type': 'application/json',
+              ...corsHeaders
+            }
+          }
+        );
+      }
+      
+      // For each version, we need to fetch the full text content
+      const processedVersions = await Promise.all(versions.map(async (version) => {
         try {
-          const base64Text = textData.text.doc;
-          textContent = new TextDecoder().decode(
-            Uint8Array.from(atob(base64Text), c => c.charCodeAt(0))
-          );
-        } catch (e) {
-          console.error(`Error decoding text for version ${version.doc_id}:`, e);
-          textContent = "Error decoding text content.";
+          if (!version.doc_id) {
+            return {
+              ...version,
+              sections: [{
+                title: "Full text",
+                content: "No text content available for this version."
+              }]
+            };
+          }
+          
+          // Fetch the text content for this version
+          const textUrl = `https://api.legiscan.com/?key=${LEGISCAN_API_KEY}&op=getBillText&id=${version.doc_id}`;
+          console.log(`Fetching text for version ${version.doc_id} (${version.type})`);
+          
+          const textResponse = await fetch(textUrl);
+          const textData = await textResponse.json();
+          
+          if (textData.status !== 'OK' || !textData.text) {
+            console.warn(`Could not fetch text for version ${version.doc_id}`);
+            return {
+              ...version,
+              sections: [{
+                title: "Full text",
+                content: "Could not load text content for this version."
+              }]
+            };
+          }
+          
+          // Decode base64 text content
+          let textContent;
+          try {
+            const base64Text = textData.text.doc;
+            textContent = new TextDecoder().decode(
+              Uint8Array.from(atob(base64Text), c => c.charCodeAt(0))
+            );
+          } catch (e) {
+            console.error(`Error decoding text for version ${version.doc_id}:`, e);
+            textContent = "Error decoding text content.";
+          }
+          
+          // For simplicity, we're treating each version as a single section
+          return {
+            ...version,
+            sections: [{
+              title: "Full text",
+              content: textContent
+            }]
+          };
+        } catch (error) {
+          console.error(`Error processing version ${version.doc_id}:`, error);
+          return {
+            ...version,
+            sections: [{
+              title: "Error",
+              content: `Error loading content: ${error.message}`
+            }]
+          };
         }
-        
-        // For simplicity, we're treating each version as a single section
-        return {
-          ...version,
-          sections: [{
-            title: "Full text",
-            content: textContent
-          }]
-        };
-      } catch (error) {
-        console.error(`Error processing version ${version.doc_id}:`, error);
-        return {
-          ...version,
-          sections: [{
-            title: "Error",
-            content: `Error loading content: ${error.message}`
-          }]
-        };
-      }
-    }));
-    
-    return new Response(
-      JSON.stringify({ versions: processedVersions }),
-      {
-        headers: {
-          'Content-Type': 'application/json',
-          ...corsHeaders
+      }));
+      
+      return new Response(
+        JSON.stringify({ versions: processedVersions }),
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            ...corsHeaders
+          }
         }
+      );
+    } catch (error) {
+      clearTimeout(timeoutId);
+      
+      // Check if we aborted due to timeout
+      if (error.name === 'AbortError') {
+        console.error('Request to LegiScan API timed out');
+        return new Response(
+          JSON.stringify({ 
+            error: 'Request timed out',
+            message: 'The request to LegiScan timed out after 8 seconds.'
+          }),
+          {
+            status: 408,
+            headers: {
+              'Content-Type': 'application/json',
+              ...corsHeaders
+            }
+          }
+        );
       }
-    );
-
+      
+      throw error;
+    }
   } catch (error) {
     console.error('Error in get-bill-versions function:', error);
     return new Response(
