@@ -6,6 +6,7 @@ import VersionSelector from "@/components/version-comparison/VersionSelector";
 import VisualDiffView from "@/components/version-comparison/VisualDiffView";
 import SideBySideView from "@/components/version-comparison/SideBySideView";
 import { Skeleton } from "@/components/ui/skeleton";
+import { AlertCircle } from "lucide-react";
 
 interface VersionComparisonProps {
   versions: BillVersion[];
@@ -17,6 +18,7 @@ const VersionComparison = ({ versions, displayMode = "side-by-side", className =
   const [leftVersionId, setLeftVersionId] = useState("");
   const [rightVersionId, setRightVersionId] = useState("");
   const [isLoading, setIsLoading] = useState(true);
+  const [contentWarning, setContentWarning] = useState<string | null>(null);
   
   // Set the default versions when the versions array changes
   useEffect(() => {
@@ -27,11 +29,36 @@ const VersionComparison = ({ versions, displayMode = "side-by-side", className =
       
       setLeftVersionId(firstVersionId);
       setRightVersionId(secondVersionId);
+      
+      // Check if versions have content
+      const noContentWarning = validateVersionsHaveContent(versions);
+      setContentWarning(noContentWarning);
+      
       setIsLoading(false);
     } else {
       setIsLoading(false);
     }
   }, [versions]);
+
+  const validateVersionsHaveContent = (versions: BillVersion[]): string | null => {
+    if (!versions || versions.length === 0) return "No versions available";
+    
+    // Check the first two versions which are typically selected by default
+    const versionsToCheck = versions.slice(0, Math.min(2, versions.length));
+    
+    const versionsWithoutContent = versionsToCheck.filter(version => {
+      return !version.sections || !version.sections.some(section => 
+        section.content && section.content.trim().length > 0
+      );
+    });
+    
+    if (versionsWithoutContent.length > 0) {
+      const missingContentVersions = versionsWithoutContent.map(v => v.name).join(", ");
+      return `Missing content in versions: ${missingContentVersions}`;
+    }
+    
+    return null;
+  };
 
   const leftVersion = versions.find((v) => v.id === leftVersionId);
   const rightVersion = versions.find((v) => v.id === rightVersionId);
@@ -53,6 +80,16 @@ const VersionComparison = ({ versions, displayMode = "side-by-side", className =
         setLeftVersionId={setLeftVersionId}
         setRightVersionId={setRightVersionId}
       />
+
+      {contentWarning && (
+        <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded text-sm flex items-start">
+          <AlertCircle className="text-amber-500 h-5 w-5 mr-2 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="font-medium text-amber-800">Content Warning</p>
+            <p className="text-amber-700">{contentWarning}</p>
+          </div>
+        </div>
+      )}
 
       {isLoading ? (
         <div className="mt-8 space-y-4">

@@ -15,11 +15,36 @@ export const isHtmlContent = (content: string): boolean => {
  * Limits content size to prevent performance issues
  */
 export const safeContentSize = (content: string, maxSize: number = 50000) => {
-  if (content && content.length > maxSize) {
+  if (!content) return "No content available";
+  
+  if (content.length > maxSize) {
+    console.warn(`Content truncated from ${content.length} to ${maxSize} characters`);
     return content.substring(0, maxSize) + 
       " ... [Content truncated to prevent performance issues]";
   }
   return content;
+};
+
+/**
+ * Checks if the content is meaningful (not empty or placeholder)
+ */
+export const hasValidContent = (content: string): boolean => {
+  if (!content) return false;
+  
+  const trimmedContent = content.trim();
+  if (trimmedContent.length < 10) return false;
+  
+  const placeholderTexts = [
+    "no content available",
+    "could not load",
+    "error loading",
+    "not available",
+    "no text content"
+  ];
+  
+  return !placeholderTexts.some(placeholder => 
+    trimmedContent.toLowerCase().includes(placeholder)
+  );
 };
 
 /**
@@ -30,17 +55,22 @@ export const renderHighlightedText = (leftContent: string, rightContent: string)
   rightHighlighted: React.ReactNode;
   hasDifferences: boolean;
 } => {
+  // Handle null or undefined content
+  const safeLeftContent = leftContent || "No content available";
+  const safeRightContent = rightContent || "No content available";
+  
   // Only run diff on reasonably sized content to prevent performance issues
-  if (leftContent.length > 50000 || rightContent.length > 50000) {
+  if (safeLeftContent.length > 50000 || safeRightContent.length > 50000) {
+    console.warn("Content too large for diff, skipping highlighting");
     return {
-      leftHighlighted: React.createElement("span", {}, leftContent),
-      rightHighlighted: React.createElement("span", {}, rightContent),
-      hasDifferences: leftContent !== rightContent
+      leftHighlighted: React.createElement("span", {}, safeLeftContent),
+      rightHighlighted: React.createElement("span", {}, safeRightContent),
+      hasDifferences: safeLeftContent !== safeRightContent
     };
   }
 
   // Use diffChars for character-level diff (more precise than diffWords)
-  const changes = diffChars(leftContent, rightContent);
+  const changes = diffChars(safeLeftContent, safeRightContent);
 
   // Process left content (removals)
   const leftHighlighted = React.createElement(

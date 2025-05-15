@@ -16,7 +16,7 @@ serve(async (req) => {
   }
 
   try {
-    const { billId, state = 'IL' } = await req.json();
+    const { billId, state = 'IL', includeText = true } = await req.json();
     
     if (!billId) {
       return new Response(
@@ -34,7 +34,7 @@ serve(async (req) => {
       );
     }
 
-    console.log(`Fetching versions for bill ID: ${billId}, state: ${state}`);
+    console.log(`Fetching versions for bill ID: ${billId}, state: ${state}, includeText: ${includeText}`);
     
     if (!LEGISCAN_API_KEY) {
       console.error('LEGISCAN_API_KEY environment variable not set');
@@ -57,7 +57,7 @@ serve(async (req) => {
     const url = `https://api.legiscan.com/?key=${LEGISCAN_API_KEY}&op=getBill&id=${billId}&state=${state}`;
     
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 8000);
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
     
     try {
       const response = await fetch(url, { signal: controller.signal });
@@ -94,71 +94,102 @@ serve(async (req) => {
         );
       }
       
+      // Check for specific version types (introduced, engrossed, etc.)
+      const versionTypes = versions.map(v => v.type).join(", ");
+      console.log(`Version types for bill ${billId}: ${versionTypes}`);
+      
       // For each version, we need to fetch the full text content
-      const processedVersions = await Promise.all(versions.map(async (version) => {
-        try {
-          if (!version.doc_id) {
-            return {
-              ...version,
-              sections: [{
-                title: "Full text",
-                content: "No text content available for this version."
-              }]
-            };
-          }
-          
-          // Fetch the text content for this version
-          const textUrl = `https://api.legiscan.com/?key=${LEGISCAN_API_KEY}&op=getBillText&id=${version.doc_id}`;
-          console.log(`Fetching text for version ${version.doc_id} (${version.type})`);
-          
-          const textResponse = await fetch(textUrl);
-          const textData = await textResponse.json();
-          
-          if (textData.status !== 'OK' || !textData.text) {
-            console.warn(`Could not fetch text for version ${version.doc_id}`);
-            return {
-              ...version,
-              sections: [{
-                title: "Full text",
-                content: "Could not load text content for this version."
-              }]
-            };
-          }
-          
-          // Decode base64 text content
-          let textContent;
+      const processedVersions = includeText ? 
+        await Promise.all(versions.map(async (version) => {
           try {
-            const base64Text = textData.text.doc;
-            textContent = new TextDecoder().decode(
-              Uint8Array.from(atob(base64Text), c => c.charCodeAt(0))
-            );
-          } catch (e) {
-            console.error(`Error decoding text for version ${version.doc_id}:`, e);
-            textContent = "Error decoding text content.";
+            if (!version.doc_id) {
+              return {
+                ...version,
+                sections: [{
+                  title: "Full text",
+                  content: "No text content available for this version."
+                }]
+              };
+            }
+            
+            // Fetch the text content for this version
+            const textUrl = `https://api.legiscan.com/?key=${LEGISCAN_API_KEY}&op=getBillText&id=${version.doc_id}`;
+            console.log(`Fetching text for version ${version.doc_id} (${version.type})`);
+            
+            const textResponse = await fetch(textUrl);
+            const textData = await textResponse.json();
+            
+            if (textData.status !== 'OK' || !textData.text) {
+              console.warn(`Could not fetch text for version ${version.doc_id}`);
+              return {
+                ...version,
+                sections: [{
+                  title: "Full text",
+                  content: "Could not load text content for this version."
+                }]
+              };
+            }
+            
+            // Decode base64 text content
+            let textContent;
+            try {
+              const base64Text = textData.text.doc;
+              textContent = new TextDecoder().decode(
+                Uint8Array.from(atob(base64Text), c => c.charCodeAt(0))
+              );
+              
+              // Check if we have content
+              if (!textContent || textContent.trim().length < 10) {
+                console.warn(`Empty or very short content for version ${version.doc_id}`);
+              } else {
+                console.log(`Successfully decoded content for version ${version.doc_id}, length: ${textContent.length}`);
+              }
+              
+            } catch (e) {
+              console.error(`Error decoding text for version ${version.doc_id}:`, e);
+              textContent = "Error decoding text content.";
+            }
+            
+            // For simplicity, we're treating each version as a single section
+            return {
+              ...version,
+              sections: [{
+                title: "Full text",
+                content: textContent
+              }]
+            };
+          } catch (error) {
+            console.error(`Error processing version ${version.doc_id}:`, error);
+            return {
+              ...version,
+              sections: [{
+                title: "Error",
+                content: `Error loading content: ${error.message}`
+              }]
+            };
           }
-          
-          // For simplicity, we're treating each version as a single section
-          return {
-            ...version,
-            sections: [{
-              title: "Full text",
-              content: textContent
-            }]
-          };
-        } catch (error) {
-          console.error(`Error processing version ${version.doc_id}:`, error);
-          return {
-            ...version,
-            sections: [{
-              title: "Error",
-              content: `Error loading content: ${error.message}`
-            }]
-          };
-        }
-      }));
+        })) : 
+        // If includeText is false, just return the version metadata
+        versions.map(version => ({
+          ...version,
+          sections: [{
+            title: "Full text",
+            content: "Text content not requested."
+          }]
+        }));
+      
+      // Verify which versions have content
+      const versionsWithContent = processedVersions.filter(v => 
+        v.sections && v.sections.some(s => s.content && s.content.trim().length > 10)
+      ).length;
+      
+      console.log(`Returning ${processedVersions.length} processed versions, ${versionsWithContent} with content`);
       
       return new Response(
-        JSON.stringify({ versions: processedVersions }),
+        JSON.stringify({ 
+          versions: processedVersions,
+          versionsWithContent
+        }),
         {
           headers: {
             'Content-Type': 'application/json',
@@ -175,7 +206,7 @@ serve(async (req) => {
         return new Response(
           JSON.stringify({ 
             error: 'Request timed out',
-            message: 'The request to LegiScan timed out after 8 seconds.'
+            message: 'The request to LegiScan timed out after 10 seconds.'
           }),
           {
             status: 408,
