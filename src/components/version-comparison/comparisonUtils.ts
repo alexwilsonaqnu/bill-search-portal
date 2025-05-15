@@ -1,6 +1,7 @@
 
 import { diffWords, diffChars } from "diff";
 import { BillSection } from "@/types";
+import React from "react";
 
 /**
  * Determines if content contains HTML
@@ -24,7 +25,11 @@ export const safeContentSize = (content: string, maxSize: number = 50000) => {
 /**
  * Highlights differences between two text contents
  */
-export const renderHighlightedText = (leftContent: string, rightContent: string) => {
+export const renderHighlightedText = (leftContent: string, rightContent: string): {
+  leftHighlighted: React.ReactNode;
+  rightHighlighted: React.ReactNode;
+  hasDifferences: boolean;
+} => {
   // Only run diff on reasonably sized content to prevent performance issues
   if (leftContent.length > 50000 || rightContent.length > 50000) {
     return {
