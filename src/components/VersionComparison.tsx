@@ -2,11 +2,12 @@
 import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { BillVersion } from "@/types";
-import VersionSelector from "@/components/version-comparison/VersionSelector";
-import VisualDiffView from "@/components/version-comparison/VisualDiffView";
-import SideBySideView from "@/components/version-comparison/SideBySideView";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AlertCircle } from "lucide-react";
+import VersionSelector from "./version-comparison/selectors/VersionSelector";
+import VisualDiffView from "./version-comparison/views/VisualDiffView";
+import SideBySideView from "./version-comparison/views/SideBySideView";
+import ContentWarning from "./version-comparison/ContentWarning";
+import { validateVersionsHaveContent, getDefaultVersionSelections } from "./version-comparison/utils/versionUtils";
 
 interface VersionComparisonProps {
   versions: BillVersion[];
@@ -24,8 +25,7 @@ const VersionComparison = ({ versions, displayMode = "side-by-side", className =
   useEffect(() => {
     if (versions && versions.length) {
       // Set default selections when versions load
-      const firstVersionId = versions[0]?.id || "";
-      const secondVersionId = versions.length > 1 ? versions[1].id : versions[0]?.id || "";
+      const { firstVersionId, secondVersionId } = getDefaultVersionSelections(versions);
       
       setLeftVersionId(firstVersionId);
       setRightVersionId(secondVersionId);
@@ -39,26 +39,6 @@ const VersionComparison = ({ versions, displayMode = "side-by-side", className =
       setIsLoading(false);
     }
   }, [versions]);
-
-  const validateVersionsHaveContent = (versions: BillVersion[]): string | null => {
-    if (!versions || versions.length === 0) return "No versions available";
-    
-    // Check the first two versions which are typically selected by default
-    const versionsToCheck = versions.slice(0, Math.min(2, versions.length));
-    
-    const versionsWithoutContent = versionsToCheck.filter(version => {
-      return !version.sections || !version.sections.some(section => 
-        section.content && section.content.trim().length > 0
-      );
-    });
-    
-    if (versionsWithoutContent.length > 0) {
-      const missingContentVersions = versionsWithoutContent.map(v => v.name).join(", ");
-      return `Missing content in versions: ${missingContentVersions}`;
-    }
-    
-    return null;
-  };
 
   const leftVersion = versions.find((v) => v.id === leftVersionId);
   const rightVersion = versions.find((v) => v.id === rightVersionId);
@@ -81,15 +61,7 @@ const VersionComparison = ({ versions, displayMode = "side-by-side", className =
         setRightVersionId={setRightVersionId}
       />
 
-      {contentWarning && (
-        <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded text-sm flex items-start">
-          <AlertCircle className="text-amber-500 h-5 w-5 mr-2 flex-shrink-0 mt-0.5" />
-          <div>
-            <p className="font-medium text-amber-800">Content Warning</p>
-            <p className="text-amber-700">{contentWarning}</p>
-          </div>
-        </div>
-      )}
+      <ContentWarning warning={contentWarning} />
 
       {isLoading ? (
         <div className="mt-8 space-y-4">

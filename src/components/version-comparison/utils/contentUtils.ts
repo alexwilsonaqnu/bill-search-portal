@@ -48,6 +48,18 @@ export const hasValidContent = (content: string): boolean => {
 };
 
 /**
+ * Gets all unique section IDs from both section arrays
+ */
+export const getAllSectionIds = (leftSections: BillSection[], rightSections: BillSection[]) => {
+  return Array.from(
+    new Set([
+      ...leftSections.map((s) => s.id),
+      ...rightSections.map((s) => s.id),
+    ])
+  );
+};
+
+/**
  * Highlights differences between two text contents
  */
 export const renderHighlightedText = (leftContent: string, rightContent: string): {
@@ -115,16 +127,4 @@ export const renderHighlightedText = (leftContent: string, rightContent: string)
     rightHighlighted,
     hasDifferences: changes.some(c => c.added || c.removed)
   };
-};
-
-/**
- * Gets all unique section IDs from both section arrays
- */
-export const getAllSectionIds = (leftSections: BillSection[], rightSections: BillSection[]) => {
-  return Array.from(
-    new Set([
-      ...leftSections.map((s) => s.id),
-      ...rightSections.map((s) => s.id),
-    ])
-  );
 };
