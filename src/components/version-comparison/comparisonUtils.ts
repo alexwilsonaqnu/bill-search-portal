@@ -33,8 +33,8 @@ export const renderHighlightedText = (leftContent: string, rightContent: string)
   // Only run diff on reasonably sized content to prevent performance issues
   if (leftContent.length > 50000 || rightContent.length > 50000) {
     return {
-      leftHighlighted: <span>{leftContent}</span>,
-      rightHighlighted: <span>{rightContent}</span>,
+      leftHighlighted: React.createElement("span", {}, leftContent),
+      rightHighlighted: React.createElement("span", {}, rightContent),
       hasDifferences: leftContent !== rightContent
     };
   }
@@ -43,41 +43,41 @@ export const renderHighlightedText = (leftContent: string, rightContent: string)
   const changes = diffChars(leftContent, rightContent);
 
   // Process left content (removals)
-  const leftHighlighted = (
-    <span>
-      {changes.map((change, i) => {
-        if (change.removed || !change.added) {
-          return (
-            <span 
-              key={i} 
-              className={change.removed ? "bg-red-100" : ""}
-            >
-              {change.value}
-            </span>
-          );
-        }
-        return null;
-      })}
-    </span>
+  const leftHighlighted = React.createElement(
+    "span",
+    {},
+    ...changes.map((change, i) => {
+      if (change.removed || !change.added) {
+        return React.createElement(
+          "span",
+          {
+            key: i,
+            className: change.removed ? "bg-red-100" : ""
+          },
+          change.value
+        );
+      }
+      return null;
+    }).filter(Boolean)
   );
 
   // Process right content (additions)
-  const rightHighlighted = (
-    <span>
-      {changes.map((change, i) => {
-        if (change.added || !change.removed) {
-          return (
-            <span 
-              key={i} 
-              className={change.added ? "bg-green-100" : ""}
-            >
-              {change.value}
-            </span>
-          );
-        }
-        return null;
-      })}
-    </span>
+  const rightHighlighted = React.createElement(
+    "span",
+    {},
+    ...changes.map((change, i) => {
+      if (change.added || !change.removed) {
+        return React.createElement(
+          "span",
+          {
+            key: i,
+            className: change.added ? "bg-green-100" : ""
+          },
+          change.value
+        );
+      }
+      return null;
+    }).filter(Boolean)
   );
 
   return { 
