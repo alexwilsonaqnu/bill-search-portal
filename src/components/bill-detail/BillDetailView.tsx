@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { ChevronLeft } from "lucide-react";
@@ -12,6 +11,7 @@ import BillTextContainer from "./BillTextContainer";
 import KeyInsightsCard from "./KeyInsightsCard";
 import ChatToggle from "./ChatToggle";
 import BillChat from "./BillChat";
+import AmendmentsIndex from "./statutory/AmendmentsIndex";
 
 interface BillDetailViewProps {
   bill: Bill;
@@ -91,6 +91,13 @@ const BillDetailView = ({ bill }: BillDetailViewProps) => {
               selectedTool={selectedTool}
               setSelectedTool={setSelectedTool}
             />
+            
+            {/* New Amendments Index Container for Statutory Effects */}
+            {selectedTool === "statutory-effects" && (
+              <div className="mt-6">
+                {/* This will be populated by the StatutoryEffectsAnalyzer */}
+              </div>
+            )}
             
             <BillNotificationSignup bill={bill} />
           </div>
