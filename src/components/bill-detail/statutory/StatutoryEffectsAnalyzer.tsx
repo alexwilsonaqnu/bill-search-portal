@@ -16,13 +16,30 @@ const StatutoryEffectsAnalyzer = ({ bill }: StatutoryEffectsAnalyzerProps) => {
 
   useEffect(() => {
     const analyzeBill = () => {
-      // Get bill text from various possible sources
-      const billText = bill.text || 
-        (bill.data?.text) || 
-        (bill.versions && bill.versions.length > 0 ? 
-          bill.versions[0].sections[0]?.content : "") || "";
+      // Get bill text from various possible sources with better logging
+      let billText = "";
+      
+      if (bill.text && bill.text.trim().length > 0) {
+        billText = bill.text;
+        console.log('Using bill.text');
+      } else if (bill.data?.text && bill.data.text.trim().length > 0) {
+        billText = bill.data.text;
+        console.log('Using bill.data.text');
+      } else if (bill.versions && bill.versions.length > 0) {
+        const versionWithContent = bill.versions.find(v => 
+          v.sections && v.sections.length > 0 && v.sections[0].content
+        );
+        if (versionWithContent) {
+          billText = versionWithContent.sections[0].content;
+          console.log('Using bill.versions content');
+        }
+      }
 
-      if (!billText) {
+      console.log('Bill text source found:', billText.length > 0);
+      console.log('First 200 chars:', billText.substring(0, 200));
+
+      if (!billText || billText.trim().length === 0) {
+        console.log('No bill text available for statutory analysis');
         setHasAmendments(false);
         setAmendments([]);
         return;

@@ -19,11 +19,22 @@ export function detectStatutoryAmendments(billText: string): boolean {
     "changing section",
     "amending section", 
     "by changing section",
-    "by amending section"
+    "by amending section",
+    "is amended by changing",
+    "is amended by adding",
+    "is amended by deleting"
   ];
   
   const lowerText = billText.toLowerCase();
-  return amendmentPhrases.some(phrase => lowerText.includes(phrase));
+  const hasAmendmentPhrase = amendmentPhrases.some(phrase => lowerText.includes(phrase));
+  const hasILCS = lowerText.includes('ilcs');
+  
+  console.log('Bill text length:', billText.length);
+  console.log('Has amendment phrase:', hasAmendmentPhrase);
+  console.log('Has ILCS:', hasILCS);
+  console.log('Sample text:', billText.substring(0, 500));
+  
+  return hasAmendmentPhrase && hasILCS;
 }
 
 /**
@@ -35,17 +46,20 @@ export function extractAmendments(billText: string): StatutoryAmendment[] {
   
   let currentAmendment: Partial<StatutoryAmendment> | null = null;
   let amendmentCounter = 0;
+  let isInAmendmentSection = false;
+  
+  console.log('Extracting amendments from', lines.length, 'lines');
   
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
     const lowerLine = line.toLowerCase();
     
-    // Look for ILCS citations
-    const ilcsMatch = line.match(/(\d+)\s+ILCS\s+(\d+\/[\d\-\.]+)/i);
+    // Look for ILCS citations with various amendment patterns
+    const ilcsMatch = line.match(/(\d+)\s+ILCS\s+(\d+[\/\-\d\.]*)/i);
     
-    if (ilcsMatch && lowerLine.includes('changing section')) {
+    if (ilcsMatch && (lowerLine.includes('changing') || lowerLine.includes('amending') || lowerLine.includes('amended'))) {
       // Start a new amendment
-      if (currentAmendment) {
+      if (currentAmendment && currentAmendment.proposedText) {
         amendments.push(currentAmendment as StatutoryAmendment);
       }
       
@@ -60,16 +74,27 @@ export function extractAmendments(billText: string): StatutoryAmendment[] {
         section,
         proposedText: ''
       };
-    } else if (currentAmendment && line.trim() !== '') {
-      // Add to proposed text
-      currentAmendment.proposedText += line + '\n';
+      
+      isInAmendmentSection = true;
+      console.log('Found amendment:', currentAmendment.citation);
+    } else if (currentAmendment && isInAmendmentSection) {
+      // Check if we've reached the end of this amendment section
+      if (line.trim() === '' && lines[i + 1] && lines[i + 1].match(/Section \d+/i)) {
+        isInAmendmentSection = false;
+      } else if (line.trim() !== '') {
+        // Add to proposed text
+        currentAmendment.proposedText += line + '\n';
+      }
     }
   }
   
   // Add the last amendment if exists
-  if (currentAmendment) {
+  if (currentAmendment && currentAmendment.proposedText) {
     amendments.push(currentAmendment as StatutoryAmendment);
   }
+  
+  console.log('Extracted', amendments.length, 'amendments');
+  amendments.forEach(a => console.log('Amendment:', a.citation, 'Text length:', a.proposedText.length));
   
   return amendments.map(amendment => ({
     ...amendment,
@@ -112,10 +137,6 @@ export async function fetchCurrentStatuteText(chapter: string, section: string):
   }
 }
 
-/**
- * Simple text-based diff algorithm (can be replaced with more sophisticated versions)
- * This function location: src/services/statutoryAnalysis.ts -> generateTextDiff
- */
 export function generateTextDiff(originalText: string, proposedText: string): string {
   const originalLines = originalText.split('\n');
   const proposedLines = proposedText.split('\n');
