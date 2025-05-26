@@ -88,64 +88,82 @@ export function extractAmendments(billText: string): StatutoryAmendment[] {
   console.log('Clean text length:', cleanText.length);
   console.log('Clean text sample:', cleanText.substring(0, 500));
   
-  const lines = cleanText.split('\n');
+  // More flexible approach: look for ILCS patterns throughout the text
+  // and capture context around them
+  const ilcsPattern = /(\d+)\s+ILCS\s+([\d\/\-\.]+)/gi;
+  const amendmentKeywords = /(?:changing|amending|amended|by changing|by amending|is amended)/gi;
   
-  let currentAmendment: Partial<StatutoryAmendment> | null = null;
+  let match;
   let amendmentCounter = 0;
-  let isInAmendmentSection = false;
   
-  console.log('Extracting amendments from', lines.length, 'lines of cleaned text');
+  console.log('Starting pattern-based extraction...');
   
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    const lowerLine = line.toLowerCase();
+  // Find all ILCS citations first
+  while ((match = ilcsPattern.exec(cleanText)) !== null) {
+    const fullMatch = match[0];
+    const chapter = match[1];
+    const section = match[2];
+    const matchStart = match.index;
+    const matchEnd = match.index + fullMatch.length;
     
-    // Look for ILCS citations with various amendment patterns
-    const ilcsMatch = line.match(/(\d+)\s+ILCS\s+(\d+[\/\-\d\.]*)/i);
+    console.log(`Found ILCS citation: ${fullMatch} at position ${matchStart}`);
     
-    if (ilcsMatch && (lowerLine.includes('changing') || lowerLine.includes('amending') || lowerLine.includes('amended'))) {
-      // Start a new amendment
-      if (currentAmendment && currentAmendment.proposedText) {
-        amendments.push(currentAmendment as StatutoryAmendment);
+    // Look for amendment keywords in a window around this ILCS citation
+    const windowStart = Math.max(0, matchStart - 200);
+    const windowEnd = Math.min(cleanText.length, matchEnd + 200);
+    const contextWindow = cleanText.substring(windowStart, windowEnd);
+    
+    // Check if amendment keywords appear in this context
+    if (amendmentKeywords.test(contextWindow)) {
+      amendmentCounter++;
+      console.log(`Amendment context found for ${fullMatch}`);
+      
+      // Extract proposed text - look for text after the ILCS citation
+      // until we hit another section or the end
+      const afterCitation = cleanText.substring(matchEnd);
+      const lines = afterCitation.split('\n');
+      
+      let proposedText = '';
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+        
+        // Stop if we hit another section or legislative marker
+        if (line.match(/^Section \d+/i) || 
+            line.match(/^\d+ ILCS/i) ||
+            line.length === 0) {
+          break;
+        }
+        
+        proposedText += line + '\n';
+        
+        // Limit to reasonable length
+        if (proposedText.length > 2000) {
+          break;
+        }
       }
       
-      amendmentCounter++;
-      const chapter = ilcsMatch[1];
-      const section = ilcsMatch[2];
-      
-      currentAmendment = {
-        id: `amendment-${amendmentCounter}`,
-        citation: `${chapter} ILCS ${section}`,
-        chapter,
-        section,
-        proposedText: ''
-      };
-      
-      isInAmendmentSection = true;
-      console.log('Found amendment:', currentAmendment.citation);
-    } else if (currentAmendment && isInAmendmentSection) {
-      // Check if we've reached the end of this amendment section
-      if (line.trim() === '' && lines[i + 1] && lines[i + 1].match(/Section \d+/i)) {
-        isInAmendmentSection = false;
-      } else if (line.trim() !== '') {
-        // Add to proposed text
-        currentAmendment.proposedText += line + '\n';
+      if (proposedText.trim().length > 0) {
+        const amendment: StatutoryAmendment = {
+          id: `amendment-${amendmentCounter}`,
+          citation: `${chapter} ILCS ${section}`,
+          chapter,
+          section,
+          proposedText: proposedText.trim()
+        };
+        
+        amendments.push(amendment);
+        console.log(`Created amendment: ${amendment.citation}, text length: ${amendment.proposedText.length}`);
       }
     }
-  }
-  
-  // Add the last amendment if exists
-  if (currentAmendment && currentAmendment.proposedText) {
-    amendments.push(currentAmendment as StatutoryAmendment);
+    
+    // Reset regex position to continue searching
+    amendmentKeywords.lastIndex = 0;
   }
   
   console.log('Extracted', amendments.length, 'amendments');
   amendments.forEach(a => console.log('Amendment:', a.citation, 'Text length:', a.proposedText.length));
   
-  return amendments.map(amendment => ({
-    ...amendment,
-    proposedText: amendment.proposedText.trim()
-  }));
+  return amendments;
 }
 
 /**
