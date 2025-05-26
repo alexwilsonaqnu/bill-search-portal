@@ -40,13 +40,12 @@ export function detectStatutoryAmendments(billText: string): boolean {
  * Strips HTML tags while preserving formatting semantics and document structure for statutory changes
  */
 function stripHtmlAndPreserveFormatting(htmlText: string): string {
-  // Replace underlined text with [ADDITION] markers
-  let text = htmlText.replace(/<u[^>]*>(.*?)<\/u>/gi, '[ADDITION]$1[/ADDITION]');
-  
-  // Replace strikethrough text with [DELETION] markers
-  text = text.replace(/<s[^>]*>(.*?)<\/s>/gi, '[DELETION]$1[/DELETION]');
-  text = text.replace(/<strike[^>]*>(.*?)<\/strike>/gi, '[DELETION]$1[/DELETION]');
-  text = text.replace(/<del[^>]*>(.*?)<\/del>/gi, '[DELETION]$1[/DELETION]');
+  // First, remove the underlined and strikethrough content but preserve the actual text content
+  // We don't want to mark additions/deletions here since the diff generator will handle that
+  let text = htmlText.replace(/<u[^>]*>(.*?)<\/u>/gi, '$1');
+  text = text.replace(/<s[^>]*>(.*?)<\/s>/gi, '$1');
+  text = text.replace(/<strike[^>]*>(.*?)<\/strike>/gi, '$1');
+  text = text.replace(/<del[^>]*>(.*?)<\/del>/gi, '$1');
   
   // Convert structural HTML elements to line breaks to preserve document structure
   text = text.replace(/<\/?(p|div|section|article|h[1-6])[^>]*>/gi, '\n');
@@ -72,6 +71,12 @@ function stripHtmlAndPreserveFormatting(htmlText: string): string {
   text = text.replace(/\n\s+/g, '\n'); // Remove spaces at beginning of lines
   text = text.replace(/\s+\n/g, '\n'); // Remove spaces at end of lines
   text = text.replace(/\n{3,}/g, '\n\n'); // Replace multiple consecutive line breaks with double
+  
+  // Remove standalone numbers that appear between lines (these are often line numbers from HTML tables)
+  text = text.replace(/\n\s*\d+\s*\n/g, '\n');
+  text = text.replace(/^\s*\d+\s*\n/g, ''); // Remove numbers at start
+  text = text.replace(/\n\s*\d+\s*$/g, ''); // Remove numbers at end
+  
   text = text.trim();
   
   return text;
