@@ -11,14 +11,12 @@ interface StatutoryDiffDisplayProps {
 
 const StatutoryDiffDisplay = ({ amendment }: StatutoryDiffDisplayProps) => {
   const [currentText, setCurrentText] = useState<string | null>(null);
-  const [diffHtml, setDiffHtml] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!amendment) {
       setCurrentText(null);
-      setDiffHtml("");
       return;
     }
 
@@ -30,10 +28,7 @@ const StatutoryDiffDisplay = ({ amendment }: StatutoryDiffDisplayProps) => {
         const text = await fetchCurrentStatuteText(amendment.chapter, amendment.section);
         setCurrentText(text);
         
-        if (text) {
-          const diff = generateTextDiff(text, amendment.proposedText);
-          setDiffHtml(diff);
-        } else {
+        if (!text) {
           setError("Current statute text not found in database");
         }
       } catch (err) {
@@ -59,6 +54,23 @@ const StatutoryDiffDisplay = ({ amendment }: StatutoryDiffDisplayProps) => {
     );
   }
 
+  if (isLoading) {
+    return (
+      <Card className="bg-white rounded-lg border shadow-sm">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-lg">{amendment.citation}</CardTitle>
+          <p className="text-sm text-gray-600">Statutory Changes</p>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="h-6 w-6 animate-spin" />
+            <span className="ml-2">Loading current statute text...</span>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card className="bg-white rounded-lg border shadow-sm">
       <CardHeader className="pb-2">
@@ -66,38 +78,52 @@ const StatutoryDiffDisplay = ({ amendment }: StatutoryDiffDisplayProps) => {
         <p className="text-sm text-gray-600">Statutory Changes</p>
       </CardHeader>
       <CardContent>
-        {isLoading ? (
-          <div className="flex items-center justify-center py-8">
-            <Loader2 className="h-6 w-6 animate-spin" />
-            <span className="ml-2">Loading current statute text...</span>
-          </div>
-        ) : error ? (
-          <div className="text-center py-8">
+        {error ? (
+          <div className="text-center py-4">
             <div className="text-red-600 mb-2">{error}</div>
-            <div className="text-sm text-gray-500">
+            <div className="text-sm text-gray-500 mb-4">
               Showing proposed text only:
             </div>
-            <ScrollArea className="h-64 mt-4">
-              <div className="prose max-w-none text-sm whitespace-pre-line">
-                {amendment.proposedText}
-              </div>
-            </ScrollArea>
+            <div className="bg-gray-50 rounded-lg p-4">
+              <ScrollArea className="h-64">
+                <div className="prose max-w-none text-sm whitespace-pre-line">
+                  {amendment.proposedText}
+                </div>
+              </ScrollArea>
+            </div>
           </div>
         ) : (
-          <ScrollArea className="h-64">
-            <div className="prose max-w-none text-sm">
-              <div className="mb-4 text-xs text-gray-600">
-                <span className="inline-block w-4 h-4 bg-red-100 border border-red-200 mr-2"></span>
-                Deletions
-                <span className="inline-block w-4 h-4 bg-green-100 border border-green-200 mr-2 ml-4"></span>
-                Additions
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Current Text Column */}
+            <div className="space-y-2">
+              <div className="flex items-center space-x-2">
+                <div className="w-4 h-4 bg-red-100 border border-red-200 rounded"></div>
+                <h3 className="text-sm font-semibold text-gray-700">Current Statute</h3>
               </div>
-              <div 
-                dangerouslySetInnerHTML={{ __html: diffHtml }}
-                className="font-mono text-xs leading-relaxed"
-              />
+              <div className="bg-red-50 border border-red-200 rounded-lg">
+                <ScrollArea className="h-64 p-4">
+                  <div className="prose max-w-none text-sm whitespace-pre-line text-gray-800">
+                    {currentText || "No current text available"}
+                  </div>
+                </ScrollArea>
+              </div>
             </div>
-          </ScrollArea>
+
+            {/* Proposed Text Column */}
+            <div className="space-y-2">
+              <div className="flex items-center space-x-2">
+                <div className="w-4 h-4 bg-green-100 border border-green-200 rounded"></div>
+                <h3 className="text-sm font-semibold text-gray-700">Proposed Changes</h3>
+              </div>
+              <div className="bg-green-50 border border-green-200 rounded-lg">
+                <ScrollArea className="h-64 p-4">
+                  <div className="prose max-w-none text-sm whitespace-pre-line text-gray-800">
+                    {amendment.proposedText}
+                  </div>
+                </ScrollArea>
+              </div>
+            </div>
+          </div>
         )}
       </CardContent>
     </Card>
