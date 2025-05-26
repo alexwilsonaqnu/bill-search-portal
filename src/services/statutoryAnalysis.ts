@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 export interface StatutoryAmendment {
@@ -239,46 +238,108 @@ export async function fetchCurrentStatuteText(chapter: string, section: string):
     // Look for the specific section - try different approaches
     console.log(`Looking for section ${section} in chapter ${chapter}`);
     
-    // Approach 1: Direct section lookup
-    if (ilcsData[section]) {
-      console.log(`Found section ${section} directly`);
-      const sectionData = ilcsData[section];
-      return typeof sectionData === 'string' ? sectionData : sectionData?.text || null;
-    }
+    // Helper function to extract text from section data
+    const extractSectionText = (sectionData: any): string | null => {
+      if (typeof sectionData === 'string') {
+        return sectionData;
+      }
+      if (typeof sectionData === 'object' && sectionData !== null) {
+        // Try common text field names
+        return sectionData.text || sectionData.content || sectionData.body || null;
+      }
+      return null;
+    };
     
-    // Approach 2: Look for section within nested objects
-    for (const key in ilcsData) {
-      const value = ilcsData[key];
+    // Approach 1: Look for chapter key first, then section within it
+    const chapterKey = `${chapter}ILCS${section.split('/')[0]}`;
+    console.log(`Trying chapter key: ${chapterKey}`);
+    
+    if (ilcsData[chapterKey]) {
+      console.log(`Found chapter data under key: ${chapterKey}`);
+      const chapterData = ilcsData[chapterKey];
       
-      if (typeof value === 'object' && value !== null) {
-        // Check if this object has the section
-        if (value[section]) {
-          console.log(`Found section ${section} under key ${key}`);
-          const sectionData = value[section];
-          return typeof sectionData === 'string' ? sectionData : sectionData?.text || null;
+      // Look for the full section reference
+      const fullSectionKey = `${chapter}ILCS${section}`;
+      console.log(`Looking for full section key: ${fullSectionKey}`);
+      
+      if (chapterData[fullSectionKey]) {
+        console.log(`Found section under full key: ${fullSectionKey}`);
+        const sectionText = extractSectionText(chapterData[fullSectionKey]);
+        if (sectionText) {
+          console.log(`Successfully extracted text, length: ${sectionText.length}`);
+          return sectionText;
         }
-        
-        // Check if the key contains the section number
-        if (key.includes(section)) {
-          console.log(`Found section by key match: ${key}`);
-          return typeof value === 'string' ? value : value?.text || null;
+      }
+      
+      // Also try just the section part (like "140/4")
+      console.log(`Trying section key: ${section}`);
+      if (chapterData[section]) {
+        console.log(`Found section under key: ${section}`);
+        const sectionText = extractSectionText(chapterData[section]);
+        if (sectionText) {
+          console.log(`Successfully extracted text, length: ${sectionText.length}`);
+          return sectionText;
+        }
+      }
+      
+      // Try all keys in the chapter to find a match
+      console.log('Trying all keys in chapter for pattern matching...');
+      for (const key in chapterData) {
+        if (key.includes(section) || key.endsWith(`/${section.split('/')[1]}`)) {
+          console.log(`Found potential section match with key: ${key}`);
+          const sectionText = extractSectionText(chapterData[key]);
+          if (sectionText) {
+            console.log(`Successfully extracted text from matched key, length: ${sectionText.length}`);
+            return sectionText;
+          }
         }
       }
     }
     
-    // Approach 3: Flexible section matching (handle different formats)
-    const normalizedSection = section.replace(/[\/\-\.]/g, '');
+    // Approach 2: Direct section lookup in top level
+    const fullSectionKey = `${chapter}ILCS${section}`;
+    console.log(`Trying direct lookup with key: ${fullSectionKey}`);
+    
+    if (ilcsData[fullSectionKey]) {
+      console.log(`Found section directly: ${fullSectionKey}`);
+      const sectionText = extractSectionText(ilcsData[fullSectionKey]);
+      if (sectionText) {
+        console.log(`Successfully extracted text, length: ${sectionText.length}`);
+        return sectionText;
+      }
+    }
+    
+    // Approach 3: Search through all top-level keys
+    console.log('Searching through all top-level keys for matches...');
     for (const key in ilcsData) {
-      const normalizedKey = key.replace(/[\/\-\.]/g, '');
-      if (normalizedKey.includes(normalizedSection) || normalizedSection.includes(normalizedKey)) {
-        console.log(`Found section by normalized match: ${key} -> ${normalizedKey}`);
-        const value = ilcsData[key];
-        return typeof value === 'string' ? value : value?.text || null;
+      if (key.includes(`${chapter}ILCS`) && key.includes(section)) {
+        console.log(`Found potential match with top-level key: ${key}`);
+        const data = ilcsData[key];
+        
+        // If it's a direct match
+        const sectionText = extractSectionText(data);
+        if (sectionText) {
+          console.log(`Successfully extracted text from top-level key, length: ${sectionText.length}`);
+          return sectionText;
+        }
+        
+        // If it's an object, search within it
+        if (typeof data === 'object' && data !== null) {
+          for (const subKey in data) {
+            if (subKey.includes(section)) {
+              const subsectionText = extractSectionText(data[subKey]);
+              if (subsectionText) {
+                console.log(`Successfully extracted text from nested key ${key}->${subKey}, length: ${subsectionText.length}`);
+                return subsectionText;
+              }
+            }
+          }
+        }
       }
     }
     
     console.log(`Section ${section} not found in ${fileName}`);
-    console.log('Available sections/keys:', Object.keys(ilcsData).slice(0, 10));
+    console.log('Available sections/keys (first 20):', Object.keys(ilcsData).slice(0, 20));
     
     return null;
   } catch (error) {
