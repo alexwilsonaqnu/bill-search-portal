@@ -6,6 +6,7 @@ import { Bill } from "@/types";
 import BillDetailToolbar from "./BillDetailToolbar";
 import BillOverview from "./BillOverview";
 import BillComparisonContainer from "./BillComparisonContainer";
+import StatutoryEffectsContainer from "./StatutoryEffectsContainer";
 import BillNotificationSignup from "./BillNotificationSignup";
 import BillTextContainer from "./BillTextContainer";
 import KeyInsightsCard from "./KeyInsightsCard";
@@ -17,7 +18,7 @@ interface BillDetailViewProps {
 }
 
 const BillDetailView = ({ bill }: BillDetailViewProps) => {
-  const [selectedTool, setSelectedTool] = useState<"overview" | "comparison">("overview");
+  const [selectedTool, setSelectedTool] = useState<"overview" | "comparison" | "statutory-effects">("overview");
   const [isChatOpen, setIsChatOpen] = useState(false);
 
   // Get the bill version and date information
@@ -109,8 +110,10 @@ const BillDetailView = ({ bill }: BillDetailViewProps) => {
                   <KeyInsightsCard bill={bill} />
                 </div>
               </>
-            ) : (
+            ) : selectedTool === "comparison" ? (
               <BillComparisonContainer bill={bill} />
+            ) : (
+              <StatutoryEffectsContainer bill={bill} />
             )}
           </div>
         </div>

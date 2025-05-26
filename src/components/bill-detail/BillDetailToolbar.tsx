@@ -2,12 +2,12 @@
 import { Bill } from "@/types";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { FileText, GitCompare } from "lucide-react";
+import { FileText, GitCompare, Scale } from "lucide-react";
 
 interface BillDetailToolbarProps {
   bill: Bill;
-  selectedTool: "overview" | "comparison";
-  setSelectedTool: (tool: "overview" | "comparison") => void;
+  selectedTool: "overview" | "comparison" | "statutory-effects";
+  setSelectedTool: (tool: "overview" | "comparison" | "statutory-effects") => void;
 }
 
 const BillDetailToolbar = ({ 
@@ -39,6 +39,15 @@ const BillDetailToolbar = ({
         >
           <GitCompare className="h-4 w-4 mr-2" />
           Comparison Tool
+        </Button>
+        
+        <Button
+          variant={selectedTool === "statutory-effects" ? "default" : "outline"}
+          className={`w-full justify-start ${selectedTool === "statutory-effects" ? "bg-[#35B7CD] hover:bg-[#2A9BB0]" : ""}`}
+          onClick={() => setSelectedTool("statutory-effects")}
+        >
+          <Scale className="h-4 w-4 mr-2" />
+          Statutory effects
         </Button>
       </div>
       
