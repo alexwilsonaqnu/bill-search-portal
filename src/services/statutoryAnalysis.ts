@@ -173,26 +173,111 @@ export async function fetchCurrentStatuteText(chapter: string, section: string):
   try {
     console.log(`Fetching current statute text for ${chapter} ILCS ${section}`);
     
-    // Try to download the JSON file for this chapter
-    const { data, error } = await supabase.storage
-      .from('ilcs')
-      .download(`${chapter}ILCS.json`);
-    
-    if (error) {
-      console.error(`Error fetching ILCS chapter ${chapter}:`, error);
+    // First, let's check what buckets are available
+    const { data: buckets, error: bucketsError } = await supabase.storage.listBuckets();
+    if (bucketsError) {
+      console.error('Error listing buckets:', bucketsError);
       return null;
     }
     
-    const text = await data.text();
-    const ilcsData = JSON.parse(text);
+    console.log('Available buckets:', buckets?.map(b => b.name) || []);
     
-    // Look for the specific section
+    // Check if ilcs bucket exists
+    const ilcsBucket = buckets?.find(b => b.name === 'ilcs');
+    if (!ilcsBucket) {
+      console.error('ILCS bucket not found. Available buckets:', buckets?.map(b => b.name) || []);
+      return null;
+    }
+    
+    const fileName = `${chapter}ILCS.json`;
+    console.log(`Attempting to download file: ${fileName} from ilcs bucket`);
+    
+    // Try to download the JSON file for this chapter
+    const { data, error } = await supabase.storage
+      .from('ilcs')
+      .download(fileName);
+    
+    if (error) {
+      console.error(`Error downloading ${fileName}:`, error);
+      
+      // Let's also try to list files in the bucket to see what's available
+      const { data: files, error: listError } = await supabase.storage
+        .from('ilcs')
+        .list('', { limit: 100 });
+        
+      if (listError) {
+        console.error('Error listing files in ilcs bucket:', listError);
+      } else {
+        console.log('Files in ilcs bucket:', files?.map(f => f.name) || []);
+      }
+      
+      return null;
+    }
+    
+    if (!data) {
+      console.error(`No data returned for ${fileName}`);
+      return null;
+    }
+    
+    console.log(`Successfully downloaded ${fileName}, size: ${data.size} bytes`);
+    
+    const text = await data.text();
+    console.log(`File content length: ${text.length} characters`);
+    console.log(`File content preview: ${text.substring(0, 200)}...`);
+    
+    let ilcsData;
+    try {
+      ilcsData = JSON.parse(text);
+      console.log('JSON parsed successfully');
+      console.log('Top-level keys in JSON:', Object.keys(ilcsData));
+    } catch (parseError) {
+      console.error('Error parsing JSON:', parseError);
+      return null;
+    }
+    
+    // Look for the specific section - try different approaches
+    console.log(`Looking for section ${section} in chapter ${chapter}`);
+    
+    // Approach 1: Direct section lookup
+    if (ilcsData[section]) {
+      console.log(`Found section ${section} directly`);
+      const sectionData = ilcsData[section];
+      return typeof sectionData === 'string' ? sectionData : sectionData?.text || null;
+    }
+    
+    // Approach 2: Look for section within nested objects
     for (const key in ilcsData) {
-      if (key.includes(section) || ilcsData[key][section]) {
-        const sectionData = ilcsData[key][section];
-        return sectionData?.text || sectionData || null;
+      const value = ilcsData[key];
+      
+      if (typeof value === 'object' && value !== null) {
+        // Check if this object has the section
+        if (value[section]) {
+          console.log(`Found section ${section} under key ${key}`);
+          const sectionData = value[section];
+          return typeof sectionData === 'string' ? sectionData : sectionData?.text || null;
+        }
+        
+        // Check if the key contains the section number
+        if (key.includes(section)) {
+          console.log(`Found section by key match: ${key}`);
+          return typeof value === 'string' ? value : value?.text || null;
+        }
       }
     }
+    
+    // Approach 3: Flexible section matching (handle different formats)
+    const normalizedSection = section.replace(/[\/\-\.]/g, '');
+    for (const key in ilcsData) {
+      const normalizedKey = key.replace(/[\/\-\.]/g, '');
+      if (normalizedKey.includes(normalizedSection) || normalizedSection.includes(normalizedKey)) {
+        console.log(`Found section by normalized match: ${key} -> ${normalizedKey}`);
+        const value = ilcsData[key];
+        return typeof value === 'string' ? value : value?.text || null;
+      }
+    }
+    
+    console.log(`Section ${section} not found in ${fileName}`);
+    console.log('Available sections/keys:', Object.keys(ilcsData).slice(0, 10));
     
     return null;
   } catch (error) {
