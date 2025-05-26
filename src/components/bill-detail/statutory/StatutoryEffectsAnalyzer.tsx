@@ -4,6 +4,7 @@ import { Bill } from "@/types";
 import { detectStatutoryAmendments, extractAmendments, StatutoryAmendment } from "@/services/statutoryAnalysis";
 import AmendmentsIndex from "./AmendmentsIndex";
 import StatutoryDiffDisplay from "./StatutoryDiffDisplay";
+import { getCachedBillText } from "@/components/bill-detail/text/utils/billTextCache";
 
 interface StatutoryEffectsAnalyzerProps {
   bill: Bill;
@@ -13,41 +14,41 @@ const StatutoryEffectsAnalyzer = ({ bill }: StatutoryEffectsAnalyzerProps) => {
   const [amendments, setAmendments] = useState<StatutoryAmendment[]>([]);
   const [selectedAmendment, setSelectedAmendment] = useState<string | null>(null);
   const [hasAmendments, setHasAmendments] = useState<boolean>(false);
-  const [lastAnalyzedText, setLastAnalyzedText] = useState<string>("");
 
-  // Function to get bill text from various sources
+  // Function to get bill text using the same cache system as other components
   const getBillText = (): string => {
     let billText = "";
     
+    // First try bill.text property
     if (bill.text && bill.text.trim().length > 0) {
       billText = bill.text;
-      console.log('Using bill.text');
-    } else if (bill.data?.text && bill.data.text.trim().length > 0) {
+      console.log('Statutory analyzer: Using bill.text');
+    } 
+    // Then try bill.data.text
+    else if (bill.data?.text && bill.data.text.trim().length > 0) {
       billText = bill.data.text;
-      console.log('Using bill.data.text');
-    } else if (bill.versions && bill.versions.length > 0) {
+      console.log('Statutory analyzer: Using bill.data.text');
+    } 
+    // Then try bill versions content
+    else if (bill.versions && bill.versions.length > 0) {
       const versionWithContent = bill.versions.find(v => 
         v.sections && v.sections.length > 0 && v.sections[0].content
       );
       if (versionWithContent) {
         billText = versionWithContent.sections[0].content;
-        console.log('Using bill.versions content');
+        console.log('Statutory analyzer: Using bill.versions content');
       }
     }
 
-    // Try to get text from localStorage cache as fallback
+    // Finally, try to get text from the same cache system used by other components
     if (!billText || billText.trim().length === 0) {
-      try {
-        const cachedText = localStorage.getItem(`bill_text_${bill.id}`);
-        if (cachedText) {
-          const parsedCache = JSON.parse(cachedText);
-          if (parsedCache.text) {
-            billText = parsedCache.text;
-            console.log('Using cached bill text from localStorage');
-          }
-        }
-      } catch (error) {
-        console.warn('Error reading cached bill text:', error);
+      const state = bill.state || 'IL';
+      const billNumber = bill.data?.bill_number || null;
+      
+      const cachedData = getCachedBillText(bill.id, state, billNumber);
+      if (cachedData && cachedData.text) {
+        billText = cachedData.text;
+        console.log('Statutory analyzer: Using cached bill text from same cache system');
       }
     }
 
@@ -55,12 +56,12 @@ const StatutoryEffectsAnalyzer = ({ bill }: StatutoryEffectsAnalyzerProps) => {
   };
 
   const analyzeBill = (billText: string) => {
-    console.log('Analyzing bill text for statutory amendments...');
-    console.log('Bill text length:', billText.length);
-    console.log('First 200 chars:', billText.substring(0, 200));
+    console.log('Statutory analyzer: Analyzing bill text for amendments...');
+    console.log('Statutory analyzer: Bill text length:', billText.length);
+    console.log('Statutory analyzer: First 200 chars:', billText.substring(0, 200));
 
     if (!billText || billText.trim().length === 0) {
-      console.log('No bill text available for statutory analysis');
+      console.log('Statutory analyzer: No bill text available');
       setHasAmendments(false);
       setAmendments([]);
       return;
@@ -85,39 +86,11 @@ const StatutoryEffectsAnalyzer = ({ bill }: StatutoryEffectsAnalyzerProps) => {
     }
   };
 
-  // Effect to analyze bill text when it becomes available or changes
+  // Effect to analyze bill text when component mounts or bill changes
   useEffect(() => {
     const currentBillText = getBillText();
-    
-    // Only analyze if we have text and it's different from what we last analyzed
-    if (currentBillText && currentBillText !== lastAnalyzedText) {
-      console.log('Bill text changed, reanalyzing...');
-      analyzeBill(currentBillText);
-      setLastAnalyzedText(currentBillText);
-    } else if (!currentBillText) {
-      console.log('No bill text available yet, waiting...');
-      setHasAmendments(false);
-      setAmendments([]);
-    }
-  }, [bill, bill.text, bill.data?.text, lastAnalyzedText]);
-
-  // Effect to periodically check for cached text updates
-  useEffect(() => {
-    const checkForTextUpdates = () => {
-      const currentBillText = getBillText();
-      if (currentBillText && currentBillText !== lastAnalyzedText) {
-        console.log('Found new bill text in cache, reanalyzing...');
-        analyzeBill(currentBillText);
-        setLastAnalyzedText(currentBillText);
-      }
-    };
-
-    // Check every 2 seconds for text updates
-    const interval = setInterval(checkForTextUpdates, 2000);
-    
-    // Cleanup interval on unmount
-    return () => clearInterval(interval);
-  }, [lastAnalyzedText]);
+    analyzeBill(currentBillText);
+  }, [bill, bill.text, bill.data?.text]);
 
   const selectedAmendmentData = amendments.find(a => a.id === selectedAmendment) || null;
 
