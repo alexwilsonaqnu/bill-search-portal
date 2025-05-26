@@ -38,17 +38,52 @@ export function detectStatutoryAmendments(billText: string): boolean {
 }
 
 /**
+ * Strips HTML tags while preserving formatting semantics for statutory changes
+ */
+function stripHtmlAndPreserveFormatting(htmlText: string): string {
+  // Replace underlined text with [ADDITION] markers
+  let text = htmlText.replace(/<u[^>]*>(.*?)<\/u>/gi, '[ADDITION]$1[/ADDITION]');
+  
+  // Replace strikethrough text with [DELETION] markers
+  text = text.replace(/<s[^>]*>(.*?)<\/s>/gi, '[DELETION]$1[/DELETION]');
+  text = text.replace(/<strike[^>]*>(.*?)<\/strike>/gi, '[DELETION]$1[/DELETION]');
+  text = text.replace(/<del[^>]*>(.*?)<\/del>/gi, '[DELETION]$1[/DELETION]');
+  
+  // Replace common HTML entities
+  text = text.replace(/&nbsp;/g, ' ');
+  text = text.replace(/&amp;/g, '&');
+  text = text.replace(/&lt;/g, '<');
+  text = text.replace(/&gt;/g, '>');
+  text = text.replace(/&quot;/g, '"');
+  text = text.replace(/&#39;/g, "'");
+  
+  // Remove all other HTML tags
+  text = text.replace(/<[^>]*>/g, ' ');
+  
+  // Clean up extra whitespace
+  text = text.replace(/\s+/g, ' ').trim();
+  
+  return text;
+}
+
+/**
  * Extracts ILCS citations and amendment text from bill content
  */
 export function extractAmendments(billText: string): StatutoryAmendment[] {
   const amendments: StatutoryAmendment[] = [];
-  const lines = billText.split('\n');
+  
+  // First, strip HTML and preserve formatting semantics
+  const cleanText = stripHtmlAndPreserveFormatting(billText);
+  console.log('Clean text length:', cleanText.length);
+  console.log('Clean text sample:', cleanText.substring(0, 500));
+  
+  const lines = cleanText.split('\n');
   
   let currentAmendment: Partial<StatutoryAmendment> | null = null;
   let amendmentCounter = 0;
   let isInAmendmentSection = false;
   
-  console.log('Extracting amendments from', lines.length, 'lines');
+  console.log('Extracting amendments from', lines.length, 'lines of cleaned text');
   
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
