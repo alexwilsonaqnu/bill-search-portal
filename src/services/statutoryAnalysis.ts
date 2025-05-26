@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 
 export interface StatutoryAmendment {
@@ -173,26 +174,18 @@ export async function fetchCurrentStatuteText(chapter: string, section: string):
   try {
     console.log(`Fetching current statute text for ${chapter} ILCS ${section}`);
     
-    // First, let's check what buckets are available
+    // Try to list buckets, but continue even if this fails
     const { data: buckets, error: bucketsError } = await supabase.storage.listBuckets();
     if (bucketsError) {
-      console.error('Error listing buckets:', bucketsError);
-      return null;
-    }
-    
-    console.log('Available buckets:', buckets?.map(b => b.name) || []);
-    
-    // Check if ilcs bucket exists
-    const ilcsBucket = buckets?.find(b => b.name === 'ilcs');
-    if (!ilcsBucket) {
-      console.error('ILCS bucket not found. Available buckets:', buckets?.map(b => b.name) || []);
-      return null;
+      console.warn('Warning: Could not list buckets:', bucketsError);
+    } else {
+      console.log('Available buckets:', buckets?.map(b => b.name) || []);
     }
     
     const fileName = `${chapter}ILCS.json`;
     console.log(`Attempting to download file: ${fileName} from ilcs bucket`);
     
-    // Try to download the JSON file for this chapter
+    // Try to download the JSON file directly - the bucket might exist even if we can't list it
     const { data, error } = await supabase.storage
       .from('ilcs')
       .download(fileName);
@@ -200,15 +193,23 @@ export async function fetchCurrentStatuteText(chapter: string, section: string):
     if (error) {
       console.error(`Error downloading ${fileName}:`, error);
       
-      // Let's also try to list files in the bucket to see what's available
+      // Let's try to list files in the bucket to see what's available
       const { data: files, error: listError } = await supabase.storage
         .from('ilcs')
         .list('', { limit: 100 });
         
       if (listError) {
         console.error('Error listing files in ilcs bucket:', listError);
+        console.log('This might mean the bucket does not exist or you do not have access to it.');
+        console.log('Please ensure:');
+        console.log('1. The "ilcs" bucket exists in your Supabase storage');
+        console.log('2. The bucket has public read access or appropriate RLS policies');
+        console.log('3. Your ILCS JSON files are uploaded to the bucket');
       } else {
         console.log('Files in ilcs bucket:', files?.map(f => f.name) || []);
+        if (files && files.length === 0) {
+          console.log('The ilcs bucket exists but is empty. Please upload your ILCS JSON files.');
+        }
       }
       
       return null;
