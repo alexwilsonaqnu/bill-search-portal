@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 export interface StatutoryAmendment {
@@ -38,7 +37,7 @@ export function detectStatutoryAmendments(billText: string): boolean {
 }
 
 /**
- * Strips HTML tags while preserving formatting semantics for statutory changes
+ * Strips HTML tags while preserving formatting semantics and document structure for statutory changes
  */
 function stripHtmlAndPreserveFormatting(htmlText: string): string {
   // Replace underlined text with [ADDITION] markers
@@ -49,6 +48,12 @@ function stripHtmlAndPreserveFormatting(htmlText: string): string {
   text = text.replace(/<strike[^>]*>(.*?)<\/strike>/gi, '[DELETION]$1[/DELETION]');
   text = text.replace(/<del[^>]*>(.*?)<\/del>/gi, '[DELETION]$1[/DELETION]');
   
+  // Convert structural HTML elements to line breaks to preserve document structure
+  text = text.replace(/<\/?(p|div|section|article|h[1-6])[^>]*>/gi, '\n');
+  text = text.replace(/<br\s*\/?>/gi, '\n');
+  text = text.replace(/<\/?(li|ul|ol)[^>]*>/gi, '\n');
+  text = text.replace(/<\/?(tr|td|th)[^>]*>/gi, '\n');
+  
   // Replace common HTML entities
   text = text.replace(/&nbsp;/g, ' ');
   text = text.replace(/&amp;/g, '&');
@@ -57,11 +62,17 @@ function stripHtmlAndPreserveFormatting(htmlText: string): string {
   text = text.replace(/&quot;/g, '"');
   text = text.replace(/&#39;/g, "'");
   
-  // Remove all other HTML tags
+  // Remove remaining HTML tags (styling, scripts, etc.) but preserve the text content
+  text = text.replace(/<script[^>]*>.*?<\/script>/gi, '');
+  text = text.replace(/<style[^>]*>.*?<\/style>/gi, '');
   text = text.replace(/<[^>]*>/g, ' ');
   
-  // Clean up extra whitespace
-  text = text.replace(/\s+/g, ' ').trim();
+  // Clean up extra whitespace but preserve line breaks
+  text = text.replace(/[ \t]+/g, ' '); // Replace multiple spaces/tabs with single space
+  text = text.replace(/\n\s+/g, '\n'); // Remove spaces at beginning of lines
+  text = text.replace(/\s+\n/g, '\n'); // Remove spaces at end of lines
+  text = text.replace(/\n{3,}/g, '\n\n'); // Replace multiple consecutive line breaks with double
+  text = text.trim();
   
   return text;
 }
