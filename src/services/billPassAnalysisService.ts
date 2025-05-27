@@ -19,10 +19,10 @@ export interface PassChanceAnalysis {
  * Check if a bill has already passed based on its status and history
  */
 function checkIfBillPassed(bill: Bill): boolean {
-  // Check status fields for passed indicators
-  const status = bill.status?.toLowerCase() || '';
-  const statusDescription = bill.data?.status_description?.toLowerCase() || '';
-  const currentStatus = bill.data?.current_status?.toLowerCase() || '';
+  // Check status fields for passed indicators - convert to string first
+  const status = String(bill.status || '').toLowerCase();
+  const statusDescription = String(bill.data?.status_description || '').toLowerCase();
+  const currentStatus = String(bill.data?.current_status || '').toLowerCase();
   
   const passedIndicators = ['passed', 'enacted', 'signed', 'approved', 'adopted', 'effective'];
   
@@ -37,7 +37,7 @@ function checkIfBillPassed(bill: Bill): boolean {
   // Check history for passed actions
   if (bill.changes && bill.changes.length > 0) {
     const hasPassedAction = bill.changes.some(change => {
-      const action = change.description?.toLowerCase() || '';
+      const action = String(change.description || '').toLowerCase();
       return passedIndicators.some(indicator => action.includes(indicator));
     });
     
