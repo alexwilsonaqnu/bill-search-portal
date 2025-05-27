@@ -29,7 +29,7 @@ const KeyInsightsCard = ({ bill }: KeyInsightsCardProps) => {
   // Get pass chance description based on score
   const getPassChanceDescription = (score: number) => {
     if (score >= 4) return "Likely To Pass";
-    if (score >= 3) return "Moderate Chance";
+    if (score >= 3) return "Moderate Chance To Pass";
     if (score >= 2) return "Unlikely To Pass";
     return "Very Unlikely To Pass";
   };
@@ -107,7 +107,7 @@ const KeyInsightsCard = ({ bill }: KeyInsightsCardProps) => {
               ) : passAnalysis ? (
                 <div className="p-4 bg-gray-50 rounded-md">
                   <h3 className={`text-lg font-medium mb-2 ${getPassChanceColor(passAnalysis.score)}`}>
-                    {getPassChanceDescription(passAnalysis.score)} (Score: {passAnalysis.score}/5)
+                    {getPassChanceDescription(passAnalysis.score)}
                   </h3>
                   <p className="text-sm text-gray-600 mb-4">{passAnalysis.reasoning}</p>
                   <ul className="space-y-2">
