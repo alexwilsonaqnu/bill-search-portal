@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { Bill } from "@/types";
 import { getSponsor, getCoSponsors } from "@/utils/billCardUtils";
@@ -16,9 +17,7 @@ export interface PassChanceAnalysis {
 
 /**
  * Check if a bill has already passed based on its status and history
- * A bill is only considered passed if it has both:
- * 1. Passed both houses of the legislature
- * 2. Had a subsequent "passed" action (any kind of passage action)
+ * A bill is only considered passed if the final action is "Public Act . . . . . . . .[id]"
  */
 function checkIfBillPassed(bill: Bill): boolean {
   // Check status fields for final enacted indicators
@@ -37,30 +36,40 @@ function checkIfBillPassed(bill: Bill): boolean {
     return true;
   }
   
-  // Check history for proper passage sequence
+  // Check history for "Public Act" as the final action
   if (bill.changes && bill.changes.length > 0) {
-    let hasPassedBothHouses = false;
-    let hasFinalPassage = false;
-    
     // Sort changes by date if possible, otherwise use order
     const sortedChanges = [...bill.changes];
     
-    for (const change of sortedChanges) {
+    // Get the most recent action (last in the sorted array)
+    const lastAction = sortedChanges[sortedChanges.length - 1];
+    if (lastAction) {
+      const action = String(lastAction.description || '').toLowerCase();
+      
+      // Check if the last action is "Public Act"
+      if (action.includes('public act')) {
+        return true;
+      }
+    }
+  }
+  
+  return false;
+}
+
+/**
+ * Check if a bill has passed both houses (awaiting governor approval)
+ */
+function checkIfPassedBothHouses(bill: Bill): boolean {
+  if (bill.changes && bill.changes.length > 0) {
+    for (const change of bill.changes) {
       const action = String(change.description || '').toLowerCase();
       
       // Check for "passed both houses" or similar
       if (action.includes('passed both houses') || 
           action.includes('passed both chambers')) {
-        hasPassedBothHouses = true;
-      }
-      
-      // Check for any "passed" action after passing both houses
-      if (hasPassedBothHouses && action.includes('passed')) {
-        hasFinalPassage = true;
+        return true;
       }
     }
-    
-    return hasPassedBothHouses && hasFinalPassage;
   }
   
   return false;
@@ -77,15 +86,18 @@ export async function analyzeBillPassChance(bill: Bill): Promise<PassChanceAnaly
       console.log("Bill has already passed, returning passed status");
       return {
         score: 5,
-        reasoning: "This bill has already passed according to its status and legislative history.",
+        reasoning: "This bill has already passed and become a Public Act according to its legislative history.",
         factors: [{
           factor: "bill_status",
           impact: "positive",
-          description: "The bill has completed the legislative process and has been passed."
+          description: "The bill has completed the legislative process and has been enacted into law."
         }],
         hasPassed: true
       };
     }
+    
+    // Check if bill has passed both houses (very high chance to pass)
+    const passedBothHouses = checkIfPassedBothHouses(bill);
     
     // Extract sponsor information properly
     const primarySponsor = getSponsor(bill);
@@ -123,6 +135,7 @@ export async function analyzeBillPassChance(bill: Bill): Promise<PassChanceAnaly
     console.log("Formatted cosponsor info:", cosponsorInfo);
     console.log("History items count:", historyItems.length);
     console.log("Committee actions count:", committeeActions.length);
+    console.log("Passed both houses:", passedBothHouses);
     
     const { data, error } = await supabase.functions.invoke('analyze-bill-pass-chance', {
       body: { 
@@ -142,6 +155,7 @@ export async function analyzeBillPassChance(bill: Bill): Promise<PassChanceAnaly
           changes: historyItems,
           changesCount: historyItems.length,
           committeeActions: committeeActions,
+          passedBothHouses: passedBothHouses, // Add this important flag
           data: bill.data
         }
       }
