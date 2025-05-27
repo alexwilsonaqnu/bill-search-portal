@@ -29,6 +29,7 @@ const KeyInsightsCard = ({ bill }: KeyInsightsCardProps) => {
   // Get pass chance description based on score
   const getPassChanceDescription = (score: number, hasPassed?: boolean) => {
     if (hasPassed) return "Bill Has Passed";
+    if (score >= 5) return "Very Likely To Pass";
     if (score >= 4) return "Likely To Pass";
     if (score >= 3) return "Moderate Chance To Pass";
     if (score >= 2) return "Unlikely To Pass";
