@@ -83,7 +83,7 @@ Respond with a JSON object containing:
           messages: [
             { 
               role: "system", 
-              content: "You are an expert legislative analyst. Analyze bills for their likelihood to pass based on metadata. Always respond with valid JSON."
+              content: "You are an expert legislative analyst. Analyze bills for their likelihood to pass based on metadata. Always respond with valid JSON only, no markdown formatting."
             },
             { role: "user", content: analysisPrompt }
           ],
@@ -102,14 +102,30 @@ Respond with a JSON object containing:
       let analysisResult;
       
       try {
-        analysisResult = JSON.parse(data.choices[0].message.content);
+        let content = data.choices[0].message.content.trim();
+        
+        // Remove markdown code blocks if present
+        if (content.startsWith('```json') && content.endsWith('```')) {
+          content = content.slice(7, -3).trim();
+        } else if (content.startsWith('```') && content.endsWith('```')) {
+          content = content.slice(3, -3).trim();
+        }
+        
+        analysisResult = JSON.parse(content);
+        console.log("Successfully parsed analysis result:", analysisResult);
       } catch (parseError) {
         console.error('Failed to parse AI response as JSON:', data.choices[0].message.content);
         // Fallback response
         analysisResult = {
           score: 3,
           reasoning: "Unable to fully analyze - using default score",
-          factors: []
+          factors: [
+            {"factor": "sponsor_influence", "impact": "neutral", "description": "Unable to determine sponsor influence"},
+            {"factor": "cosponsor_count", "impact": "neutral", "description": "Unable to analyze cosponsor data"},
+            {"factor": "time_since_introduction", "impact": "neutral", "description": "Unable to determine timeline"},
+            {"factor": "recent_activity", "impact": "neutral", "description": "Unable to analyze recent activity"},
+            {"factor": "committee_progress", "impact": "neutral", "description": "Unable to analyze committee progress"}
+          ]
         };
       }
       
