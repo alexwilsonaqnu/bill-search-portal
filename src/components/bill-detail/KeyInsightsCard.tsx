@@ -106,7 +106,7 @@ const KeyInsightsCard = ({ bill }: KeyInsightsCardProps) => {
                 </div>
               ) : passAnalysis ? (
                 <div className="p-4 bg-gray-50 rounded-md">
-                  <h3 className={`text-lg font-medium mb-2 ${getPassChanceColor(passAnalysis.score)}`}>
+                  <h3 className={`text-lg font-medium mb-2 px-auto ${getPassChanceColor(passAnalysis.score)}`}>
                     {getPassChanceDescription(passAnalysis.score)}
                   </h3>
                   <p className="text-sm text-gray-600 mb-4">{passAnalysis.reasoning}</p>
