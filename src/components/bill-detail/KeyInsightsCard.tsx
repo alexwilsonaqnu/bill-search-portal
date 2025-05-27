@@ -1,10 +1,12 @@
+
 import { useState } from "react";
 import { Bill } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { History, Percent, Users } from "lucide-react";
+import { History, Percent, Users, Loader2 } from "lucide-react";
 import BillSponsors from "@/components/bill/BillSponsors";
 import BillHistoryView from "./BillHistoryView";
+import { useBillPassAnalysis } from "@/hooks/useBillPassAnalysis";
 
 interface KeyInsightsCardProps {
   bill: Bill;
@@ -15,8 +17,30 @@ type InsightTab = "sponsors" | "passPercent" | "history";
 const KeyInsightsCard = ({ bill }: KeyInsightsCardProps) => {
   const [activeTab, setActiveTab] = useState<InsightTab>("sponsors");
   
+  // Fetch pass chance analysis
+  const { data: passAnalysis, isLoading: isAnalyzing } = useBillPassAnalysis({ 
+    bill, 
+    enabled: activeTab === "passPercent" 
+  });
+  
   // Placeholder data for newsworthy score - would come from real data
   const newsworthyScore = 97;
+
+  // Get pass chance description based on score
+  const getPassChanceDescription = (score: number) => {
+    if (score >= 4) return "Very Likely To Pass";
+    if (score >= 3) return "Likely To Pass";
+    if (score >= 2) return "Moderate Chance";
+    return "Unlikely To Pass";
+  };
+
+  // Get pass chance color based on score
+  const getPassChanceColor = (score: number) => {
+    if (score >= 4) return "text-green-600";
+    if (score >= 3) return "text-yellow-600";
+    if (score >= 2) return "text-orange-600";
+    return "text-red-600";
+  };
   
   return (
     <Card className="bg-white shadow-sm">
@@ -34,7 +58,7 @@ const KeyInsightsCard = ({ bill }: KeyInsightsCardProps) => {
           </div>
         </div>
         
-        {/* Tab buttons - Updated to use smaller size and better layout */}
+        {/* Tab buttons */}
         <div className="flex justify-center gap-2">
           <Button
             variant={activeTab === "sponsors" ? "default" : "outline"}
@@ -75,27 +99,38 @@ const KeyInsightsCard = ({ bill }: KeyInsightsCardProps) => {
           
           {activeTab === "passPercent" && (
             <div className="space-y-4">
-              <div className="p-4 bg-gray-50 rounded-md">
-                <h3 className="text-lg font-medium text-green-600 mb-2">Very Likely To Pass</h3>
-                <ul className="space-y-2">
-                  <li className="flex items-center text-sm">
-                    <span className="text-green-500 mr-2">↗</span> 
-                    Assigned to Rules Committee
-                  </li>
-                  <li className="flex items-center text-sm">
-                    <span className="text-green-500 mr-2">↗</span> 
-                    Bipartisan sponsorship
-                  </li>
-                  <li className="flex items-center text-sm">
-                    <span className="text-green-500 mr-2">↗</span> 
-                    Noted stakeholders
-                  </li>
-                  <li className="flex items-center text-sm">
-                    <span className="text-red-500 mr-2">↘</span> 
-                    Late for introduction deadline
-                  </li>
-                </ul>
-              </div>
+              {isAnalyzing ? (
+                <div className="flex items-center justify-center p-8">
+                  <Loader2 className="h-6 w-6 animate-spin mr-2" />
+                  <span>Analyzing pass chance...</span>
+                </div>
+              ) : passAnalysis ? (
+                <div className="p-4 bg-gray-50 rounded-md">
+                  <h3 className={`text-lg font-medium mb-2 ${getPassChanceColor(passAnalysis.score)}`}>
+                    {getPassChanceDescription(passAnalysis.score)} (Score: {passAnalysis.score}/5)
+                  </h3>
+                  <p className="text-sm text-gray-600 mb-4">{passAnalysis.reasoning}</p>
+                  <ul className="space-y-2">
+                    {passAnalysis.factors.map((factor, index) => (
+                      <li key={index} className="flex items-center text-sm">
+                        <span className={`mr-2 ${
+                          factor.impact === 'positive' ? 'text-green-500' : 
+                          factor.impact === 'negative' ? 'text-red-500' : 
+                          'text-gray-500'
+                        }`}>
+                          {factor.impact === 'positive' ? '↗' : factor.impact === 'negative' ? '↘' : '→'}
+                        </span> 
+                        {factor.description}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : (
+                <div className="p-4 bg-gray-50 rounded-md">
+                  <h3 className="text-lg font-medium text-gray-600 mb-2">Analysis Unavailable</h3>
+                  <p className="text-sm text-gray-500">Unable to analyze pass chance at this time.</p>
+                </div>
+              )}
             </div>
           )}
           
