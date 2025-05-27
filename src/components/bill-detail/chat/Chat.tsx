@@ -1,5 +1,7 @@
 
 import { useState, useRef, useEffect } from "react";
+import { toast } from "sonner";
+import { sendChatMessage } from "@/services/chatService";
 import ChatMessages from "./ChatMessages";
 import ChatInput from "./ChatInput";
 import ChatHeader from "./ChatHeader";
@@ -25,35 +27,46 @@ export default function Chat({ billText, onClose }: ChatProps) {
     if (!inputMessage.trim()) return;
     
     // Add user message to the chat
-    setMessages((prev) => [...prev, { role: "user", content: inputMessage }]);
+    const userMessage: Message = { role: "user", content: inputMessage };
+    setMessages((prev) => [...prev, userMessage]);
     
     // Clear the input after sending
-    const sentMessage = inputMessage;
     setInputMessage("");
     
     setIsLoading(true);
+    
     try {
-      // In a real implementation, we would call our AI service here
-      // For now, just simulate a response
-      setTimeout(() => {
-        setMessages((prev) => [
-          ...prev,
-          {
-            role: "assistant",
-            content: `I'm analyzing your question about "${sentMessage.substring(0, 30)}${sentMessage.length > 30 ? '...' : ''}". This is a simulated response as the AI chat functionality is not fully implemented yet.`
-          }
-        ]);
-        setIsLoading(false);
-      }, 1000);
-    } catch (error) {
-      console.error("Error getting AI response:", error);
+      // Create the messages array for the API call
+      const apiMessages = [...messages, userMessage];
+      
+      // Call the chat service
+      const response = await sendChatMessage(apiMessages, billText || "");
+      
       setMessages((prev) => [
         ...prev,
         {
           role: "assistant",
-          content: "I'm sorry, I encountered an error while processing your request. Please try again later."
+          content: response.response.content
         }
       ]);
+      
+    } catch (error) {
+      console.error("Error getting AI response:", error);
+      
+      // Show user-friendly error message
+      const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+      
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          content: `I'm sorry, I encountered an error while processing your request: ${errorMessage}. Please try again later.`
+        }
+      ]);
+      
+      // Show toast notification
+      toast.error(`Chat error: ${errorMessage}`);
+    } finally {
       setIsLoading(false);
     }
   };
