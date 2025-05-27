@@ -37,6 +37,7 @@ serve(async (req) => {
     console.log("Cosponsor count:", billData.cosponsorCount || 0);
     console.log("Changes count:", billData.changesCount || 0);
     console.log("Committee actions count:", billData.committeeActions?.length || 0);
+    console.log("Passed both houses:", billData.passedBothHouses);
 
     // Build analysis prompt with comprehensive bill metadata
     const sponsorDescription = billData.sponsor 
@@ -50,15 +51,23 @@ serve(async (req) => {
     // Calculate time since introduction
     const timeAnalysis = calculateTimeAnalysis(billData.introducedDate, billData.lastActionDate);
 
+    // Special handling for bills that passed both houses
+    const passedBothHousesNote = billData.passedBothHouses 
+      ? "CRITICAL: This bill has PASSED BOTH HOUSES and is awaiting governor approval. Historically, over 95% of bills that pass both houses are signed by the governor. This should result in a score of 4 or 5."
+      : "";
+
     const analysisPrompt = `
 You are analyzing the likelihood that a legislative bill will pass. Based on the bill metadata provided, give a score from 1-5 where 1 is very unlikely to pass and 5 is extremely likely to pass.
 
+${passedBothHousesNote}
+
 Consider these factors:
 - Who is the primary sponsor of the bill and how influential are they?
-- How many cosponsors? The more the better, the more partisan sponsors the better.
+- How many cosponsors? The more the better, the more bipartisan sponsors the better.
 - How long has it been since the bill was introduced? The longer without action, the less likely it is to pass.
 - How many changes has it had? More recent changes means there's movement in the bill, which is good.
 - How many committees has it gone through (and been approved in)? The more the better.
+- MOST IMPORTANTLY: Has the bill passed both houses? If yes, it's extremely likely to pass (score 4-5).
 
 Always round down the score.
 
@@ -73,6 +82,7 @@ Bill Information:
 - Session: ${billData.sessionName || 'Unknown'} (${billData.sessionYear || 'Unknown year'})
 - Total Changes/History: ${billData.changesCount || 0} documented actions
 - Committee Actions: ${billData.committeeActions?.length || 0} committee proceedings
+- Passed Both Houses: ${billData.passedBothHouses ? 'YES - This is critical!' : 'No'}
 - Recent History: ${JSON.stringify(billData.changes?.slice(0, 3) || [])}
 
 Respond with a JSON object containing:
@@ -101,7 +111,7 @@ Respond with a JSON object containing:
           messages: [
             { 
               role: "system", 
-              content: "You are an expert legislative analyst. Analyze bills for their likelihood to pass based on metadata. Always respond with valid JSON only, no markdown formatting."
+              content: "You are an expert legislative analyst. Analyze bills for their likelihood to pass based on metadata. Bills that have passed both houses have an extremely high chance of becoming law (95%+ success rate). Always respond with valid JSON only, no markdown formatting."
             },
             { role: "user", content: analysisPrompt }
           ],
@@ -135,14 +145,16 @@ Respond with a JSON object containing:
         console.error('Failed to parse AI response as JSON:', data.choices[0].message.content);
         // Fallback response
         analysisResult = {
-          score: 3,
-          reasoning: "Unable to fully analyze - using default score",
+          score: billData.passedBothHouses ? 4 : 3,
+          reasoning: billData.passedBothHouses 
+            ? "Bill has passed both houses and is very likely to be signed by the governor"
+            : "Unable to fully analyze - using default score",
           factors: [
             {"factor": "sponsor_influence", "impact": "neutral", "description": "Unable to determine sponsor influence"},
             {"factor": "cosponsor_count", "impact": "neutral", "description": "Unable to analyze cosponsor data"},
             {"factor": "time_since_introduction", "impact": "neutral", "description": "Unable to determine timeline"},
             {"factor": "recent_activity", "impact": "neutral", "description": "Unable to analyze recent activity"},
-            {"factor": "committee_progress", "impact": "neutral", "description": "Unable to analyze committee progress"}
+            {"factor": "committee_progress", "impact": billData.passedBothHouses ? "positive" : "neutral", "description": billData.passedBothHouses ? "Bill has passed both legislative chambers" : "Unable to analyze committee progress"}
           ]
         };
       }
