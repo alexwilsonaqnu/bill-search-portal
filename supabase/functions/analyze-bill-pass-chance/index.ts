@@ -33,8 +33,18 @@ serve(async (req) => {
     }
 
     console.log("Analyzing pass chance for bill:", billData.title || billData.id);
+    console.log("Sponsor data received:", JSON.stringify(billData.sponsor));
+    console.log("Cosponsor count:", billData.cosponsorCount || 0);
 
-    // Build analysis prompt with bill metadata
+    // Build analysis prompt with properly formatted bill metadata
+    const sponsorDescription = billData.sponsor 
+      ? `${billData.sponsor.name} (${billData.sponsor.party || 'Unknown Party'}, ${billData.sponsor.role || 'Unknown Role'}, District: ${billData.sponsor.district || 'Unknown'})`
+      : 'No primary sponsor identified';
+
+    const cosponsorDescription = billData.cosponsorCount > 0 
+      ? `${billData.cosponsorCount} cosponsors identified`
+      : 'No cosponsors identified';
+
     const analysisPrompt = `
 You are analyzing the likelihood that a legislative bill will pass. Based on the bill metadata provided, give a score from 1-5 where 1 is very unlikely to pass and 5 is extremely likely to pass.
 
@@ -49,12 +59,12 @@ Always round down the score.
 
 Bill Information:
 - Title: ${billData.title || 'Unknown'}
-- Primary Sponsor: ${JSON.stringify(billData.sponsor || billData.data?.sponsor || 'Unknown')}
-- Number of Cosponsors: ${billData.cosponsors?.length || billData.data?.cosponsors?.length || 0}
-- Status: ${billData.status || billData.data?.status || 'Unknown'}
-- Last Updated: ${billData.lastUpdated || billData.data?.last_action_date || 'Unknown'}
-- Session: ${billData.sessionName || billData.data?.session?.session_name || 'Unknown'}
-- History/Changes: ${JSON.stringify(billData.changes || billData.data?.history || [])}
+- Primary Sponsor: ${sponsorDescription}
+- Cosponsors: ${cosponsorDescription}
+- Status: ${billData.status || 'Unknown'}
+- Last Updated: ${billData.lastUpdated || 'Unknown'}
+- Session: ${billData.sessionName || 'Unknown'}
+- Changes Count: ${Array.isArray(billData.changes) ? billData.changes.length : 0}
 - Committee Actions: ${JSON.stringify(billData.data?.progress || billData.data?.committee_actions || [])}
 
 Respond with a JSON object containing:
