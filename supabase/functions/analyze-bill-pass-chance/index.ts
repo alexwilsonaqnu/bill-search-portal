@@ -35,15 +35,20 @@ serve(async (req) => {
     console.log("Analyzing pass chance for bill:", billData.title || billData.id);
     console.log("Sponsor data received:", JSON.stringify(billData.sponsor));
     console.log("Cosponsor count:", billData.cosponsorCount || 0);
+    console.log("Changes count:", billData.changesCount || 0);
+    console.log("Committee actions count:", billData.committeeActions?.length || 0);
 
-    // Build analysis prompt with properly formatted bill metadata
+    // Build analysis prompt with comprehensive bill metadata
     const sponsorDescription = billData.sponsor 
       ? `${billData.sponsor.name} (${billData.sponsor.party || 'Unknown Party'}, ${billData.sponsor.role || 'Unknown Role'}, District: ${billData.sponsor.district || 'Unknown'})`
       : 'No primary sponsor identified';
 
     const cosponsorDescription = billData.cosponsorCount > 0 
-      ? `${billData.cosponsorCount} cosponsors identified`
+      ? `${billData.cosponsorCount} cosponsors from various parties and chambers`
       : 'No cosponsors identified';
+
+    // Calculate time since introduction
+    const timeAnalysis = calculateTimeAnalysis(billData.introducedDate, billData.lastActionDate);
 
     const analysisPrompt = `
 You are analyzing the likelihood that a legislative bill will pass. Based on the bill metadata provided, give a score from 1-5 where 1 is very unlikely to pass and 5 is extremely likely to pass.
@@ -61,11 +66,14 @@ Bill Information:
 - Title: ${billData.title || 'Unknown'}
 - Primary Sponsor: ${sponsorDescription}
 - Cosponsors: ${cosponsorDescription}
-- Status: ${billData.status || 'Unknown'}
-- Last Updated: ${billData.lastUpdated || 'Unknown'}
-- Session: ${billData.sessionName || 'Unknown'}
-- Changes Count: ${Array.isArray(billData.changes) ? billData.changes.length : 0}
-- Committee Actions: ${JSON.stringify(billData.data?.progress || billData.data?.committee_actions || [])}
+- Current Status: ${billData.statusDescription || billData.status || 'Unknown'}
+- Introduced: ${billData.introducedDate || 'Unknown date'}
+- Last Action: ${billData.lastActionDate || billData.lastUpdated || 'Unknown date'}
+- ${timeAnalysis}
+- Session: ${billData.sessionName || 'Unknown'} (${billData.sessionYear || 'Unknown year'})
+- Total Changes/History: ${billData.changesCount || 0} documented actions
+- Committee Actions: ${billData.committeeActions?.length || 0} committee proceedings
+- Recent History: ${JSON.stringify(billData.changes?.slice(0, 3) || [])}
 
 Respond with a JSON object containing:
 {
@@ -167,3 +175,20 @@ Respond with a JSON object containing:
     );
   }
 });
+
+function calculateTimeAnalysis(introducedDate: string, lastActionDate: string): string {
+  if (!introducedDate) return "Timeline: Unknown introduction date";
+  
+  try {
+    const introduced = new Date(introducedDate);
+    const lastAction = lastActionDate ? new Date(lastActionDate) : new Date();
+    const now = new Date();
+    
+    const daysSinceIntroduction = Math.floor((now.getTime() - introduced.getTime()) / (1000 * 60 * 60 * 24));
+    const daysSinceLastAction = Math.floor((now.getTime() - lastAction.getTime()) / (1000 * 60 * 60 * 24));
+    
+    return `Timeline: ${daysSinceIntroduction} days since introduction, ${daysSinceLastAction} days since last action`;
+  } catch (error) {
+    return "Timeline: Unable to calculate timeline";
+  }
+}

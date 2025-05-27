@@ -23,7 +23,7 @@ export async function analyzeBillPassChance(bill: Bill): Promise<PassChanceAnaly
     const cosponsors = getCoSponsors(bill);
     
     // Format sponsor information for the analysis
-    const sponsorInfo = primarySponsor ? {
+    const sponsorInfo = primarySponsor && typeof primarySponsor === 'object' ? {
       name: getSponsorName(primarySponsor),
       party: primarySponsor.party || 'Unknown',
       role: primarySponsor.role || 'Unknown',
@@ -32,12 +32,28 @@ export async function analyzeBillPassChance(bill: Bill): Promise<PassChanceAnaly
     
     const cosponsorInfo = cosponsors.map(cosponsor => ({
       name: getSponsorName(cosponsor),
-      party: cosponsor.party || 'Unknown',
-      role: cosponsor.role || 'Unknown'
+      party: typeof cosponsor === 'object' ? (cosponsor.party || 'Unknown') : 'Unknown',
+      role: typeof cosponsor === 'object' ? (cosponsor.role || 'Unknown') : 'Unknown'
     }));
+    
+    // Extract timeline and status information
+    const introducedDate = bill.data?.introducedDate || bill.data?.introduced_date || bill.data?.created_date;
+    const lastActionDate = bill.data?.lastActionDate || bill.data?.last_action_date || bill.lastUpdated;
+    const currentStatus = bill.data?.status_description || bill.data?.current_status || bill.status;
+    
+    // Format history/changes for analysis
+    const historyItems = bill.changes?.map(change => ({
+      action: change.description,
+      date: change.details
+    })) || [];
+    
+    // Extract committee progress
+    const committeeActions = bill.data?.progress || bill.data?.committee_actions || bill.data?.history || [];
     
     console.log("Formatted sponsor info:", sponsorInfo);
     console.log("Formatted cosponsor info:", cosponsorInfo);
+    console.log("History items count:", historyItems.length);
+    console.log("Committee actions count:", committeeActions.length);
     
     const { data, error } = await supabase.functions.invoke('analyze-bill-pass-chance', {
       body: { 
@@ -48,9 +64,15 @@ export async function analyzeBillPassChance(bill: Bill): Promise<PassChanceAnaly
           cosponsors: cosponsorInfo,
           cosponsorCount: cosponsors.length,
           status: bill.status,
+          statusDescription: currentStatus,
+          introducedDate: introducedDate,
+          lastActionDate: lastActionDate,
           lastUpdated: bill.lastUpdated,
           sessionName: bill.sessionName,
-          changes: bill.changes,
+          sessionYear: bill.sessionYear,
+          changes: historyItems,
+          changesCount: historyItems.length,
+          committeeActions: committeeActions,
           data: bill.data
         }
       }
