@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Bill } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { History, Percent, Users, Loader2 } from "lucide-react";
+import { History, Percent, Users, Loader2, CheckCircle } from "lucide-react";
 import BillSponsors from "@/components/bill/BillSponsors";
 import BillHistoryView from "./BillHistoryView";
 import { useBillPassAnalysis } from "@/hooks/useBillPassAnalysis";
@@ -27,7 +27,8 @@ const KeyInsightsCard = ({ bill }: KeyInsightsCardProps) => {
   const newsworthyScore = 97;
 
   // Get pass chance description based on score
-  const getPassChanceDescription = (score: number) => {
+  const getPassChanceDescription = (score: number, hasPassed?: boolean) => {
+    if (hasPassed) return "Bill Has Passed";
     if (score >= 4) return "Likely To Pass";
     if (score >= 3) return "Moderate Chance To Pass";
     if (score >= 2) return "Unlikely To Pass";
@@ -35,7 +36,8 @@ const KeyInsightsCard = ({ bill }: KeyInsightsCardProps) => {
   };
 
   // Get pass chance color based on score
-  const getPassChanceColor = (score: number) => {
+  const getPassChanceColor = (score: number, hasPassed?: boolean) => {
+    if (hasPassed) return "text-green-700";
     if (score >= 4) return "text-green-600";
     if (score >= 3) return "text-yellow-600";
     if (score >= 2) return "text-orange-600";
@@ -106,9 +108,14 @@ const KeyInsightsCard = ({ bill }: KeyInsightsCardProps) => {
                 </div>
               ) : passAnalysis ? (
                 <div className="p-4 bg-gray-50 rounded-md">
-                  <h3 className={`text-xl font-medium mb-2 text-center ${getPassChanceColor(passAnalysis.score)}`}>
-                    {getPassChanceDescription(passAnalysis.score)}
-                  </h3>
+                  <div className="flex items-center justify-center mb-2">
+                    {passAnalysis.hasPassed && (
+                      <CheckCircle className="h-6 w-6 text-green-700 mr-2" />
+                    )}
+                    <h3 className={`text-xl font-medium text-center ${getPassChanceColor(passAnalysis.score, passAnalysis.hasPassed)}`}>
+                      {getPassChanceDescription(passAnalysis.score, passAnalysis.hasPassed)}
+                    </h3>
+                  </div>
                   <p className="text-sm text-gray-600 mb-4">{passAnalysis.reasoning}</p>
                   <ul className="space-y-2">
                     {passAnalysis.factors.map((factor, index) => (

@@ -12,11 +12,63 @@ export interface PassChanceAnalysis {
     impact: "positive" | "negative" | "neutral";
     description: string;
   }>;
+  hasPassed?: boolean;
+}
+
+/**
+ * Check if a bill has already passed based on its status and history
+ */
+function checkIfBillPassed(bill: Bill): boolean {
+  // Check status fields for passed indicators
+  const status = bill.status?.toLowerCase() || '';
+  const statusDescription = bill.data?.status_description?.toLowerCase() || '';
+  const currentStatus = bill.data?.current_status?.toLowerCase() || '';
+  
+  const passedIndicators = ['passed', 'enacted', 'signed', 'approved', 'adopted', 'effective'];
+  
+  if (passedIndicators.some(indicator => 
+    status.includes(indicator) || 
+    statusDescription.includes(indicator) || 
+    currentStatus.includes(indicator)
+  )) {
+    return true;
+  }
+  
+  // Check history for passed actions
+  if (bill.changes && bill.changes.length > 0) {
+    const hasPassedAction = bill.changes.some(change => {
+      const action = change.description?.toLowerCase() || '';
+      return passedIndicators.some(indicator => action.includes(indicator));
+    });
+    
+    if (hasPassedAction) {
+      return true;
+    }
+  }
+  
+  return false;
 }
 
 export async function analyzeBillPassChance(bill: Bill): Promise<PassChanceAnalysis | null> {
   try {
     console.log("Analyzing pass chance for bill:", bill.id);
+    
+    // First check if the bill has already passed
+    const hasPassed = checkIfBillPassed(bill);
+    
+    if (hasPassed) {
+      console.log("Bill has already passed, returning passed status");
+      return {
+        score: 5,
+        reasoning: "This bill has already passed according to its status and legislative history.",
+        factors: [{
+          factor: "bill_status",
+          impact: "positive",
+          description: "The bill has completed the legislative process and has been passed."
+        }],
+        hasPassed: true
+      };
+    }
     
     // Extract sponsor information properly
     const primarySponsor = getSponsor(bill);
