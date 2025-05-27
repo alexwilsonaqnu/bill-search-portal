@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { Bill } from "@/types";
 import { getSponsor, getCoSponsors } from "@/utils/billCardUtils";
@@ -17,16 +16,20 @@ export interface PassChanceAnalysis {
 
 /**
  * Check if a bill has already passed based on its status and history
+ * A bill is only considered passed if it has both:
+ * 1. Passed both houses of the legislature
+ * 2. Had a subsequent final passage action (signed, enacted, etc.)
  */
 function checkIfBillPassed(bill: Bill): boolean {
-  // Check status fields for passed indicators - convert to string first
+  // Check status fields for final enacted indicators
   const status = String(bill.status || '').toLowerCase();
   const statusDescription = String(bill.data?.status_description || '').toLowerCase();
   const currentStatus = String(bill.data?.current_status || '').toLowerCase();
   
-  const passedIndicators = ['passed', 'enacted', 'signed', 'approved', 'adopted', 'effective'];
+  const finalPassedIndicators = ['enacted', 'signed', 'approved by governor', 'effective', 'became law'];
   
-  if (passedIndicators.some(indicator => 
+  // First check if status indicates final passage
+  if (finalPassedIndicators.some(indicator => 
     status.includes(indicator) || 
     statusDescription.includes(indicator) || 
     currentStatus.includes(indicator)
@@ -34,16 +37,36 @@ function checkIfBillPassed(bill: Bill): boolean {
     return true;
   }
   
-  // Check history for passed actions
+  // Check history for proper passage sequence
   if (bill.changes && bill.changes.length > 0) {
-    const hasPassedAction = bill.changes.some(change => {
-      const action = String(change.description || '').toLowerCase();
-      return passedIndicators.some(indicator => action.includes(indicator));
-    });
+    let hasPassedBothHouses = false;
+    let hasFinalPassage = false;
     
-    if (hasPassedAction) {
-      return true;
+    // Sort changes by date if possible, otherwise use order
+    const sortedChanges = [...bill.changes];
+    
+    for (const change of sortedChanges) {
+      const action = String(change.description || '').toLowerCase();
+      
+      // Check for "passed both houses" or similar
+      if (action.includes('passed both houses') || 
+          action.includes('passed both chambers') ||
+          (action.includes('passed') && action.includes('house') && action.includes('senate'))) {
+        hasPassedBothHouses = true;
+      }
+      
+      // Check for final passage actions after passing both houses
+      if (hasPassedBothHouses && 
+          (action.includes('signed') || 
+           action.includes('enacted') || 
+           action.includes('approved by governor') ||
+           action.includes('became law') ||
+           action.includes('effective'))) {
+        hasFinalPassage = true;
+      }
     }
+    
+    return hasPassedBothHouses && hasFinalPassage;
   }
   
   return false;
