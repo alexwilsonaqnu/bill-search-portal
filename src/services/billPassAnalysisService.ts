@@ -18,7 +18,7 @@ export interface PassChanceAnalysis {
  * Check if a bill has already passed based on its status and history
  * A bill is only considered passed if it has both:
  * 1. Passed both houses of the legislature
- * 2. Had a subsequent final passage action (signed, enacted, etc.)
+ * 2. Had a subsequent "passed" action (any kind of passage action)
  */
 function checkIfBillPassed(bill: Bill): boolean {
   // Check status fields for final enacted indicators
@@ -50,18 +50,12 @@ function checkIfBillPassed(bill: Bill): boolean {
       
       // Check for "passed both houses" or similar
       if (action.includes('passed both houses') || 
-          action.includes('passed both chambers') ||
-          (action.includes('passed') && action.includes('house') && action.includes('senate'))) {
+          action.includes('passed both chambers')) {
         hasPassedBothHouses = true;
       }
       
-      // Check for final passage actions after passing both houses
-      if (hasPassedBothHouses && 
-          (action.includes('signed') || 
-           action.includes('enacted') || 
-           action.includes('approved by governor') ||
-           action.includes('became law') ||
-           action.includes('effective'))) {
+      // Check for any "passed" action after passing both houses
+      if (hasPassedBothHouses && action.includes('passed')) {
         hasFinalPassage = true;
       }
     }
