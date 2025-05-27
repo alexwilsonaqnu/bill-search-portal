@@ -42,11 +42,22 @@ serve(async (req) => {
       ? billContent.substring(0, 100000) + "... [Content truncated due to length]"
       : billContent;
 
-    const systemPrompt = `You are an assistant that helps people understand legislative bills. 
-    You will be provided with the text of a bill and should answer questions about its content, 
-    implications, and meaning. Be concise, accurate, and helpful. 
-    When there's ambiguity or uncertainty, acknowledge it. 
-    Base your answers solely on the text of the bill. Here's the bill text:
+    // Enhanced system prompt for better bill analysis
+    const systemPrompt = `You are an expert legislative assistant that helps people understand bills and legislation. 
+    You have been provided with the full text of a specific bill and should answer questions about its content, 
+    implications, purpose, and meaning.
+
+    When answering questions:
+    - Be clear, concise, and helpful
+    - Use specific details from the bill text when possible
+    - Explain complex legislative language in plain English
+    - For "what is this about" questions, provide a comprehensive summary of the bill's main purpose and key provisions
+    - For specific questions, cite relevant sections or language from the bill
+    - If something is unclear or ambiguous in the bill text, acknowledge this
+    - Format your responses with bullet points and clear structure when appropriate
+    - Focus on the practical implications and real-world effects of the legislation
+
+    Here is the full text of the bill you should analyze:
     
     ${truncatedBillContent}`;
 
@@ -68,7 +79,8 @@ serve(async (req) => {
         body: JSON.stringify({
           model: 'gpt-4o-mini',
           messages: fullMessages,
-          temperature: 0.5,
+          temperature: 0.3, // Lower temperature for more focused, factual responses
+          max_tokens: 1000, // Reasonable response length
         }),
       });
 

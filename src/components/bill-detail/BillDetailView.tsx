@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { ChevronLeft } from "lucide-react";
@@ -30,39 +31,73 @@ const BillDetailView = ({ bill }: BillDetailViewProps) => {
     `(Last updated: ${new Date(bill.lastUpdated).toLocaleDateString()})` : 
     "";
 
-  // Extract bill text from various possible locations in the bill object
+  // Enhanced bill text extraction to get the most comprehensive text available
   const getBillText = () => {
-    if (bill.text && bill.text.trim().length > 0) {
+    console.log("Extracting bill text for chat...");
+    
+    // Priority 1: Check cached bill text first (most likely to be complete)
+    try {
+      const cachedText = localStorage.getItem(`bill_text_${bill.id}`);
+      if (cachedText) {
+        const cached = JSON.parse(cachedText);
+        if (cached.text && cached.text.trim().length > 100) {
+          console.log(`Using cached bill text: ${cached.text.length} characters`);
+          return cached.text;
+        }
+      }
+    } catch (e) {
+      console.warn("Error reading cached text:", e);
+    }
+    
+    // Priority 2: Direct text property
+    if (bill.text && bill.text.trim().length > 100) {
+      console.log(`Using bill.text: ${bill.text.length} characters`);
       return bill.text;
     }
     
-    if (bill.data?.text && bill.data.text.trim().length > 0) {
+    // Priority 3: Data text properties
+    if (bill.data?.text && bill.data.text.trim().length > 100) {
+      console.log(`Using bill.data.text: ${bill.data.text.length} characters`);
       return bill.data.text;
     }
     
-    if (bill.data?.bill?.text && bill.data.bill.text.trim().length > 0) {
+    if (bill.data?.bill?.text && bill.data.bill.text.trim().length > 100) {
+      console.log(`Using bill.data.bill.text: ${bill.data.bill.text.length} characters`);
       return bill.data.bill.text;
     }
     
-    // Check versions
+    // Priority 4: Check versions for the most comprehensive text
     if (bill.versions && bill.versions.length > 0) {
-      const versionWithContent = bill.versions.find(v => 
-        v.sections && v.sections.length > 0 && v.sections[0].content
-      );
-      if (versionWithContent && versionWithContent.sections[0].content) {
-        return versionWithContent.sections[0].content;
+      // Try to find the latest or most complete version
+      let bestVersionText = "";
+      for (const version of bill.versions) {
+        if (version.sections && version.sections.length > 0) {
+          const versionText = version.sections.map(section => section.content).join('\n\n');
+          if (versionText.length > bestVersionText.length) {
+            bestVersionText = versionText;
+          }
+        }
+      }
+      if (bestVersionText.trim().length > 100) {
+        console.log(`Using version text: ${bestVersionText.length} characters`);
+        return bestVersionText;
       }
     }
     
-    // Check if there's description or title as fallback
-    if (bill.description || bill.title) {
-      return `${bill.title || ''}\n\n${bill.description || ''}`.trim();
-    }
+    // Priority 5: Fallback to basic bill info
+    const fallbackText = [
+      bill.title || "Bill Title Not Available",
+      bill.description || "",
+      bill.data?.bill?.description || "",
+      bill.data?.summary || ""
+    ].filter(Boolean).join('\n\n');
     
-    return "";
+    console.log(`Using fallback text: ${fallbackText.length} characters`);
+    return fallbackText.trim() || `This is ${bill.data?.bill_number || `Bill ${bill.id}`}. Full text is not currently available.`;
   };
 
   const billText = getBillText();
+  console.log(`Final bill text for chat: ${billText.length} characters`);
 
   const toggleChat = () => {
     setIsChatOpen(prev => !prev);
