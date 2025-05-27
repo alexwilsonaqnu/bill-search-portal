@@ -69,6 +69,8 @@ Consider these factors:
 - How many committees has it gone through (and been approved in)? The more the better.
 - MOST IMPORTANTLY: Has the bill passed both houses? If yes, it's extremely likely to pass (score 4-5).
 
+Focus on positive indicators and avoid emphasizing normal legislative process steps unless they significantly impact the likelihood.
+
 Always round down the score.
 
 Bill Information:
@@ -82,13 +84,13 @@ Bill Information:
 - Session: ${billData.sessionName || 'Unknown'} (${billData.sessionYear || 'Unknown year'})
 - Total Changes/History: ${billData.changesCount || 0} documented actions
 - Committee Actions: ${billData.committeeActions?.length || 0} committee proceedings
-- Passed Both Houses: ${billData.passedBothHouses ? 'YES - This is critical!' : 'No'}
+- ${billData.passedBothHouses ? 'PASSED BOTH HOUSES: YES - This is critical for high likelihood!' : 'Legislative Progress: Normal progression through chambers'}
 - Recent History: ${JSON.stringify(billData.changes?.slice(0, 3) || [])}
 
 Respond with a JSON object containing:
 {
   "score": <number 1-5>,
-  "reasoning": "<brief explanation>",
+  "reasoning": "<brief explanation focusing on key factors that impact likelihood>",
   "factors": [
     {"factor": "sponsor_influence", "impact": "positive|negative|neutral", "description": "brief description"},
     {"factor": "cosponsor_count", "impact": "positive|negative|neutral", "description": "brief description"},
@@ -111,7 +113,7 @@ Respond with a JSON object containing:
           messages: [
             { 
               role: "system", 
-              content: "You are an expert legislative analyst. Analyze bills for their likelihood to pass based on metadata. Bills that have passed both houses have an extremely high chance of becoming law (95%+ success rate). Always respond with valid JSON only, no markdown formatting."
+              content: "You are an expert legislative analyst. Analyze bills for their likelihood to pass based on metadata. Bills that have passed both houses have an extremely high chance of becoming law (95%+ success rate). Focus on what increases or decreases likelihood rather than emphasizing normal legislative process. Always respond with valid JSON only, no markdown formatting."
             },
             { role: "user", content: analysisPrompt }
           ],
@@ -148,7 +150,7 @@ Respond with a JSON object containing:
           score: billData.passedBothHouses ? 4 : 3,
           reasoning: billData.passedBothHouses 
             ? "Bill has passed both houses and is very likely to be signed by the governor"
-            : "Unable to fully analyze - using default score",
+            : "Unable to fully analyze - using default score based on available data",
           factors: [
             {"factor": "sponsor_influence", "impact": "neutral", "description": "Unable to determine sponsor influence"},
             {"factor": "cosponsor_count", "impact": "neutral", "description": "Unable to analyze cosponsor data"},
