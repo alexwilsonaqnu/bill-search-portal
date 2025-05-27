@@ -75,6 +75,25 @@ function checkIfPassedBothHouses(bill: Bill): boolean {
   return false;
 }
 
+/**
+ * Extract the introduction date from the bill's history
+ * The first action in the history is when the bill was filed/introduced
+ */
+function getIntroductionDate(bill: Bill): string | null {
+  if (!bill.changes || bill.changes.length === 0) {
+    return null;
+  }
+  
+  // The first action chronologically is the introduction/filing
+  // Since changes are typically in chronological order, the first one is the introduction
+  const firstAction = bill.changes[0];
+  if (firstAction && firstAction.details) {
+    return firstAction.details;
+  }
+  
+  return null;
+}
+
 export async function analyzeBillPassChance(bill: Bill): Promise<PassChanceAnalysis | null> {
   try {
     console.log("Analyzing pass chance for bill:", bill.id);
@@ -117,8 +136,10 @@ export async function analyzeBillPassChance(bill: Bill): Promise<PassChanceAnaly
       role: typeof cosponsor === 'object' ? (cosponsor.role || 'Unknown') : 'Unknown'
     }));
     
+    // Extract introduction date from bill history
+    const introductionDate = getIntroductionDate(bill);
+    
     // Extract timeline and status information
-    const introducedDate = bill.data?.introducedDate || bill.data?.introduced_date || bill.data?.created_date;
     const lastActionDate = bill.data?.lastActionDate || bill.data?.last_action_date || bill.lastUpdated;
     const currentStatus = bill.data?.status_description || bill.data?.current_status || bill.status;
     
@@ -133,6 +154,7 @@ export async function analyzeBillPassChance(bill: Bill): Promise<PassChanceAnaly
     
     console.log("Formatted sponsor info:", sponsorInfo);
     console.log("Formatted cosponsor info:", cosponsorInfo);
+    console.log("Introduction date extracted:", introductionDate);
     console.log("History items count:", historyItems.length);
     console.log("Committee actions count:", committeeActions.length);
     console.log("Passed both houses:", passedBothHouses);
@@ -147,7 +169,7 @@ export async function analyzeBillPassChance(bill: Bill): Promise<PassChanceAnaly
           cosponsorCount: cosponsors.length,
           status: bill.status,
           statusDescription: currentStatus,
-          introducedDate: introducedDate,
+          introducedDate: introductionDate, // Use the extracted introduction date
           lastActionDate: lastActionDate,
           lastUpdated: bill.lastUpdated,
           sessionName: bill.sessionName,
