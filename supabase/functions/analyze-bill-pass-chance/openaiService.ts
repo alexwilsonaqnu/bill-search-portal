@@ -16,7 +16,7 @@ export async function analyzeWithOpenAI(prompt: string, openAIApiKey: string): P
       messages: [
         { 
           role: "system", 
-          content: "You are an expert legislative analyst. Analyze bills for their likelihood to pass based on metadata. Bills that have passed both houses have an extremely high chance of becoming law (95%+ success rate). Bills re-referred to Rules Committee have significantly reduced chances as this typically indicates stagnation or political problems, especially if over 30 days have passed. Focus on what increases or decreases likelihood rather than emphasizing normal legislative process. Do not mention the absence of negative indicators unless they are particularly significant. Always respond with valid JSON only, no markdown formatting."
+          content: "You are an expert legislative analyst. Analyze bills for their likelihood to pass based on metadata. Bills that have passed both houses have an extremely high chance of becoming law (95%+ success rate). Bills re-referred to Rules Committee have significantly reduced chances as this typically indicates stagnation or political problems, especially if over 30 days have passed. Focus on what increases or decreases likelihood rather than emphasizing normal legislative process. Do not mention the absence of normal legislative milestones (like not passing both houses, not being signed, etc.) unless they are particularly significant indicators. Most bills haven't passed both houses yet - that's normal and shouldn't be mentioned as a negative unless there's a specific reason why the bill should have progressed further by now. Always respond with valid JSON only, no markdown formatting."
         },
         { role: "user", content: prompt }
       ],

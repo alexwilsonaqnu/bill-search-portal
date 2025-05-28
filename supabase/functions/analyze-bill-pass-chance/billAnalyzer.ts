@@ -169,7 +169,7 @@ Consider these factors:
 - MOST IMPORTANTLY: Has the bill passed both houses? If yes, it's extremely likely to pass (score 4-5).
 - CRITICAL NEGATIVE INDICATOR: Has the bill been re-referred to Rules Committee? This is a major sign of stagnation and should significantly reduce the score. If it's been over 30 days since Rules referral, consider the bill effectively dead (score 1).
 
-Focus on positive indicators and significant negative indicators. Do not mention the absence of negative indicators unless they are particularly significant.
+IMPORTANT: Do not mention normal legislative processes as negative factors. Most bills have not passed both houses yet, most bills have not been signed by the governor yet - these are normal states and should not be mentioned unless there's a specific reason the bill should have progressed further. Focus only on positive indicators and significant negative indicators (like Rules Committee re-referrals or complete lack of activity).
 
 Always round down the score.
 
