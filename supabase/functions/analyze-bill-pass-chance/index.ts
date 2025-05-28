@@ -39,6 +39,10 @@ serve(async (req) => {
     console.log("Committee actions count:", billData.committeeActions?.length || 0);
     console.log("Passed both houses:", billData.passedBothHouses);
 
+    // Check for rules committee re-referral
+    const rulesReferralStatus = checkRulesReferral(billData.changes || []);
+    console.log("Rules committee re-referral detected:", rulesReferralStatus.hasRulesReferral);
+
     // Build analysis prompt with comprehensive bill metadata
     const sponsorDescription = billData.sponsor 
       ? `${billData.sponsor.name} (${billData.sponsor.party || 'Unknown Party'}, ${billData.sponsor.role || 'Unknown Role'}, District: ${billData.sponsor.district || 'Unknown'})`
@@ -56,10 +60,17 @@ serve(async (req) => {
       ? "CRITICAL: This bill has PASSED BOTH HOUSES and is awaiting governor approval. Historically, over 95% of bills that pass both houses are signed by the governor. This should result in a score of 4 or 5."
       : "";
 
+    // Rules committee re-referral warning
+    const rulesReferralNote = rulesReferralStatus.hasRulesReferral
+      ? `MAJOR CONCERN: This bill has been re-referred to the Rules Committee, which is typically a significant indicator of stagnation and political difficulties. Rules committee re-referrals often signal that a bill is being shelved or killed. This should significantly lower the pass chance score (reduce by 1-2 points unless other very strong positive factors exist).`
+      : "";
+
     const analysisPrompt = `
 You are analyzing the likelihood that a legislative bill will pass. Based on the bill metadata provided, give a score from 1-5 where 1 is very unlikely to pass and 5 is extremely likely to pass.
 
 ${passedBothHousesNote}
+
+${rulesReferralNote}
 
 Consider these factors:
 - Who is the primary sponsor of the bill and how influential are they?
@@ -68,6 +79,7 @@ Consider these factors:
 - How many changes has it had? More recent changes means there's movement in the bill, which is good.
 - How many committees has it gone through (and been approved in)? The more the better.
 - MOST IMPORTANTLY: Has the bill passed both houses? If yes, it's extremely likely to pass (score 4-5).
+- CRITICAL NEGATIVE INDICATOR: Has the bill been re-referred to Rules Committee? This is a major sign of stagnation and should significantly reduce the score.
 
 Focus on positive indicators and avoid emphasizing normal legislative process steps unless they significantly impact the likelihood.
 
@@ -85,6 +97,7 @@ Bill Information:
 - Total Changes/History: ${billData.changesCount || 0} documented actions
 - Committee Actions: ${billData.committeeActions?.length || 0} committee proceedings
 - ${billData.passedBothHouses ? 'PASSED BOTH HOUSES: YES - This is critical for high likelihood!' : 'Legislative Progress: Normal progression through chambers'}
+- Rules Committee Status: ${rulesReferralStatus.hasRulesReferral ? `RE-REFERRED TO RULES - Major concern! ${rulesReferralStatus.description}` : 'No rules committee re-referral detected'}
 - Recent History: ${JSON.stringify(billData.changes?.slice(0, 3) || [])}
 
 Respond with a JSON object containing:
@@ -96,7 +109,7 @@ Respond with a JSON object containing:
     {"factor": "cosponsor_count", "impact": "positive|negative|neutral", "description": "brief description"},
     {"factor": "time_since_introduction", "impact": "positive|negative|neutral", "description": "brief description"},
     {"factor": "recent_activity", "impact": "positive|negative|neutral", "description": "brief description"},
-    {"factor": "committee_progress", "impact": "positive|negative|neutral", "description": "brief description"}
+    {"factor": "committee_progress", "impact": "positive|negative|neutral", "description": "brief description"}${rulesReferralStatus.hasRulesReferral ? ',\n    {"factor": "rules_committee_referral", "impact": "negative", "description": "' + rulesReferralStatus.description + '"}' : ''}
   ]
 }
 `;
@@ -113,7 +126,7 @@ Respond with a JSON object containing:
           messages: [
             { 
               role: "system", 
-              content: "You are an expert legislative analyst. Analyze bills for their likelihood to pass based on metadata. Bills that have passed both houses have an extremely high chance of becoming law (95%+ success rate). Focus on what increases or decreases likelihood rather than emphasizing normal legislative process. Always respond with valid JSON only, no markdown formatting."
+              content: "You are an expert legislative analyst. Analyze bills for their likelihood to pass based on metadata. Bills that have passed both houses have an extremely high chance of becoming law (95%+ success rate). Bills re-referred to Rules Committee have significantly reduced chances as this typically indicates stagnation or political problems. Focus on what increases or decreases likelihood rather than emphasizing normal legislative process. Always respond with valid JSON only, no markdown formatting."
             },
             { role: "user", content: analysisPrompt }
           ],
@@ -145,19 +158,22 @@ Respond with a JSON object containing:
         console.log("Successfully parsed analysis result:", analysisResult);
       } catch (parseError) {
         console.error('Failed to parse AI response as JSON:', data.choices[0].message.content);
-        // Fallback response
+        // Fallback response - reduce score if rules committee re-referral detected
+        const fallbackScore = billData.passedBothHouses ? 4 : (rulesReferralStatus.hasRulesReferral ? 1 : 3);
         analysisResult = {
-          score: billData.passedBothHouses ? 4 : 3,
+          score: fallbackScore,
           reasoning: billData.passedBothHouses 
             ? "Bill has passed both houses and is very likely to be signed by the governor"
-            : "Unable to fully analyze - using default score based on available data",
+            : rulesReferralStatus.hasRulesReferral 
+              ? "Bill has been re-referred to Rules Committee, indicating significant stagnation"
+              : "Unable to fully analyze - using default score based on available data",
           factors: [
             {"factor": "sponsor_influence", "impact": "neutral", "description": "Unable to determine sponsor influence"},
             {"factor": "cosponsor_count", "impact": "neutral", "description": "Unable to analyze cosponsor data"},
             {"factor": "time_since_introduction", "impact": "neutral", "description": "Unable to determine timeline"},
             {"factor": "recent_activity", "impact": "neutral", "description": "Unable to analyze recent activity"},
             {"factor": "committee_progress", "impact": billData.passedBothHouses ? "positive" : "neutral", "description": billData.passedBothHouses ? "Bill has passed both legislative chambers" : "Unable to analyze committee progress"}
-          ]
+          ].concat(rulesReferralStatus.hasRulesReferral ? [{"factor": "rules_committee_referral", "impact": "negative", "description": rulesReferralStatus.description}] : [])
         };
       }
       
@@ -189,6 +205,39 @@ Respond with a JSON object containing:
     );
   }
 });
+
+/**
+ * Check if a bill has been re-referred to Rules Committee
+ */
+function checkRulesReferral(changes: any[]): { hasRulesReferral: boolean; description: string } {
+  if (!changes || changes.length === 0) {
+    return { hasRulesReferral: false, description: "" };
+  }
+
+  // Look for actions containing "rules" or "re-referred" patterns
+  const rulesPatterns = [
+    /re-?referred.*rules/i,
+    /rules.*committee.*re-?referred/i,
+    /assigned.*rules.*committee/i,
+    /referred.*back.*rules/i,
+    /rules.*re-?assignment/i
+  ];
+
+  for (const change of changes) {
+    const action = String(change.description || '').toLowerCase();
+    
+    for (const pattern of rulesPatterns) {
+      if (pattern.test(action)) {
+        return {
+          hasRulesReferral: true,
+          description: "Bill has been re-referred to Rules Committee, typically indicating stagnation or political difficulties"
+        };
+      }
+    }
+  }
+
+  return { hasRulesReferral: false, description: "" };
+}
 
 function calculateTimeAnalysis(introducedDate: string, lastActionDate: string): string {
   if (!introducedDate) return "Timeline: Unknown introduction date";
