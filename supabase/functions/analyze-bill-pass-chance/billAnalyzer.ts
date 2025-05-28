@@ -163,7 +163,7 @@ ${rulesReferralNote}
 Consider these factors:
 - Who is the primary sponsor of the bill and how influential are they?
 - How many cosponsors? The more the better, the more bipartisan sponsors the better.
-- How long has it been since the bill was introduced? The longer without action, the less likely it is to pass.
+- IMPORTANT: Recent activity is the most important timeline factor. If there has been recent legislative activity (within the last 30 days), this indicates the bill is alive and moving, regardless of how long ago it was introduced. A bill introduced months ago but with recent actions should NOT be penalized for the introduction timeline.
 - How many changes has it had? More recent changes means there's movement in the bill, which is good.
 - How many committees has it gone through (and been approved in)? The more the better.
 - MOST IMPORTANTLY: Has the bill passed both houses? If yes, it's extremely likely to pass (score 4-5).
@@ -194,7 +194,7 @@ Respond with a JSON object containing:
   "factors": [
     {"factor": "sponsor_influence", "impact": "positive|negative|neutral", "description": "brief description"},
     {"factor": "cosponsor_count", "impact": "positive|negative|neutral", "description": "brief description"},
-    {"factor": "time_since_introduction", "impact": "positive|negative|neutral", "description": "brief description"},
+    {"factor": "timeline_and_activity", "impact": "positive|negative|neutral", "description": "brief description focusing on recent activity over introduction timeline"},
     {"factor": "recent_activity", "impact": "positive|negative|neutral", "description": "brief description"},
     {"factor": "committee_progress", "impact": "positive|negative|neutral", "description": "brief description"}${rulesReferralStatus.hasRulesReferral ? ',\n    {"factor": "rules_committee_referral", "impact": "negative", "description": "' + rulesReferralStatus.description + '"}' : ''}
   ]
