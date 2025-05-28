@@ -2,6 +2,53 @@
 import { BillAnalysisData, RulesReferralResult } from "./types.ts";
 
 /**
+ * Parse date string and return Date object, handling various formats
+ */
+function parseDate(dateStr: string): Date {
+  if (!dateStr) return new Date(0);
+  
+  // Try various date formats
+  const formats = [
+    // Try direct parsing first
+    () => new Date(dateStr),
+    // Try with specific formats
+    () => {
+      // Handle "Apr 11, 2025" format
+      const match = dateStr.match(/^(\w{3})\s+(\d{1,2}),\s+(\d{4})$/);
+      if (match) {
+        const [, month, day, year] = match;
+        const monthMap: { [key: string]: number } = {
+          'Jan': 0, 'Feb': 1, 'Mar': 2, 'Apr': 3, 'May': 4, 'Jun': 5,
+          'Jul': 6, 'Aug': 7, 'Sep': 8, 'Oct': 9, 'Nov': 10, 'Dec': 11
+        };
+        return new Date(parseInt(year), monthMap[month], parseInt(day));
+      }
+      return null;
+    },
+    // Handle YYYY-MM-DD format
+    () => {
+      if (/^\d{4}-\d{2}-\d{2}/.test(dateStr)) {
+        return new Date(dateStr);
+      }
+      return null;
+    }
+  ];
+  
+  for (const formatFn of formats) {
+    try {
+      const result = formatFn();
+      if (result && !isNaN(result.getTime()) && result.getTime() > 0) {
+        return result;
+      }
+    } catch (e) {
+      // Continue to next format
+    }
+  }
+  
+  return new Date(0);
+}
+
+/**
  * Check if a bill has been re-referred to Rules Committee with enhanced detection
  */
 export function checkRulesReferral(changes: any[]): RulesReferralResult {
@@ -21,9 +68,15 @@ export function checkRulesReferral(changes: any[]): RulesReferralResult {
     /rules.*committee.*referral/i
   ];
 
+  // Sort changes by date to find the most recent rules referral
+  const sortedChanges = [...changes].sort((a, b) => {
+    const dateA = parseDate(a.details || a.date || '');
+    const dateB = parseDate(b.details || b.date || '');
+    return dateB.getTime() - dateA.getTime();
+  });
+
   // Look through changes from most recent to oldest
-  for (let i = changes.length - 1; i >= 0; i--) {
-    const change = changes[i];
+  for (const change of sortedChanges) {
     const action = String(change.description || change.action || '').toLowerCase();
     const date = change.details || change.date;
     
@@ -33,7 +86,7 @@ export function checkRulesReferral(changes: any[]): RulesReferralResult {
         let daysSinceReferral = 0;
         if (date) {
           try {
-            const referralDate = new Date(date);
+            const referralDate = parseDate(date);
             const now = new Date();
             daysSinceReferral = Math.floor((now.getTime() - referralDate.getTime()) / (1000 * 60 * 60 * 24));
           } catch (error) {
@@ -54,15 +107,19 @@ export function checkRulesReferral(changes: any[]): RulesReferralResult {
 }
 
 /**
- * Calculate time analysis for bill progression
+ * Calculate time analysis for bill progression with improved date parsing
  */
 export function calculateTimeAnalysis(introducedDate: string, lastActionDate: string): string {
   if (!introducedDate) return "Timeline: Unknown introduction date";
   
   try {
-    const introduced = new Date(introducedDate);
-    const lastAction = lastActionDate ? new Date(lastActionDate) : new Date();
+    const introduced = parseDate(introducedDate);
+    const lastAction = lastActionDate ? parseDate(lastActionDate) : new Date();
     const now = new Date();
+    
+    if (introduced.getTime() === 0) {
+      return "Timeline: Unable to parse introduction date";
+    }
     
     const daysSinceIntroduction = Math.floor((now.getTime() - introduced.getTime()) / (1000 * 60 * 60 * 24));
     const daysSinceLastAction = Math.floor((now.getTime() - lastAction.getTime()) / (1000 * 60 * 60 * 24));

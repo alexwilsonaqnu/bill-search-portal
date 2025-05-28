@@ -16,8 +16,54 @@ export interface PassChanceAnalysis {
 }
 
 /**
+ * Parse date string and return Date object, handling various formats
+ */
+function parseDate(dateStr: string): Date {
+  if (!dateStr) return new Date(0);
+  
+  // Try various date formats
+  const formats = [
+    // Try direct parsing first
+    () => new Date(dateStr),
+    // Try with specific formats
+    () => {
+      // Handle "Apr 11, 2025" format
+      const match = dateStr.match(/^(\w{3})\s+(\d{1,2}),\s+(\d{4})$/);
+      if (match) {
+        const [, month, day, year] = match;
+        const monthMap: { [key: string]: number } = {
+          'Jan': 0, 'Feb': 1, 'Mar': 2, 'Apr': 3, 'May': 4, 'Jun': 5,
+          'Jul': 6, 'Aug': 7, 'Sep': 8, 'Oct': 9, 'Nov': 10, 'Dec': 11
+        };
+        return new Date(parseInt(year), monthMap[month], parseInt(day));
+      }
+      return null;
+    },
+    // Handle YYYY-MM-DD format
+    () => {
+      if (/^\d{4}-\d{2}-\d{2}/.test(dateStr)) {
+        return new Date(dateStr);
+      }
+      return null;
+    }
+  ];
+  
+  for (const formatFn of formats) {
+    try {
+      const result = formatFn();
+      if (result && !isNaN(result.getTime()) && result.getTime() > 0) {
+        return result;
+      }
+    } catch (e) {
+      // Continue to next format
+    }
+  }
+  
+  return new Date(0);
+}
+
+/**
  * Check if a bill has already passed based on its status and history
- * A bill is only considered passed if the final action is "Public Act . . . . . . . .[id]"
  */
 function checkIfBillPassed(bill: Bill): boolean {
   // Check status fields for final enacted indicators
@@ -38,11 +84,15 @@ function checkIfBillPassed(bill: Bill): boolean {
   
   // Check history for "Public Act" as the final action
   if (bill.changes && bill.changes.length > 0) {
-    // Sort changes by date if possible, otherwise use order
-    const sortedChanges = [...bill.changes];
+    // Sort changes by date to find the most recent
+    const sortedChanges = [...bill.changes].sort((a, b) => {
+      const dateA = parseDate(a.details || '');
+      const dateB = parseDate(b.details || '');
+      return dateB.getTime() - dateA.getTime();
+    });
     
-    // Get the most recent action (last in the sorted array)
-    const lastAction = sortedChanges[sortedChanges.length - 1];
+    // Get the most recent action
+    const lastAction = sortedChanges[0];
     if (lastAction) {
       const action = String(lastAction.description || '').toLowerCase();
       
@@ -77,21 +127,79 @@ function checkIfPassedBothHouses(bill: Bill): boolean {
 
 /**
  * Extract the introduction date from the bill's history
- * The first action in the history is when the bill was filed/introduced
+ * Look for filing, introduction, or first reading actions
  */
 function getIntroductionDate(bill: Bill): string | null {
   if (!bill.changes || bill.changes.length === 0) {
     return null;
   }
   
-  // The first action chronologically is the introduction/filing
-  // Since changes are typically in chronological order, the first one is the introduction
-  const firstAction = bill.changes[0];
+  // Sort changes by date to find the earliest
+  const sortedChanges = [...bill.changes].sort((a, b) => {
+    const dateA = parseDate(a.details || '');
+    const dateB = parseDate(b.details || '');
+    return dateA.getTime() - dateB.getTime();
+  });
+  
+  // Look for introduction-related actions
+  const introductionKeywords = ['filed', 'introduced', 'first reading', 'prefiled'];
+  
+  for (const change of sortedChanges) {
+    const action = String(change.description || '').toLowerCase();
+    if (introductionKeywords.some(keyword => action.includes(keyword))) {
+      return change.details;
+    }
+  }
+  
+  // If no specific introduction action found, use the earliest action
+  const firstAction = sortedChanges[0];
   if (firstAction && firstAction.details) {
     return firstAction.details;
   }
   
   return null;
+}
+
+/**
+ * Get the most recent action date from the bill's history
+ */
+function getLastActionDate(bill: Bill): string | null {
+  if (!bill.changes || bill.changes.length === 0) {
+    return bill.lastUpdated || null;
+  }
+  
+  // Sort changes by date to find the most recent
+  const sortedChanges = [...bill.changes].sort((a, b) => {
+    const dateA = parseDate(a.details || '');
+    const dateB = parseDate(b.details || '');
+    return dateB.getTime() - dateA.getTime();
+  });
+  
+  const mostRecentAction = sortedChanges[0];
+  return mostRecentAction?.details || bill.lastUpdated || null;
+}
+
+/**
+ * Get a meaningful status description from the bill data
+ */
+function getStatusDescription(bill: Bill): string {
+  // Try to get a meaningful status description
+  const statusDesc = bill.data?.status_description || bill.data?.current_status_description;
+  if (statusDesc && typeof statusDesc === 'string' && statusDesc !== bill.status) {
+    return statusDesc;
+  }
+  
+  // If we have a raw status number/code, try to make it more meaningful
+  const rawStatus = bill.status || bill.data?.status || bill.data?.current_status;
+  if (rawStatus) {
+    // If it's just a number, try to provide context
+    if (/^\d+$/.test(String(rawStatus))) {
+      return `Status ${rawStatus} - In committee review`;
+    }
+    return String(rawStatus);
+  }
+  
+  return 'Unknown status';
 }
 
 export async function analyzeBillPassChance(bill: Bill): Promise<PassChanceAnalysis | null> {
@@ -136,12 +244,12 @@ export async function analyzeBillPassChance(bill: Bill): Promise<PassChanceAnaly
       role: typeof cosponsor === 'object' ? (cosponsor.role || 'Unknown') : 'Unknown'
     }));
     
-    // Extract introduction date from bill history
+    // Extract dates using improved parsing
     const introductionDate = getIntroductionDate(bill);
+    const lastActionDate = getLastActionDate(bill);
     
-    // Extract timeline and status information
-    const lastActionDate = bill.data?.lastActionDate || bill.data?.last_action_date || bill.lastUpdated;
-    const currentStatus = bill.data?.status_description || bill.data?.current_status || bill.status;
+    // Get meaningful status description
+    const currentStatus = getStatusDescription(bill);
     
     // Format history/changes for analysis
     const historyItems = bill.changes?.map(change => ({
@@ -155,6 +263,8 @@ export async function analyzeBillPassChance(bill: Bill): Promise<PassChanceAnaly
     console.log("Formatted sponsor info:", sponsorInfo);
     console.log("Formatted cosponsor info:", cosponsorInfo);
     console.log("Introduction date extracted:", introductionDate);
+    console.log("Last action date extracted:", lastActionDate);
+    console.log("Status description:", currentStatus);
     console.log("History items count:", historyItems.length);
     console.log("Committee actions count:", committeeActions.length);
     console.log("Passed both houses:", passedBothHouses);
@@ -169,7 +279,7 @@ export async function analyzeBillPassChance(bill: Bill): Promise<PassChanceAnaly
           cosponsorCount: cosponsors.length,
           status: bill.status,
           statusDescription: currentStatus,
-          introducedDate: introductionDate, // Use the extracted introduction date
+          introducedDate: introductionDate,
           lastActionDate: lastActionDate,
           lastUpdated: bill.lastUpdated,
           sessionName: bill.sessionName,
@@ -177,7 +287,7 @@ export async function analyzeBillPassChance(bill: Bill): Promise<PassChanceAnaly
           changes: historyItems,
           changesCount: historyItems.length,
           committeeActions: committeeActions,
-          passedBothHouses: passedBothHouses, // Add this important flag
+          passedBothHouses: passedBothHouses,
           data: bill.data
         }
       }
