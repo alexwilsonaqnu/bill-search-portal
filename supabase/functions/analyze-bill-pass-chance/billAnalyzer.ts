@@ -112,7 +112,7 @@ Consider these factors:
 - MOST IMPORTANTLY: Has the bill passed both houses? If yes, it's extremely likely to pass (score 4-5).
 - CRITICAL NEGATIVE INDICATOR: Has the bill been re-referred to Rules Committee? This is a major sign of stagnation and should significantly reduce the score. If it's been over 30 days since Rules referral, consider the bill effectively dead (score 1).
 
-Focus on positive indicators and avoid emphasizing normal legislative process steps unless they significantly impact the likelihood.
+Focus on positive indicators and significant negative indicators. Do not mention the absence of negative indicators unless they are particularly significant.
 
 Always round down the score.
 
@@ -127,8 +127,7 @@ Bill Information:
 - Session: ${billData.sessionName || 'Unknown'} (${billData.sessionYear || 'Unknown year'})
 - Total Changes/History: ${billData.changesCount || 0} documented actions
 - Committee Actions: ${billData.committeeActions?.length || 0} committee proceedings
-- ${billData.passedBothHouses ? 'PASSED BOTH HOUSES: YES - This is critical for high likelihood!' : 'Legislative Progress: Normal progression through chambers'}
-- Rules Committee Status: ${rulesReferralStatus.hasRulesReferral ? `RE-REFERRED TO RULES - Major concern! ${rulesReferralStatus.description}` : 'No rules committee re-referral detected'}
+- ${billData.passedBothHouses ? 'PASSED BOTH HOUSES: YES - This is critical for high likelihood!' : 'Legislative Progress: Normal progression through chambers'}${rulesReferralStatus.hasRulesReferral ? `\n- Rules Committee Status: RE-REFERRED TO RULES - Major concern! ${rulesReferralStatus.description}` : ''}
 - Recent History: ${JSON.stringify(billData.changes?.slice(0, 3) || [])}
 
 Respond with a JSON object containing:

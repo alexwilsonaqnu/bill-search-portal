@@ -16,7 +16,7 @@ export async function analyzeWithOpenAI(prompt: string, openAIApiKey: string): P
       messages: [
         { 
           role: "system", 
-          content: "You are an expert legislative analyst. Analyze bills for their likelihood to pass based on metadata. Bills that have passed both houses have an extremely high chance of becoming law (95%+ success rate). Bills re-referred to Rules Committee have significantly reduced chances as this typically indicates stagnation or political problems, especially if over 30 days have passed. Focus on what increases or decreases likelihood rather than emphasizing normal legislative process. Always respond with valid JSON only, no markdown formatting."
+          content: "You are an expert legislative analyst. Analyze bills for their likelihood to pass based on metadata. Bills that have passed both houses have an extremely high chance of becoming law (95%+ success rate). Bills re-referred to Rules Committee have significantly reduced chances as this typically indicates stagnation or political problems, especially if over 30 days have passed. Focus on what increases or decreases likelihood rather than emphasizing normal legislative process. Do not mention the absence of negative indicators unless they are particularly significant. Always respond with valid JSON only, no markdown formatting."
         },
         { role: "user", content: prompt }
       ],
@@ -61,6 +61,19 @@ export function createFallbackAnalysis(billData: BillAnalysisData, rulesReferral
     }
   }
   
+  const baseFactors = [
+    {"factor": "sponsor_influence", "impact": "neutral", "description": "Unable to determine sponsor influence"},
+    {"factor": "cosponsor_count", "impact": "neutral", "description": "Unable to analyze cosponsor data"},
+    {"factor": "time_since_introduction", "impact": "neutral", "description": "Unable to determine timeline"},
+    {"factor": "recent_activity", "impact": "neutral", "description": "Unable to analyze recent activity"},
+    {"factor": "committee_progress", "impact": billData.passedBothHouses ? "positive" : "neutral", "description": billData.passedBothHouses ? "Bill has passed both legislative chambers" : "Unable to analyze committee progress"}
+  ];
+  
+  // Only add rules committee factor if there actually is a rules referral
+  const factors = rulesReferralStatus.hasRulesReferral 
+    ? baseFactors.concat([{"factor": "rules_committee_referral", "impact": "negative", "description": rulesReferralStatus.description}])
+    : baseFactors;
+  
   return {
     score: fallbackScore,
     reasoning: billData.passedBothHouses 
@@ -68,12 +81,6 @@ export function createFallbackAnalysis(billData: BillAnalysisData, rulesReferral
       : rulesReferralStatus.hasRulesReferral 
         ? `Bill has been re-referred to Rules Committee${rulesReferralStatus.daysSinceReferral ? ` ${rulesReferralStatus.daysSinceReferral} days ago` : ''}, indicating significant stagnation`
         : "Unable to fully analyze - using default score based on available data",
-    factors: [
-      {"factor": "sponsor_influence", "impact": "neutral", "description": "Unable to determine sponsor influence"},
-      {"factor": "cosponsor_count", "impact": "neutral", "description": "Unable to analyze cosponsor data"},
-      {"factor": "time_since_introduction", "impact": "neutral", "description": "Unable to determine timeline"},
-      {"factor": "recent_activity", "impact": "neutral", "description": "Unable to analyze recent activity"},
-      {"factor": "committee_progress", "impact": billData.passedBothHouses ? "positive" : "neutral", "description": billData.passedBothHouses ? "Bill has passed both legislative chambers" : "Unable to analyze committee progress"}
-    ].concat(rulesReferralStatus.hasRulesReferral ? [{"factor": "rules_committee_referral", "impact": "negative", "description": rulesReferralStatus.description}] : [])
+    factors
   };
 }
