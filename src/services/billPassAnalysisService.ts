@@ -71,7 +71,15 @@ function checkIfBillPassed(bill: Bill): boolean {
   const statusDescription = String(bill.data?.status_description || '').toLowerCase();
   const currentStatus = String(bill.data?.current_status || '').toLowerCase();
   
-  const finalPassedIndicators = ['enacted', 'signed', 'approved by governor', 'effective', 'became law'];
+  const finalPassedIndicators = [
+    'enacted', 
+    'signed', 
+    'approved by governor', 
+    'effective', 
+    'became law',
+    'resolution adopted',
+    'adopted'
+  ];
   
   // First check if status indicates final passage
   if (finalPassedIndicators.some(indicator => 
@@ -82,7 +90,7 @@ function checkIfBillPassed(bill: Bill): boolean {
     return true;
   }
   
-  // Check history for "Public Act" as the final action
+  // Check history for final passage indicators
   if (bill.changes && bill.changes.length > 0) {
     // Sort changes by date to find the most recent
     const sortedChanges = [...bill.changes].sort((a, b) => {
@@ -91,12 +99,16 @@ function checkIfBillPassed(bill: Bill): boolean {
       return dateB.getTime() - dateA.getTime();
     });
     
-    // Get the most recent action
-    const lastAction = sortedChanges[0];
-    if (lastAction) {
-      const action = String(lastAction.description || '').toLowerCase();
+    // Check all actions for final passage indicators
+    for (const change of sortedChanges) {
+      const action = String(change.description || '').toLowerCase();
       
-      // Check if the last action is "Public Act"
+      // Check if any action indicates final passage
+      if (finalPassedIndicators.some(indicator => action.includes(indicator))) {
+        return true;
+      }
+      
+      // Check for "Public Act" as the final action
       if (action.includes('public act')) {
         return true;
       }
@@ -211,13 +223,26 @@ export async function analyzeBillPassChance(bill: Bill): Promise<PassChanceAnaly
     
     if (hasPassed) {
       console.log("Bill has already passed, returning passed status");
+      
+      // Determine the specific type of passage for more accurate messaging
+      let passageType = "passed and been enacted into law";
+      
+      // Check for resolution adoption specifically
+      const hasResolutionAdopted = bill.changes?.some(change => 
+        String(change.description || '').toLowerCase().includes('resolution adopted')
+      ) || String(bill.status || '').toLowerCase().includes('adopted');
+      
+      if (hasResolutionAdopted) {
+        passageType = "been adopted as a resolution";
+      }
+      
       return {
         score: 5,
-        reasoning: "This bill has already passed and become a Public Act according to its legislative history.",
+        reasoning: `This bill has already ${passageType} according to its legislative history.`,
         factors: [{
           factor: "bill_status",
           impact: "positive",
-          description: "The bill has completed the legislative process and has been enacted into law."
+          description: `The bill has completed the legislative process and has ${passageType}.`
         }],
         hasPassed: true
       };
