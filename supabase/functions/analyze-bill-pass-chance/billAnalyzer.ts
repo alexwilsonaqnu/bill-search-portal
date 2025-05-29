@@ -50,35 +50,43 @@ function parseDate(dateStr: string): Date {
 
 /**
  * Check if a bill has been re-referred to Rules Committee with enhanced detection
- * Now also checks if there have been actions after the rules referral
+ * Only flags ACTUAL re-referrals, not initial referrals which are normal
  */
 export function checkRulesReferral(changes: any[]): RulesReferralResult {
   if (!changes || changes.length === 0) {
     return { hasRulesReferral: false, description: "" };
   }
 
-  // Very specific patterns to detect ONLY rules committee RE-REFERRALS (not initial referrals)
+  // VERY specific patterns that indicate RE-REFERRAL (not initial referral)
   const reReferralPatterns = [
     /re-?referred.*to.*rules/i,
-    /rules.*committee.*re-?referred/i,
-    /referred.*back.*to.*rules/i,
     /returned.*to.*rules/i,
+    /sent.*back.*to.*rules/i,
+    /rules.*committee.*re-?referred/i,
     /re-?assigned.*to.*rules/i,
-    /rule\s*19.*re-?referred.*to.*rules/i,
-    /sent.*back.*to.*rules/i
+    /referred.*back.*to.*rules/i
   ];
 
   // Patterns that indicate NORMAL progression and should NOT be flagged
   const normalProgressionPatterns = [
-    /referred\s+to\s+rules\s+committee$/i, // Simple "Referred to Rules Committee"
-    /recommends.*adopted.*rules/i,
-    /placed.*on.*calendar/i,
-    /resolution.*adopted/i,
-    /bill.*adopted/i,
+    /^referred\s+to\s+rules\s+committee$/i, // Simple initial referral
+    /^rules\s+committee$/i, // Just "Rules Committee"
+    /adopted/i,
     /passed/i,
     /approved/i,
     /signed/i,
-    /enacted/i
+    /enacted/i,
+    /resolution.*adopted/i,
+    /bill.*passed/i,
+    /public\s+act/i
+  ];
+
+  // Patterns that are definitely INITIAL referrals (not re-referrals)
+  const initialReferralPatterns = [
+    /^referred\s+to\s+rules/i,
+    /^assigned\s+to\s+rules/i,
+    /^filed.*referred.*to.*rules/i,
+    /^introduced.*referred.*to.*rules/i
   ];
 
   // Sort changes by date to analyze the sequence
@@ -99,20 +107,25 @@ export function checkRulesReferral(changes: any[]): RulesReferralResult {
     return { hasRulesReferral: false, description: "" };
   }
 
-  // Look for actual re-referrals
+  // Look for actual re-referrals (exclude initial referrals)
   let mostRecentReReferral = null;
   let reReferralIndex = -1;
 
   for (let i = 0; i < sortedChanges.length; i++) {
     const change = sortedChanges[i];
-    const action = String(change.description || change.action || '').toLowerCase();
+    const action = String(change.description || change.action || '').toLowerCase().trim();
     
     // Skip if this looks like normal progression
     if (normalProgressionPatterns.some(pattern => pattern.test(action))) {
       continue;
     }
     
-    // Check for actual re-referral patterns
+    // Skip if this looks like an initial referral
+    if (initialReferralPatterns.some(pattern => pattern.test(action))) {
+      continue;
+    }
+    
+    // Only check for actual re-referral patterns
     for (const pattern of reReferralPatterns) {
       if (pattern.test(action)) {
         mostRecentReReferral = change;
