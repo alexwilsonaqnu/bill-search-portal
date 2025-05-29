@@ -1,3 +1,4 @@
+
 import { BillAnalysisData, RulesReferralResult } from "./types.ts";
 
 /**
@@ -50,6 +51,7 @@ function parseDate(dateStr: string): Date {
 /**
  * Check if a bill has been re-referred to Rules Committee
  * CRITICAL: ONLY analyzes legislative actions, completely ignores bill content
+ * Now also checks for activity after re-referral to determine if bill is still active
  */
 export function checkRulesReferral(changes: any[]): RulesReferralResult {
   if (!changes || changes.length === 0) {
@@ -75,8 +77,18 @@ export function checkRulesReferral(changes: any[]): RulesReferralResult {
   let explicitReReferralFound = false;
   let reReferralDetails = null;
   let daysSinceReferral = 0;
+  let reReferralDate: Date | null = null;
+  let hasActivityAfterReferral = false;
 
-  for (const change of changes) {
+  // Sort changes by date to analyze chronologically
+  const sortedChanges = [...changes].sort((a, b) => {
+    const dateA = parseDate(a.details || '');
+    const dateB = parseDate(b.details || '');
+    return dateA.getTime() - dateB.getTime();
+  });
+
+  // First pass: find the re-referral
+  for (const change of sortedChanges) {
     // CRITICAL: Only look at the action description, never bill content
     const action = String(change.description || change.action || '').toLowerCase().trim();
     
@@ -90,13 +102,13 @@ export function checkRulesReferral(changes: any[]): RulesReferralResult {
       explicitReReferralFound = true;
       reReferralDetails = change;
       
-      // Calculate days since this re-referral
+      // Parse the re-referral date
       const date = change.details || change.date;
       if (date) {
         try {
-          const referralDate = parseDate(date);
+          reReferralDate = parseDate(date);
           const now = new Date();
-          daysSinceReferral = Math.floor((now.getTime() - referralDate.getTime()) / (1000 * 60 * 60 * 24));
+          daysSinceReferral = Math.floor((now.getTime() - reReferralDate.getTime()) / (1000 * 60 * 60 * 24));
         } catch (error) {
           console.warn("Could not parse referral date:", date);
         }
@@ -110,15 +122,56 @@ export function checkRulesReferral(changes: any[]): RulesReferralResult {
     }
   }
 
+  // Second pass: if we found a re-referral, check for activity after it
+  if (explicitReReferralFound && reReferralDate) {
+    for (const change of sortedChanges) {
+      const changeDate = parseDate(change.details || change.date || '');
+      
+      // If this change happened after the re-referral
+      if (changeDate.getTime() > reReferralDate.getTime()) {
+        const action = String(change.description || change.action || '').toLowerCase().trim();
+        
+        // Check if this is meaningful legislative activity (not just administrative)
+        const meaningfulActivity = [
+          'added co-sponsor',
+          'added as co-sponsor',
+          'committee',
+          'amendment',
+          'reading',
+          'assigned',
+          'do pass',
+          'motion'
+        ];
+        
+        if (meaningfulActivity.some(activity => action.includes(activity))) {
+          hasActivityAfterReferral = true;
+          console.log("DEBUG: Found meaningful activity after re-referral:", action);
+          break;
+        }
+      }
+    }
+  }
+
   console.log("DEBUG: Explicit re-referral found:", explicitReReferralFound);
+  console.log("DEBUG: Has activity after re-referral:", hasActivityAfterReferral);
 
   // Only flag if we found explicit re-referral language in legislative actions
   if (explicitReReferralFound && reReferralDetails) {
-    return {
-      hasRulesReferral: true,
-      description: `Bill explicitly re-referred to Rules Committee${daysSinceReferral > 0 ? ` ${daysSinceReferral} days ago` : ''}, indicating potential stagnation or political difficulties`,
-      daysSinceReferral
-    };
+    // If there's been activity after the re-referral, it's less concerning
+    if (hasActivityAfterReferral) {
+      return {
+        hasRulesReferral: true,
+        description: `Bill was re-referred to Rules Committee${daysSinceReferral > 0 ? ` ${daysSinceReferral} days ago` : ''}, but has shown continued activity since then, indicating it may still be viable`,
+        daysSinceReferral
+      };
+    } else {
+      // No activity after re-referral is more concerning
+      return {
+        hasRulesReferral: true,
+        description: `Bill explicitly re-referred to Rules Committee${daysSinceReferral > 0 ? ` ${daysSinceReferral} days ago` : ''} with no subsequent activity, indicating potential stagnation or political difficulties`,
+        daysSinceReferral
+      };
+    }
   }
 
   // For any normal Rules Committee reference (like "Referred to Rules Committee"), 
