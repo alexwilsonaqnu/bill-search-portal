@@ -1,3 +1,4 @@
+
 import { BillAnalysisData, RulesReferralResult } from "./types.ts";
 
 /**
@@ -221,6 +222,8 @@ Consider these factors:
 - CRITICAL NEGATIVE INDICATOR: Has the bill been explicitly re-referred to Rules Committee? This is a major sign of stagnation and should significantly reduce the score. If it's been over 30 days since Rules referral, consider the bill effectively dead (score 1).
 
 IMPORTANT: Do not mention normal legislative processes as negative factors. Being initially referred to Rules Committee is completely normal - all bills start there. Only mention Rules Committee if there's been an explicit re-referral with specific re-referral language. Most bills have not passed both houses yet, most bills have not been signed by the governor yet - these are normal states and should not be mentioned unless there's a specific reason the bill should have progressed further. Focus only on positive indicators and significant negative indicators (like explicit Rules Committee re-referrals or complete lack of activity).
+
+CRITICAL INSTRUCTION: If you see "Referred to Rules Committee" in the bill history, this is NORMAL LEGISLATIVE PROCESS and should NOT be mentioned as a negative factor or concern. Only mention Rules Committee issues if there are explicit re-referral patterns like "re-referred to Rules Committee" or "returned to Rules Committee".
 
 Always round down the score.
 
