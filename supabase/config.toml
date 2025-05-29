@@ -15,3 +15,6 @@ verify_jwt = false
 
 [functions.summarize-bill-changes]
 verify_jwt = false
+
+[functions.analyze-bill-newsworthiness]
+verify_jwt = false

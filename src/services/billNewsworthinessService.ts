@@ -148,6 +148,7 @@ export async function analyzeBillNewsworthiness(bill: Bill, passChanceScore?: nu
 
     if (error) {
       console.error("analyzeBillNewsworthiness: Supabase function error:", error);
+      console.error("analyzeBillNewsworthiness: Error details:", JSON.stringify(error, null, 2));
       return null;
     }
 
@@ -160,6 +161,7 @@ export async function analyzeBillNewsworthiness(bill: Bill, passChanceScore?: nu
     return data as NewsworthinessAnalysis;
   } catch (error) {
     console.error("analyzeBillNewsworthiness: Failed to analyze bill newsworthiness:", error);
+    console.error("analyzeBillNewsworthiness: Error stack:", error.stack);
     return null;
   }
 }
