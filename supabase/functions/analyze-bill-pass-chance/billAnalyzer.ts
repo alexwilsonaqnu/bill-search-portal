@@ -57,20 +57,18 @@ export function checkRulesReferral(changes: any[]): RulesReferralResult {
     return { hasRulesReferral: false, description: "" };
   }
 
-  // VERY specific patterns that indicate RE-REFERRAL (not initial referral)
+  // ONLY these very specific patterns indicate a problematic RE-REFERRAL
+  // Must include words like "re-", "back", "returned" etc.
   const reReferralPatterns = [
     /re-?referred.*to.*rules/i,
     /returned.*to.*rules/i,
     /sent.*back.*to.*rules/i,
-    /rules.*committee.*re-?referred/i,
-    /re-?assigned.*to.*rules/i,
-    /referred.*back.*to.*rules/i
+    /referred.*back.*to.*rules/i,
+    /re-?assigned.*to.*rules/i
   ];
 
   // Patterns that indicate NORMAL progression and should NOT be flagged
   const normalProgressionPatterns = [
-    /^referred\s+to\s+rules\s+committee$/i, // Simple initial referral
-    /^rules\s+committee$/i, // Just "Rules Committee"
     /adopted/i,
     /passed/i,
     /approved/i,
@@ -78,15 +76,9 @@ export function checkRulesReferral(changes: any[]): RulesReferralResult {
     /enacted/i,
     /resolution.*adopted/i,
     /bill.*passed/i,
-    /public\s+act/i
-  ];
-
-  // Patterns that are definitely INITIAL referrals (not re-referrals)
-  const initialReferralPatterns = [
-    /^referred\s+to\s+rules/i,
-    /^assigned\s+to\s+rules/i,
-    /^filed.*referred.*to.*rules/i,
-    /^introduced.*referred.*to.*rules/i
+    /public\s+act/i,
+    /effective/i,
+    /became.*law/i
   ];
 
   // Sort changes by date to analyze the sequence
@@ -107,7 +99,7 @@ export function checkRulesReferral(changes: any[]): RulesReferralResult {
     return { hasRulesReferral: false, description: "" };
   }
 
-  // Look for actual re-referrals (exclude initial referrals)
+  // Look for ONLY actual re-referrals with very specific language
   let mostRecentReReferral = null;
   let reReferralIndex = -1;
 
@@ -120,14 +112,14 @@ export function checkRulesReferral(changes: any[]): RulesReferralResult {
       continue;
     }
     
-    // Skip if this looks like an initial referral
-    if (initialReferralPatterns.some(pattern => pattern.test(action))) {
-      continue;
-    }
-    
-    // Only check for actual re-referral patterns
+    // ONLY check for actual re-referral patterns with specific re-referral language
+    // Do NOT flag simple "referred to rules" - that's normal
     for (const pattern of reReferralPatterns) {
       if (pattern.test(action)) {
+        // Double check this isn't just a normal referral
+        if (!action.includes('re-') && !action.includes('back') && !action.includes('returned')) {
+          continue; // Skip if it doesn't have re-referral language
+        }
         mostRecentReReferral = change;
         reReferralIndex = i;
         break;
@@ -137,6 +129,7 @@ export function checkRulesReferral(changes: any[]): RulesReferralResult {
     if (mostRecentReReferral) break;
   }
 
+  // If no actual re-referral found, return false
   if (!mostRecentReReferral) {
     return { hasRulesReferral: false, description: "" };
   }
@@ -237,7 +230,7 @@ Consider these factors:
 - MOST IMPORTANTLY: Has the bill passed both houses? If yes, it's extremely likely to pass (score 4-5).
 - CRITICAL NEGATIVE INDICATOR: Has the bill been re-referred to Rules Committee? This is a major sign of stagnation and should significantly reduce the score. If it's been over 30 days since Rules referral, consider the bill effectively dead (score 1).
 
-IMPORTANT: Do not mention normal legislative processes as negative factors. Most bills have not passed both houses yet, most bills have not been signed by the governor yet - these are normal states and should not be mentioned unless there's a specific reason the bill should have progressed further. Focus only on positive indicators and significant negative indicators (like Rules Committee re-referrals or complete lack of activity). Do not mention the absence of Rules Committee re-referrals as this is the normal state.
+IMPORTANT: Do not mention normal legislative processes as negative factors. Being initially referred to Rules Committee is completely normal - all bills start there. Only mention Rules Committee if there's been a problematic re-referral with specific re-referral language. Most bills have not passed both houses yet, most bills have not been signed by the governor yet - these are normal states and should not be mentioned unless there's a specific reason the bill should have progressed further. Focus only on positive indicators and significant negative indicators (like Rules Committee re-referrals or complete lack of activity).
 
 Always round down the score.
 
@@ -269,4 +262,3 @@ Respond with a JSON object containing:
 }
 `;
 }
-
