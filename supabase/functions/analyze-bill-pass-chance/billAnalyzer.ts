@@ -50,7 +50,7 @@ function parseDate(dateStr: string): Date {
 
 /**
  * Check if a bill has been re-referred to Rules Committee
- * ULTRA-CONSERVATIVE: Only flags explicit re-referrals with clear language
+ * ULTRA-CONSERVATIVE: Only flags explicit re-referrals with clear re-referral language
  */
 export function checkRulesReferral(changes: any[]): RulesReferralResult {
   if (!changes || changes.length === 0) {
@@ -85,9 +85,17 @@ export function checkRulesReferral(changes: any[]): RulesReferralResult {
     return { hasRulesReferral: false, description: "" };
   }
 
-  // ULTRA-CONSERVATIVE APPROACH: Only flag if we see explicit "re-referred" language
-  // or multiple distinct Rules Committee actions after other committee work
-  
+  // ULTRA-CONSERVATIVE: Only flag if we see EXPLICIT re-referral language
+  // Look for specific words that indicate this is a RE-referral, not an initial referral
+  const explicitReReferralPatterns = [
+    /re-?referred.*to.*rules/i,
+    /returned.*to.*rules/i,
+    /sent.*back.*to.*rules/i,
+    /recommitted.*to.*rules/i,
+    /re-?assigned.*to.*rules/i,
+    /back.*to.*rules.*committee/i
+  ];
+
   let explicitReReferralFound = false;
   let reReferralDetails = null;
   let daysSinceReferral = 0;
@@ -102,12 +110,10 @@ export function checkRulesReferral(changes: any[]): RulesReferralResult {
       continue;
     }
     
-    // Look for EXPLICIT re-referral language only
-    if (/re-?referred.*to.*rules/i.test(action) || 
-        action.includes('returned to rules') ||
-        action.includes('sent back to rules') ||
-        action.includes('recommitted to rules')) {
-      
+    // ONLY flag if we find explicit re-referral language
+    const hasExplicitReReferralLanguage = explicitReReferralPatterns.some(pattern => pattern.test(action));
+    
+    if (hasExplicitReReferralLanguage) {
       console.log("DEBUG: Found explicit re-referral language:", action);
       explicitReReferralFound = true;
       reReferralDetails = change;
@@ -138,7 +144,8 @@ export function checkRulesReferral(changes: any[]): RulesReferralResult {
     };
   }
 
-  // Default: No problematic rules referral detected
+  // For any other Rules Committee reference (like "Referred to Rules Committee"), 
+  // treat it as normal legislative process and DON'T flag it
   console.log("DEBUG: No problematic rules referral detected");
   return { hasRulesReferral: false, description: "" };
 }
