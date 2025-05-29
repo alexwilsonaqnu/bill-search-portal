@@ -7,6 +7,7 @@ import { History, Percent, Users, Loader2, CheckCircle } from "lucide-react";
 import BillSponsors from "@/components/bill/BillSponsors";
 import BillHistoryView from "./BillHistoryView";
 import { useBillPassAnalysis } from "@/hooks/useBillPassAnalysis";
+import { useBillNewsworthiness } from "@/hooks/useBillNewsworthiness";
 
 interface KeyInsightsCardProps {
   bill: Bill;
@@ -23,8 +24,15 @@ const KeyInsightsCard = ({ bill }: KeyInsightsCardProps) => {
     enabled: activeTab === "passPercent" 
   });
   
-  // Placeholder data for newsworthy score - would come from real data
-  const newsworthyScore = 97;
+  // Fetch newsworthiness analysis (pass the pass chance score if available)
+  const { data: newsworthinessAnalysis, isLoading: isAnalyzingNewsworthiness } = useBillNewsworthiness({ 
+    bill,
+    passChanceScore: passAnalysis?.score,
+    enabled: true // Always load newsworthiness for the main display
+  });
+
+  // Calculate newsworthiness score to display
+  const newsworthyScore = newsworthinessAnalysis?.score || 0;
 
   // Get pass chance description based on score
   const getPassChanceDescription = (score: number, hasPassed?: boolean) => {
@@ -44,6 +52,14 @@ const KeyInsightsCard = ({ bill }: KeyInsightsCardProps) => {
     if (score >= 2) return "text-orange-600";
     return "text-red-600";
   };
+
+  // Get newsworthiness color based on score
+  const getNewsworthinessColor = (score: number) => {
+    if (score >= 80) return "text-green-600";
+    if (score >= 60) return "text-yellow-600";
+    if (score >= 40) return "text-orange-600";
+    return "text-red-600";
+  };
   
   return (
     <Card className="bg-white shadow-sm">
@@ -54,12 +70,28 @@ const KeyInsightsCard = ({ bill }: KeyInsightsCardProps) => {
         {/* Newsworthy score section */}
         <div className="flex justify-center items-center">
           <div className="flex items-center">
-            <div className="border border-green-300 rounded-md p-4 bg-white text-center">
-              <p className="text-4xl font-bold text-green-500">{newsworthyScore}</p>
-              <p className="text-sm text-green-500">Newsworthy</p>
+            <div className="border border-green-300 rounded-md p-4 bg-white text-center relative">
+              {isAnalyzingNewsworthiness && (
+                <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-75 rounded-md">
+                  <Loader2 className="h-6 w-6 animate-spin text-green-500" />
+                </div>
+              )}
+              <p className={`text-4xl font-bold ${getNewsworthinessColor(newsworthyScore)}`}>
+                {newsworthyScore}
+              </p>
+              <p className={`text-sm ${getNewsworthinessColor(newsworthyScore)}`}>
+                Newsworthy
+              </p>
             </div>
           </div>
         </div>
+        
+        {/* Show newsworthiness reasoning if available */}
+        {newsworthinessAnalysis && !isAnalyzingNewsworthiness && (
+          <div className="text-center text-sm text-gray-600 px-4">
+            {newsworthinessAnalysis.reasoning}
+          </div>
+        )}
         
         {/* Tab buttons */}
         <div className="flex justify-center gap-2">
