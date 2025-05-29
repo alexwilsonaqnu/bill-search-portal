@@ -61,10 +61,6 @@ export function checkRulesReferral(changes: any[]): RulesReferralResult {
   const rulesReferralPatterns = [
     // Explicit re-referral patterns
     /re-?referred.*to.*rules/i,
-    /returned.*to.*rules/i,
-    /sent.*back.*to.*rules/i,
-    /referred.*back.*to.*rules/i,
-    /re-?assigned.*to.*rules/i,
   ];
 
   // Patterns that indicate NORMAL progression and should NOT be flagged
