@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { Bill } from "@/types";
 import { getSponsor, getCoSponsors } from "@/utils/billCardUtils";
@@ -141,9 +140,6 @@ export async function analyzeBillNewsworthiness(bill: Bill, passChanceScore?: nu
     };
     
     console.log("analyzeBillNewsworthiness: Sending analysis request with data:", billData);
-    
-    // Add URL logging to debug the request
-    console.log("analyzeBillNewsworthiness: Supabase URL:", supabase.supabaseUrl);
     console.log("analyzeBillNewsworthiness: Making request to analyze-bill-newsworthiness function");
     
     const { data, error } = await supabase.functions.invoke('analyze-bill-newsworthiness', {
