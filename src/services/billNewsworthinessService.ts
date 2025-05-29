@@ -142,6 +142,10 @@ export async function analyzeBillNewsworthiness(bill: Bill, passChanceScore?: nu
     
     console.log("analyzeBillNewsworthiness: Sending analysis request with data:", billData);
     
+    // Add URL logging to debug the request
+    console.log("analyzeBillNewsworthiness: Supabase URL:", supabase.supabaseUrl);
+    console.log("analyzeBillNewsworthiness: Making request to analyze-bill-newsworthiness function");
+    
     const { data, error } = await supabase.functions.invoke('analyze-bill-newsworthiness', {
       body: { billData }
     });
@@ -149,6 +153,8 @@ export async function analyzeBillNewsworthiness(bill: Bill, passChanceScore?: nu
     if (error) {
       console.error("analyzeBillNewsworthiness: Supabase function error:", error);
       console.error("analyzeBillNewsworthiness: Error details:", JSON.stringify(error, null, 2));
+      console.error("analyzeBillNewsworthiness: Error name:", error.name);
+      console.error("analyzeBillNewsworthiness: Error message:", error.message);
       return null;
     }
 
@@ -162,6 +168,7 @@ export async function analyzeBillNewsworthiness(bill: Bill, passChanceScore?: nu
   } catch (error) {
     console.error("analyzeBillNewsworthiness: Failed to analyze bill newsworthiness:", error);
     console.error("analyzeBillNewsworthiness: Error stack:", error.stack);
+    console.error("analyzeBillNewsworthiness: Error type:", typeof error);
     return null;
   }
 }
