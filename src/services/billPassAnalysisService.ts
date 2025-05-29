@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { Bill } from "@/types";
 import { getSponsor, getCoSponsors } from "@/utils/billCardUtils";
@@ -276,11 +277,11 @@ export async function analyzeBillPassChance(bill: Bill): Promise<PassChanceAnaly
     // Get meaningful status description
     const currentStatus = getStatusDescription(bill);
     
-    // Format history/changes for analysis
-    const historyItems = bill.changes?.map(change => ({
-      action: change.description,
-      date: change.details
-    })) || [];
+    // CRITICAL FIX: Send the original bill.changes array directly without transformation
+    // The billAnalyzer expects the exact format from the bill object
+    const originalChanges = bill.changes || [];
+    
+    console.log("DEBUG: Sending original changes format to analyzer:", JSON.stringify(originalChanges.slice(0, 3), null, 2));
     
     // Extract committee progress
     const committeeActions = bill.data?.progress || bill.data?.committee_actions || bill.data?.history || [];
@@ -290,7 +291,7 @@ export async function analyzeBillPassChance(bill: Bill): Promise<PassChanceAnaly
     console.log("Introduction date extracted:", introductionDate);
     console.log("Last action date extracted:", lastActionDate);
     console.log("Status description:", currentStatus);
-    console.log("History items count:", historyItems.length);
+    console.log("Original changes count:", originalChanges.length);
     console.log("Committee actions count:", committeeActions.length);
     console.log("Passed both houses:", passedBothHouses);
     
@@ -309,8 +310,9 @@ export async function analyzeBillPassChance(bill: Bill): Promise<PassChanceAnaly
           lastUpdated: bill.lastUpdated,
           sessionName: bill.sessionName,
           sessionYear: bill.sessionYear,
-          changes: historyItems,
-          changesCount: historyItems.length,
+          // CRITICAL: Send original changes array instead of transformed format
+          changes: originalChanges,
+          changesCount: originalChanges.length,
           committeeActions: committeeActions,
           passedBothHouses: passedBothHouses,
           data: bill.data
