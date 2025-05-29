@@ -1,3 +1,4 @@
+
 import { BillAnalysisData, RulesReferralResult } from "./types.ts";
 
 /**
@@ -274,5 +275,5 @@ Respond with a JSON object containing:
     {"factor": "recent_activity", "impact": "positive|negative|neutral", "description": "brief description"},
     {"factor": "committee_progress", "impact": "positive|negative|neutral", "description": "brief description"}${rulesReferralStatus.hasRulesReferral ? ',\n    {"factor": "rules_committee_referral", "impact": "negative", "description": "' + rulesReferralStatus.description + '"}' : ''}
   ]
+}`;
 }
-`;
