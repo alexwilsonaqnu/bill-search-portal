@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { Bill } from "@/types";
 import { getSponsor, getCoSponsors } from "@/utils/billCardUtils";
@@ -90,7 +89,7 @@ function checkIfBillPassed(bill: Bill): boolean {
     return true;
   }
   
-  // Check history for final passage indicators
+  // Check history for final passage indicators - but be more selective
   if (bill.changes && bill.changes.length > 0) {
     // Sort changes by date to find the most recent
     const sortedChanges = [...bill.changes].sort((a, b) => {
@@ -99,17 +98,18 @@ function checkIfBillPassed(bill: Bill): boolean {
       return dateB.getTime() - dateA.getTime();
     });
     
-    // Check all actions for final passage indicators
+    // Check for very specific final passage language only
     for (const change of sortedChanges) {
       const action = String(change.description || '').toLowerCase();
       
-      // Check if any action indicates final passage
-      if (finalPassedIndicators.some(indicator => action.includes(indicator))) {
-        return true;
-      }
-      
-      // Check for "Public Act" as the final action
-      if (action.includes('public act')) {
+      // Only check for very specific final passage indicators
+      if (action.includes('public act') ||
+          action.includes('resolution adopted') ||
+          action.includes('signed by governor') ||
+          action.includes('approved by governor') ||
+          action.includes('became law') ||
+          action.includes('effective immediately') ||
+          (action.includes('adopted') && action.includes('resolution'))) {
         return true;
       }
     }
