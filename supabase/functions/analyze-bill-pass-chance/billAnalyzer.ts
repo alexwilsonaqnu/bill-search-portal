@@ -50,19 +50,14 @@ function parseDate(dateStr: string): Date {
 
 /**
  * Check if a bill has been re-referred to Rules Committee
- * CRITICAL: Only flags actual re-referrals, not initial referrals
+ * ULTRA-CONSERVATIVE: Only flags explicit re-referrals with clear language
  */
 export function checkRulesReferral(changes: any[]): RulesReferralResult {
   if (!changes || changes.length === 0) {
     return { hasRulesReferral: false, description: "" };
   }
 
-  // Sort changes by date to analyze the sequence (oldest first)
-  const sortedChanges = [...changes].sort((a, b) => {
-    const dateA = parseDate(a.details || a.date || '');
-    const dateB = parseDate(b.details || b.date || '');
-    return dateA.getTime() - dateB.getTime();
-  });
+  console.log("DEBUG: Checking rules referral for changes:", JSON.stringify(changes, null, 2));
 
   // Patterns that indicate the bill has successfully passed/been adopted
   const finalPassedIndicators = [
@@ -79,84 +74,72 @@ export function checkRulesReferral(changes: any[]): RulesReferralResult {
   ];
 
   // First, check if the bill has actually passed or been adopted
-  const hasPassedOrAdopted = sortedChanges.some(change => {
+  const hasPassedOrAdopted = changes.some(change => {
     const action = String(change.description || change.action || '').toLowerCase();
     return finalPassedIndicators.some(pattern => pattern.test(action));
   });
 
   // If the bill has passed/been adopted, it definitely wasn't problematically re-referred
   if (hasPassedOrAdopted) {
+    console.log("DEBUG: Bill has passed/been adopted, no rules referral concern");
     return { hasRulesReferral: false, description: "" };
   }
 
-  // Track the legislative progression
-  let hasSubstantiveCommitteeWork = false;
-  let rulesReferralAfterCommitteeWork = null;
+  // ULTRA-CONSERVATIVE APPROACH: Only flag if we see explicit "re-referred" language
+  // or multiple distinct Rules Committee actions after other committee work
+  
+  let explicitReReferralFound = false;
+  let reReferralDetails = null;
   let daysSinceReferral = 0;
-  let rulesReferralCount = 0;
 
-  for (let i = 0; i < sortedChanges.length; i++) {
-    const change = sortedChanges[i];
+  for (const change of changes) {
     const action = String(change.description || change.action || '').toLowerCase().trim();
+    
+    console.log("DEBUG: Analyzing action:", action);
     
     // Skip if this looks like final passage/adoption
     if (finalPassedIndicators.some(pattern => pattern.test(action))) {
       continue;
     }
     
-    // Check for Rules Committee referrals
-    const isRulesReferral = action.includes('referred to rules') || 
-                           action.includes('rules committee') ||
-                           /re-?referred.*to.*rules/i.test(action);
-    
-    if (isRulesReferral) {
-      rulesReferralCount++;
+    // Look for EXPLICIT re-referral language only
+    if (/re-?referred.*to.*rules/i.test(action) || 
+        action.includes('returned to rules') ||
+        action.includes('sent back to rules') ||
+        action.includes('recommitted to rules')) {
       
-      // CRITICAL: Only flag if this is NOT the first Rules referral AND there's been substantive work
-      if (rulesReferralCount > 1 || (rulesReferralCount === 1 && hasSubstantiveCommitteeWork)) {
-        rulesReferralAfterCommitteeWork = change;
-        
-        // Calculate days since this re-referral
-        const date = change.details || change.date;
-        if (date) {
-          try {
-            const referralDate = parseDate(date);
-            const now = new Date();
-            daysSinceReferral = Math.floor((now.getTime() - referralDate.getTime()) / (1000 * 60 * 60 * 24));
-          } catch (error) {
-            console.warn("Could not parse referral date:", date);
-          }
+      console.log("DEBUG: Found explicit re-referral language:", action);
+      explicitReReferralFound = true;
+      reReferralDetails = change;
+      
+      // Calculate days since this re-referral
+      const date = change.details || change.date;
+      if (date) {
+        try {
+          const referralDate = parseDate(date);
+          const now = new Date();
+          daysSinceReferral = Math.floor((now.getTime() - referralDate.getTime()) / (1000 * 60 * 60 * 24));
+        } catch (error) {
+          console.warn("Could not parse referral date:", date);
         }
-        break;
       }
-    } else {
-      // Check if there's been substantive committee work (excluding Rules)
-      if (action.includes('committee') && 
-          !action.includes('rules') &&
-          (action.includes('hearing') || 
-           action.includes('amendment') ||
-           action.includes('voted') ||
-           action.includes('reported') ||
-           action.includes('assigned') ||
-           action.includes('do pass') ||
-           action.includes('recommend') ||
-           action.includes('committee report') ||
-           action.includes('committee substitute'))) {
-        hasSubstantiveCommitteeWork = true;
-      }
+      break;
     }
   }
 
-  // Only flag if there was actual re-referral after committee work
-  if (rulesReferralAfterCommitteeWork && (rulesReferralCount > 1 || hasSubstantiveCommitteeWork)) {
+  console.log("DEBUG: Explicit re-referral found:", explicitReReferralFound);
+
+  // Only flag if we found explicit re-referral language
+  if (explicitReReferralFound && reReferralDetails) {
     return {
       hasRulesReferral: true,
-      description: `Bill re-referred to Rules Committee after ${hasSubstantiveCommitteeWork ? 'substantive committee work' : 'initial referral'}${daysSinceReferral > 0 ? ` ${daysSinceReferral} days ago` : ''}, typically indicating stagnation or political difficulties`,
+      description: `Bill explicitly re-referred to Rules Committee${daysSinceReferral > 0 ? ` ${daysSinceReferral} days ago` : ''}, indicating potential stagnation or political difficulties`,
       daysSinceReferral
     };
   }
 
-  // Normal initial rules referral - don't flag
+  // Default: No problematic rules referral detected
+  console.log("DEBUG: No problematic rules referral detected");
   return { hasRulesReferral: false, description: "" };
 }
 
@@ -204,7 +187,7 @@ export function buildAnalysisPrompt(billData: BillAnalysisData, rulesReferralSta
 
   // Enhanced rules committee warning with time consideration
   const rulesReferralNote = rulesReferralStatus.hasRulesReferral
-    ? `MAJOR CONCERN: This bill has been re-referred to the Rules Committee${rulesReferralStatus.daysSinceReferral ? ` ${rulesReferralStatus.daysSinceReferral} days ago` : ''}. Rules committee re-referrals are typically a significant indicator of stagnation and should significantly reduce the score. If it's been over 30 days since Rules referral, consider the bill effectively dead (score 1).`
+    ? `MAJOR CONCERN: This bill has been explicitly re-referred to the Rules Committee${rulesReferralStatus.daysSinceReferral ? ` ${rulesReferralStatus.daysSinceReferral} days ago` : ''}. Explicit rules committee re-referrals are typically a significant indicator of stagnation and should significantly reduce the score. If it's been over 30 days since Rules referral, consider the bill effectively dead (score 1).`
     : "";
 
   return `
@@ -221,9 +204,9 @@ Consider these factors:
 - How many changes has it had? More recent changes means there's movement in the bill, which is good.
 - How many committees has it gone through (and been approved in)? The more the better.
 - MOST IMPORTANTLY: Has the bill passed both houses? If yes, it's extremely likely to pass (score 4-5).
-- CRITICAL NEGATIVE INDICATOR: Has the bill been re-referred to Rules Committee? This is a major sign of stagnation and should significantly reduce the score. If it's been over 30 days since Rules referral, consider the bill effectively dead (score 1).
+- CRITICAL NEGATIVE INDICATOR: Has the bill been explicitly re-referred to Rules Committee? This is a major sign of stagnation and should significantly reduce the score. If it's been over 30 days since Rules referral, consider the bill effectively dead (score 1).
 
-IMPORTANT: Do not mention normal legislative processes as negative factors. Being initially referred to Rules Committee is completely normal - all bills start there. Only mention Rules Committee if there's been a problematic re-referral with specific re-referral language. Most bills have not passed both houses yet, most bills have not been signed by the governor yet - these are normal states and should not be mentioned unless there's a specific reason the bill should have progressed further. Focus only on positive indicators and significant negative indicators (like Rules Committee re-referrals or complete lack of activity).
+IMPORTANT: Do not mention normal legislative processes as negative factors. Being initially referred to Rules Committee is completely normal - all bills start there. Only mention Rules Committee if there's been an explicit re-referral with specific re-referral language. Most bills have not passed both houses yet, most bills have not been signed by the governor yet - these are normal states and should not be mentioned unless there's a specific reason the bill should have progressed further. Focus only on positive indicators and significant negative indicators (like explicit Rules Committee re-referrals or complete lack of activity).
 
 Always round down the score.
 
@@ -238,7 +221,7 @@ Bill Information:
 - Session: ${billData.sessionName || 'Unknown'} (${billData.sessionYear || 'Unknown year'})
 - Total Changes/History: ${billData.changesCount || 0} documented actions
 - Committee Actions: ${billData.committeeActions?.length || 0} committee proceedings
-- ${billData.passedBothHouses ? 'PASSED BOTH HOUSES: YES - This is critical for high likelihood!' : 'Legislative Progress: Normal progression through chambers'}${rulesReferralStatus.hasRulesReferral ? `\n- Rules Committee Status: RE-REFERRED TO RULES - Major concern! ${rulesReferralStatus.description}` : ''}
+- ${billData.passedBothHouses ? 'PASSED BOTH HOUSES: YES - This is critical for high likelihood!' : 'Legislative Progress: Normal progression through chambers'}${rulesReferralStatus.hasRulesReferral ? `\n- Rules Committee Status: EXPLICITLY RE-REFERRED TO RULES - Major concern! ${rulesReferralStatus.description}` : ''}
 - Recent History: ${JSON.stringify(billData.changes?.slice(0, 3) || [])}
 
 Respond with a JSON object containing:
