@@ -1,4 +1,3 @@
-
 import { BillAnalysisData, RulesReferralResult } from "./types.ts";
 
 /**
@@ -59,35 +58,10 @@ export function checkRulesReferral(changes: any[]): RulesReferralResult {
 
   console.log("DEBUG: Checking rules referral for changes:", JSON.stringify(changes, null, 2));
 
-  // Patterns that indicate the bill has successfully passed/been adopted
-  const finalPassedIndicators = [
-    /adopted/i,
-    /passed/i,
-    /approved/i,
-    /signed/i,
-    /enacted/i,
-    /resolution.*adopted/i,
-    /bill.*passed/i,
-    /public\s+act/i,
-    /effective/i,
-    /became.*law/i
-  ];
-
-  // First, check if the bill has actually passed or been adopted
-  const hasPassedOrAdopted = changes.some(change => {
-    const action = String(change.description || change.action || '').toLowerCase();
-    return finalPassedIndicators.some(pattern => pattern.test(action));
-  });
-
-  // If the bill has passed/been adopted, it definitely wasn't problematically re-referred
-  if (hasPassedOrAdopted) {
-    console.log("DEBUG: Bill has passed/been adopted, no rules referral concern");
-    return { hasRulesReferral: false, description: "" };
-  }
-
   // ULTRA-CONSERVATIVE: Only flag if we see EXPLICIT re-referral language
   // These patterns indicate this is a RE-referral, not an initial referral
   const explicitReReferralPatterns = [
+    /rule\s*19\s*\(\s*a\s*\)\s*\/\s*re-?referred.*to.*rules/i,
     /re-?referred.*to.*rules/i,
     /returned.*to.*rules/i,
     /sent.*back.*to.*rules/i,
@@ -107,11 +81,6 @@ export function checkRulesReferral(changes: any[]): RulesReferralResult {
     const action = String(change.description || change.action || '').toLowerCase().trim();
     
     console.log("DEBUG: Analyzing legislative action only:", action);
-    
-    // Skip if this looks like final passage/adoption
-    if (finalPassedIndicators.some(pattern => pattern.test(action))) {
-      continue;
-    }
     
     // ONLY flag if we find explicit re-referral language in the LEGISLATIVE ACTION
     const hasExplicitReReferralLanguage = explicitReReferralPatterns.some(pattern => pattern.test(action));
