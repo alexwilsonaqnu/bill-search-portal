@@ -65,11 +65,6 @@ export function checkRulesReferral(changes: any[]): RulesReferralResult {
     /sent.*back.*to.*rules/i,
     /referred.*back.*to.*rules/i,
     /re-?assigned.*to.*rules/i,
-    // Also catch simple "referred to rules" if it happens after other committee work
-    /referred.*to.*rules/i,
-    /assigned.*to.*rules/i,
-    // Catch "rules committee" mentions in general
-    /rules\s+committee/i
   ];
 
   // Patterns that indicate NORMAL progression and should NOT be flagged
