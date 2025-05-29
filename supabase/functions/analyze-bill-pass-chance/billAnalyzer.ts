@@ -1,4 +1,3 @@
-
 import { BillAnalysisData, RulesReferralResult } from "./types.ts";
 
 /**
@@ -50,21 +49,26 @@ function parseDate(dateStr: string): Date {
 
 /**
  * Check if a bill has been re-referred to Rules Committee with enhanced detection
- * Only flags ACTUAL re-referrals, not initial referrals which are normal
+ * Detects both initial problematic referrals and actual re-referrals
  */
 export function checkRulesReferral(changes: any[]): RulesReferralResult {
   if (!changes || changes.length === 0) {
     return { hasRulesReferral: false, description: "" };
   }
 
-  // ONLY these very specific patterns indicate a problematic RE-REFERRAL
-  // Must include words like "re-", "back", "returned" etc.
-  const reReferralPatterns = [
+  // Enhanced patterns to catch various forms of rules committee referrals
+  const rulesReferralPatterns = [
+    // Explicit re-referral patterns
     /re-?referred.*to.*rules/i,
     /returned.*to.*rules/i,
     /sent.*back.*to.*rules/i,
     /referred.*back.*to.*rules/i,
-    /re-?assigned.*to.*rules/i
+    /re-?assigned.*to.*rules/i,
+    // Also catch simple "referred to rules" if it happens after other committee work
+    /referred.*to.*rules/i,
+    /assigned.*to.*rules/i,
+    // Catch "rules committee" mentions in general
+    /rules\s+committee/i
   ];
 
   // Patterns that indicate NORMAL progression and should NOT be flagged
@@ -99,9 +103,10 @@ export function checkRulesReferral(changes: any[]): RulesReferralResult {
     return { hasRulesReferral: false, description: "" };
   }
 
-  // Look for ONLY actual re-referrals with very specific language
-  let mostRecentReReferral = null;
-  let reReferralIndex = -1;
+  // Look for rules committee mentions
+  let mostRecentRulesAction = null;
+  let rulesActionIndex = -1;
+  let hasNonRulesCommitteeWork = false;
 
   for (let i = 0; i < sortedChanges.length; i++) {
     const change = sortedChanges[i];
@@ -112,35 +117,38 @@ export function checkRulesReferral(changes: any[]): RulesReferralResult {
       continue;
     }
     
-    // ONLY check for actual re-referral patterns with specific re-referral language
-    // Do NOT flag simple "referred to rules" - that's normal
-    for (const pattern of reReferralPatterns) {
-      if (pattern.test(action)) {
-        // Double check this isn't just a normal referral
-        if (!action.includes('re-') && !action.includes('back') && !action.includes('returned')) {
-          continue; // Skip if it doesn't have re-referral language
-        }
-        mostRecentReReferral = change;
-        reReferralIndex = i;
-        break;
-      }
+    // Check for rules committee patterns
+    const isRulesAction = rulesReferralPatterns.some(pattern => pattern.test(action));
+    
+    if (isRulesAction && !mostRecentRulesAction) {
+      mostRecentRulesAction = change;
+      rulesActionIndex = i;
     }
     
-    if (mostRecentReReferral) break;
+    // Check if there's been other committee work (indicating this might be a re-referral)
+    if (!isRulesAction && (
+      action.includes('committee') || 
+      action.includes('hearing') || 
+      action.includes('amendment') ||
+      action.includes('voted') ||
+      action.includes('reported')
+    )) {
+      hasNonRulesCommitteeWork = true;
+    }
   }
 
-  // If no actual re-referral found, return false
-  if (!mostRecentReReferral) {
+  // If no rules action found, return false
+  if (!mostRecentRulesAction) {
     return { hasRulesReferral: false, description: "" };
   }
 
-  // Check if there have been any actions after the re-referral
-  const actionsAfterReReferral = sortedChanges.slice(0, reReferralIndex);
-  const hasRecentActivityAfterRules = actionsAfterReReferral.length > 0;
+  // Check if there have been any actions after the rules referral
+  const actionsAfterRules = sortedChanges.slice(0, rulesActionIndex);
+  const hasRecentActivityAfterRules = actionsAfterRules.length > 0;
 
-  // Calculate days since re-referral
+  // Calculate days since rules referral
   let daysSinceReferral = 0;
-  const date = mostRecentReReferral.details || mostRecentReReferral.date;
+  const date = mostRecentRulesAction.details || mostRecentRulesAction.date;
   if (date) {
     try {
       const referralDate = parseDate(date);
@@ -151,20 +159,27 @@ export function checkRulesReferral(changes: any[]): RulesReferralResult {
     }
   }
 
-  // If there have been actions after the re-referral, the bill is moving again
+  // If there have been actions after the rules referral, the bill is moving again
   if (hasRecentActivityAfterRules) {
     return {
       hasRulesReferral: false, // Don't treat as stagnant if there's been activity since
-      description: `Bill was re-referred to Rules Committee but has had ${actionsAfterReReferral.length} action(s) since then, indicating it's moving again`
+      description: `Bill was referred to Rules Committee but has had ${actionsAfterRules.length} action(s) since then, indicating it's moving again`
     };
   }
 
-  // Only flag as problematic if there's been no activity since the re-referral
-  return {
-    hasRulesReferral: true,
-    description: `Bill re-referred to Rules Committee${daysSinceReferral > 0 ? ` ${daysSinceReferral} days ago` : ''} with no subsequent activity, typically indicating stagnation or political difficulties`,
-    daysSinceReferral
-  };
+  // Determine if this is problematic based on context and timing
+  const isProblematic = hasNonRulesCommitteeWork || daysSinceReferral > 14;
+
+  if (isProblematic) {
+    return {
+      hasRulesReferral: true,
+      description: `Bill ${hasNonRulesCommitteeWork ? 're-' : ''}referred to Rules Committee${daysSinceReferral > 0 ? ` ${daysSinceReferral} days ago` : ''} with no subsequent activity, typically indicating stagnation or political difficulties`,
+      daysSinceReferral
+    };
+  }
+
+  // If it's just a normal initial rules referral without much time passing, don't flag it
+  return { hasRulesReferral: false, description: "" };
 }
 
 /**
@@ -261,4 +276,3 @@ Respond with a JSON object containing:
   ]
 }
 `;
-}
