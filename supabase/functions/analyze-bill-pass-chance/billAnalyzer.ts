@@ -1,4 +1,3 @@
-
 import { BillAnalysisData, RulesReferralResult } from "./types.ts";
 
 /**
@@ -50,6 +49,7 @@ function parseDate(dateStr: string): Date {
 
 /**
  * Check if a bill has been re-referred to Rules Committee with enhanced detection
+ * Now also checks if there have been actions after the rules referral
  */
 export function checkRulesReferral(changes: any[]): RulesReferralResult {
   if (!changes || changes.length === 0) {
@@ -75,35 +75,60 @@ export function checkRulesReferral(changes: any[]): RulesReferralResult {
     return dateB.getTime() - dateA.getTime();
   });
 
-  // Look through changes from most recent to oldest
-  for (const change of sortedChanges) {
+  // Find the most recent rules committee re-referral
+  let mostRecentRulesReferral = null;
+  let rulesReferralIndex = -1;
+
+  for (let i = 0; i < sortedChanges.length; i++) {
+    const change = sortedChanges[i];
     const action = String(change.description || change.action || '').toLowerCase();
-    const date = change.details || change.date;
     
     for (const pattern of rulesPatterns) {
       if (pattern.test(action)) {
-        // Calculate days since referral
-        let daysSinceReferral = 0;
-        if (date) {
-          try {
-            const referralDate = parseDate(date);
-            const now = new Date();
-            daysSinceReferral = Math.floor((now.getTime() - referralDate.getTime()) / (1000 * 60 * 60 * 24));
-          } catch (error) {
-            console.warn("Could not parse referral date:", date);
-          }
-        }
-
-        return {
-          hasRulesReferral: true,
-          description: `Bill re-referred to Rules Committee${daysSinceReferral > 0 ? ` ${daysSinceReferral} days ago` : ''}, typically indicating stagnation or political difficulties`,
-          daysSinceReferral
-        };
+        mostRecentRulesReferral = change;
+        rulesReferralIndex = i;
+        break;
       }
+    }
+    
+    if (mostRecentRulesReferral) break;
+  }
+
+  if (!mostRecentRulesReferral) {
+    return { hasRulesReferral: false, description: "" };
+  }
+
+  // Check if there have been any actions after the rules referral
+  const actionsAfterRulesReferral = sortedChanges.slice(0, rulesReferralIndex);
+  const hasRecentActivityAfterRules = actionsAfterRulesReferral.length > 0;
+
+  // Calculate days since referral
+  let daysSinceReferral = 0;
+  const date = mostRecentRulesReferral.details || mostRecentRulesReferral.date;
+  if (date) {
+    try {
+      const referralDate = parseDate(date);
+      const now = new Date();
+      daysSinceReferral = Math.floor((now.getTime() - referralDate.getTime()) / (1000 * 60 * 60 * 24));
+    } catch (error) {
+      console.warn("Could not parse referral date:", date);
     }
   }
 
-  return { hasRulesReferral: false, description: "" };
+  // If there have been actions after the rules referral, the bill is moving again
+  if (hasRecentActivityAfterRules) {
+    return {
+      hasRulesReferral: false, // Don't treat as stagnant if there's been activity since
+      description: `Bill was re-referred to Rules Committee but has had ${actionsAfterRulesReferral.length} action(s) since then, indicating it's moving again`
+    };
+  }
+
+  // Only flag as problematic if there's been no activity since the rules referral
+  return {
+    hasRulesReferral: true,
+    description: `Bill re-referred to Rules Committee${daysSinceReferral > 0 ? ` ${daysSinceReferral} days ago` : ''} with no subsequent activity, typically indicating stagnation or political difficulties`,
+    daysSinceReferral
+  };
 }
 
 /**
@@ -150,7 +175,7 @@ export function buildAnalysisPrompt(billData: BillAnalysisData, rulesReferralSta
 
   // Enhanced rules committee warning with time consideration
   const rulesReferralNote = rulesReferralStatus.hasRulesReferral
-    ? `MAJOR CONCERN: This bill has been re-referred to the Rules Committee${rulesReferralStatus.daysSinceReferral ? ` ${rulesReferralStatus.daysSinceReferral} days ago` : ''}. Rules committee re-referrals are typically a significant indicator of stagnation and political difficulties. Bills that sit in Rules Committee for extended periods (especially 30+ days) are often considered effectively dead. This should significantly lower the pass chance score (reduce by 2-3 points for recent referrals, or set to 1 if it's been over 30 days without action).`
+    ? `MAJOR CONCERN: This bill has been re-referred to the Rules Committee${rulesReferralStatus.daysSinceReferral ? ` ${rulesReferralStatus.daysSinceReferral} days ago` : ''}. Rules committee re-referrals are typically a significant indicator of stagnation and should significantly reduce the score. If it's been over 30 days since Rules referral, consider the bill effectively dead (score 1).`
     : "";
 
   return `
@@ -200,4 +225,3 @@ Respond with a JSON object containing:
   ]
 }
 `;
-}
