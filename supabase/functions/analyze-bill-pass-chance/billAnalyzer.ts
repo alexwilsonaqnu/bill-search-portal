@@ -1,5 +1,4 @@
 
-
 import { BillAnalysisData, RulesReferralResult } from "./types.ts";
 
 /**
@@ -58,56 +57,84 @@ export function checkRulesReferral(changes: any[]): RulesReferralResult {
     return { hasRulesReferral: false, description: "" };
   }
 
-  // Enhanced patterns to detect rules committee RE-REFERRALS only (not initial referrals)
-  const rulesPatterns = [
-    /re-?referred.*rules/i,
+  // Very specific patterns to detect ONLY rules committee RE-REFERRALS (not initial referrals)
+  const reReferralPatterns = [
+    /re-?referred.*to.*rules/i,
     /rules.*committee.*re-?referred/i,
-    /referred.*back.*rules/i,
-    /rules.*re-?assignment/i,
-    /rule\s*19.*re-?referred.*rules/i,
-    /re-?referred.*rules.*committee/i,
-    // Removed patterns that could match initial referrals:
-    // - /assigned.*rules.*committee/i (this is normal initial assignment)
-    // - /rules.*committee.*referral/i (this could be initial referral)
+    /referred.*back.*to.*rules/i,
+    /returned.*to.*rules/i,
+    /re-?assigned.*to.*rules/i,
+    /rule\s*19.*re-?referred.*to.*rules/i,
+    /sent.*back.*to.*rules/i
   ];
 
-  // Sort changes by date to find the most recent rules referral
+  // Patterns that indicate NORMAL progression and should NOT be flagged
+  const normalProgressionPatterns = [
+    /referred\s+to\s+rules\s+committee$/i, // Simple "Referred to Rules Committee"
+    /recommends.*adopted.*rules/i,
+    /placed.*on.*calendar/i,
+    /resolution.*adopted/i,
+    /bill.*adopted/i,
+    /passed/i,
+    /approved/i,
+    /signed/i,
+    /enacted/i
+  ];
+
+  // Sort changes by date to analyze the sequence
   const sortedChanges = [...changes].sort((a, b) => {
     const dateA = parseDate(a.details || a.date || '');
     const dateB = parseDate(b.details || b.date || '');
     return dateB.getTime() - dateA.getTime();
   });
 
-  // Find the most recent rules committee re-referral
-  let mostRecentRulesReferral = null;
-  let rulesReferralIndex = -1;
+  // First, check if the bill has actually passed or been adopted
+  const hasPassedOrAdopted = sortedChanges.some(change => {
+    const action = String(change.description || change.action || '').toLowerCase();
+    return normalProgressionPatterns.some(pattern => pattern.test(action));
+  });
+
+  // If the bill has passed/been adopted, it definitely wasn't problematically re-referred
+  if (hasPassedOrAdopted) {
+    return { hasRulesReferral: false, description: "" };
+  }
+
+  // Look for actual re-referrals
+  let mostRecentReReferral = null;
+  let reReferralIndex = -1;
 
   for (let i = 0; i < sortedChanges.length; i++) {
     const change = sortedChanges[i];
     const action = String(change.description || change.action || '').toLowerCase();
     
-    for (const pattern of rulesPatterns) {
+    // Skip if this looks like normal progression
+    if (normalProgressionPatterns.some(pattern => pattern.test(action))) {
+      continue;
+    }
+    
+    // Check for actual re-referral patterns
+    for (const pattern of reReferralPatterns) {
       if (pattern.test(action)) {
-        mostRecentRulesReferral = change;
-        rulesReferralIndex = i;
+        mostRecentReReferral = change;
+        reReferralIndex = i;
         break;
       }
     }
     
-    if (mostRecentRulesReferral) break;
+    if (mostRecentReReferral) break;
   }
 
-  if (!mostRecentRulesReferral) {
+  if (!mostRecentReReferral) {
     return { hasRulesReferral: false, description: "" };
   }
 
-  // Check if there have been any actions after the rules referral
-  const actionsAfterRulesReferral = sortedChanges.slice(0, rulesReferralIndex);
-  const hasRecentActivityAfterRules = actionsAfterRulesReferral.length > 0;
+  // Check if there have been any actions after the re-referral
+  const actionsAfterReReferral = sortedChanges.slice(0, reReferralIndex);
+  const hasRecentActivityAfterRules = actionsAfterReReferral.length > 0;
 
-  // Calculate days since referral
+  // Calculate days since re-referral
   let daysSinceReferral = 0;
-  const date = mostRecentRulesReferral.details || mostRecentRulesReferral.date;
+  const date = mostRecentReReferral.details || mostRecentReReferral.date;
   if (date) {
     try {
       const referralDate = parseDate(date);
@@ -118,15 +145,15 @@ export function checkRulesReferral(changes: any[]): RulesReferralResult {
     }
   }
 
-  // If there have been actions after the rules referral, the bill is moving again
+  // If there have been actions after the re-referral, the bill is moving again
   if (hasRecentActivityAfterRules) {
     return {
       hasRulesReferral: false, // Don't treat as stagnant if there's been activity since
-      description: `Bill was re-referred to Rules Committee but has had ${actionsAfterRulesReferral.length} action(s) since then, indicating it's moving again`
+      description: `Bill was re-referred to Rules Committee but has had ${actionsAfterReReferral.length} action(s) since then, indicating it's moving again`
     };
   }
 
-  // Only flag as problematic if there's been no activity since the rules referral
+  // Only flag as problematic if there's been no activity since the re-referral
   return {
     hasRulesReferral: true,
     description: `Bill re-referred to Rules Committee${daysSinceReferral > 0 ? ` ${daysSinceReferral} days ago` : ''} with no subsequent activity, typically indicating stagnation or political difficulties`,
