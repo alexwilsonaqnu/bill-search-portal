@@ -1,4 +1,3 @@
-
 import { BillAnalysisData, RulesReferralResult } from "./types.ts";
 
 /**
@@ -50,7 +49,7 @@ function parseDate(dateStr: string): Date {
 
 /**
  * Check if a bill has been re-referred to Rules Committee
- * ULTRA-CONSERVATIVE: Only flags explicit re-referrals with clear re-referral language
+ * CRITICAL: ONLY analyzes legislative actions, completely ignores bill content
  */
 export function checkRulesReferral(changes: any[]): RulesReferralResult {
   if (!changes || changes.length === 0) {
@@ -86,14 +85,16 @@ export function checkRulesReferral(changes: any[]): RulesReferralResult {
   }
 
   // ULTRA-CONSERVATIVE: Only flag if we see EXPLICIT re-referral language
-  // Look for specific words that indicate this is a RE-referral, not an initial referral
+  // These patterns indicate this is a RE-referral, not an initial referral
   const explicitReReferralPatterns = [
     /re-?referred.*to.*rules/i,
     /returned.*to.*rules/i,
     /sent.*back.*to.*rules/i,
     /recommitted.*to.*rules/i,
     /re-?assigned.*to.*rules/i,
-    /back.*to.*rules.*committee/i
+    /back.*to.*rules.*committee/i,
+    /again.*referred.*to.*rules/i,
+    /once.*again.*to.*rules/i
   ];
 
   let explicitReReferralFound = false;
@@ -101,20 +102,21 @@ export function checkRulesReferral(changes: any[]): RulesReferralResult {
   let daysSinceReferral = 0;
 
   for (const change of changes) {
+    // CRITICAL: Only look at the action description, never bill content
     const action = String(change.description || change.action || '').toLowerCase().trim();
     
-    console.log("DEBUG: Analyzing action:", action);
+    console.log("DEBUG: Analyzing legislative action only:", action);
     
     // Skip if this looks like final passage/adoption
     if (finalPassedIndicators.some(pattern => pattern.test(action))) {
       continue;
     }
     
-    // ONLY flag if we find explicit re-referral language
+    // ONLY flag if we find explicit re-referral language in the LEGISLATIVE ACTION
     const hasExplicitReReferralLanguage = explicitReReferralPatterns.some(pattern => pattern.test(action));
     
     if (hasExplicitReReferralLanguage) {
-      console.log("DEBUG: Found explicit re-referral language:", action);
+      console.log("DEBUG: Found explicit re-referral language in legislative action:", action);
       explicitReReferralFound = true;
       reReferralDetails = change;
       
@@ -131,11 +133,16 @@ export function checkRulesReferral(changes: any[]): RulesReferralResult {
       }
       break;
     }
+    
+    // Log normal referrals for debugging but don't flag them
+    if (action.includes('referred to rules') && !hasExplicitReReferralLanguage) {
+      console.log("DEBUG: Found normal initial Rules Committee referral (not flagging):", action);
+    }
   }
 
   console.log("DEBUG: Explicit re-referral found:", explicitReReferralFound);
 
-  // Only flag if we found explicit re-referral language
+  // Only flag if we found explicit re-referral language in legislative actions
   if (explicitReReferralFound && reReferralDetails) {
     return {
       hasRulesReferral: true,
@@ -144,9 +151,9 @@ export function checkRulesReferral(changes: any[]): RulesReferralResult {
     };
   }
 
-  // For any other Rules Committee reference (like "Referred to Rules Committee"), 
+  // For any normal Rules Committee reference (like "Referred to Rules Committee"), 
   // treat it as normal legislative process and DON'T flag it
-  console.log("DEBUG: No problematic rules referral detected");
+  console.log("DEBUG: No problematic rules referral detected - treating as normal legislative process");
   return { hasRulesReferral: false, description: "" };
 }
 
