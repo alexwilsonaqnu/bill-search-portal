@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { Bill } from "@/types";
 import { getSponsor, getCoSponsors } from "@/utils/billCardUtils";
@@ -64,34 +63,45 @@ function parseDate(dateStr: string): Date {
 
 /**
  * Check if a bill has already passed based on its status and history
+ * FIXED: Made much more conservative to avoid false positives
  */
 function checkIfBillPassed(bill: Bill): boolean {
-  // Check status fields for final enacted indicators
+  console.log("DEBUG: Checking if bill has passed for bill:", bill.id);
+  
+  // Check status fields for final enacted indicators - be very specific
   const status = String(bill.status || '').toLowerCase();
   const statusDescription = String(bill.data?.status_description || '').toLowerCase();
   const currentStatus = String(bill.data?.current_status || '').toLowerCase();
   
+  console.log("DEBUG: Status checks - status:", status, "statusDescription:", statusDescription, "currentStatus:", currentStatus);
+  
+  // Only very specific final passage indicators
   const finalPassedIndicators = [
     'enacted', 
-    'signed', 
+    'signed by governor', 
     'approved by governor', 
-    'effective', 
+    'effective immediately',
     'became law',
-    'resolution adopted',
-    'adopted'
+    'public act',
+    'pa ' // Public Act prefix
   ];
   
-  // First check if status indicates final passage
-  if (finalPassedIndicators.some(indicator => 
+  // First check if status indicates final passage - be very conservative
+  const statusIndicatesPassage = finalPassedIndicators.some(indicator => 
     status.includes(indicator) || 
     statusDescription.includes(indicator) || 
     currentStatus.includes(indicator)
-  )) {
+  );
+  
+  if (statusIndicatesPassage) {
+    console.log("DEBUG: Status indicates final passage");
     return true;
   }
   
-  // Check history for final passage indicators - but be more selective
+  // Check history for final passage indicators - be even more selective
   if (bill.changes && bill.changes.length > 0) {
+    console.log("DEBUG: Checking bill changes for passage indicators");
+    
     // Sort changes by date to find the most recent
     const sortedChanges = [...bill.changes].sort((a, b) => {
       const dateA = parseDate(a.details || '');
@@ -102,20 +112,29 @@ function checkIfBillPassed(bill: Bill): boolean {
     // Check for very specific final passage language only
     for (const change of sortedChanges) {
       const action = String(change.description || '').toLowerCase();
+      console.log("DEBUG: Checking action for passage:", action);
       
       // Only check for very specific final passage indicators
       if (action.includes('public act') ||
-          action.includes('resolution adopted') ||
           action.includes('signed by governor') ||
           action.includes('approved by governor') ||
           action.includes('became law') ||
           action.includes('effective immediately') ||
-          (action.includes('adopted') && action.includes('resolution'))) {
+          action.includes('pa ') || // Public Act number
+          action.includes('enrolled and presented to governor')) {
+        console.log("DEBUG: Found specific final passage indicator in history:", action);
+        return true;
+      }
+      
+      // FIXED: Don't consider "resolution adopted" as passed for bills - only for actual resolutions
+      if (action.includes('resolution adopted') && bill.title?.toLowerCase().includes('resolution')) {
+        console.log("DEBUG: Found resolution adoption for actual resolution");
         return true;
       }
     }
   }
   
+  console.log("DEBUG: No passage indicators found - bill has not passed");
   return false;
 }
 
@@ -219,8 +238,9 @@ export async function analyzeBillPassChance(bill: Bill): Promise<PassChanceAnaly
   try {
     console.log("Analyzing pass chance for bill:", bill.id);
     
-    // First check if the bill has already passed
+    // First check if the bill has already passed - with improved logic
     const hasPassed = checkIfBillPassed(bill);
+    console.log("DEBUG: Bill passed check result:", hasPassed);
     
     if (hasPassed) {
       console.log("Bill has already passed, returning passed status");
