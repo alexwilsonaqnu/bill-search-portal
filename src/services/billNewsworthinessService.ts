@@ -89,11 +89,16 @@ function getStatusDescription(bill: Bill): string {
 
 export async function analyzeBillNewsworthiness(bill: Bill, passChanceScore?: number): Promise<NewsworthinessAnalysis | null> {
   try {
-    console.log("Analyzing newsworthiness for bill:", bill.id);
+    console.log("analyzeBillNewsworthiness: Starting analysis for bill:", bill.id);
+    console.log("analyzeBillNewsworthiness: Bill title:", bill.title);
+    console.log("analyzeBillNewsworthiness: Pass chance score:", passChanceScore);
     
     // Extract sponsor information
     const primarySponsor = getSponsor(bill);
     const cosponsors = getCoSponsors(bill);
+    
+    console.log("analyzeBillNewsworthiness: Primary sponsor:", primarySponsor);
+    console.log("analyzeBillNewsworthiness: Co-sponsors count:", cosponsors.length);
     
     // Format sponsor information
     const sponsorInfo = primarySponsor && typeof primarySponsor === 'object' ? {
@@ -113,48 +118,48 @@ export async function analyzeBillNewsworthiness(bill: Bill, passChanceScore?: nu
     // Extract committee progress
     const committeeActions = bill.data?.progress || bill.data?.committee_actions || bill.data?.history || [];
     
-    console.log("Sending newsworthiness analysis request");
+    const billData = {
+      id: bill.id,
+      title: bill.title,
+      description: bill.description,
+      sponsor: sponsorInfo,
+      cosponsors: cosponsors,
+      cosponsorCount: cosponsors.length,
+      status: bill.status,
+      statusDescription: currentStatus,
+      introducedDate: introductionDate,
+      lastActionDate: lastActionDate,
+      lastUpdated: bill.lastUpdated,
+      sessionName: bill.sessionName,
+      sessionYear: bill.sessionYear,
+      changes: bill.changes || [],
+      changesCount: (bill.changes || []).length,
+      committeeActions: committeeActions,
+      passedBothHouses: false, // Could be enhanced later
+      data: bill.data,
+      passChanceScore: passChanceScore
+    };
+    
+    console.log("analyzeBillNewsworthiness: Sending analysis request with data:", billData);
     
     const { data, error } = await supabase.functions.invoke('analyze-bill-newsworthiness', {
-      body: { 
-        billData: {
-          id: bill.id,
-          title: bill.title,
-          description: bill.description,
-          sponsor: sponsorInfo,
-          cosponsors: cosponsors,
-          cosponsorCount: cosponsors.length,
-          status: bill.status,
-          statusDescription: currentStatus,
-          introducedDate: introductionDate,
-          lastActionDate: lastActionDate,
-          lastUpdated: bill.lastUpdated,
-          sessionName: bill.sessionName,
-          sessionYear: bill.sessionYear,
-          changes: bill.changes || [],
-          changesCount: (bill.changes || []).length,
-          committeeActions: committeeActions,
-          passedBothHouses: false, // Could be enhanced later
-          data: bill.data,
-          passChanceScore: passChanceScore
-        }
-      }
+      body: { billData }
     });
 
     if (error) {
-      console.error("Error analyzing bill newsworthiness:", error);
+      console.error("analyzeBillNewsworthiness: Supabase function error:", error);
       return null;
     }
 
     if (data?.error) {
-      console.error("Newsworthiness service returned error:", data);
+      console.error("analyzeBillNewsworthiness: Service returned error:", data);
       return null;
     }
 
-    console.log("Successfully received newsworthiness analysis");
+    console.log("analyzeBillNewsworthiness: Successfully received analysis:", data);
     return data as NewsworthinessAnalysis;
   } catch (error) {
-    console.error("Failed to analyze bill newsworthiness:", error);
+    console.error("analyzeBillNewsworthiness: Failed to analyze bill newsworthiness:", error);
     return null;
   }
 }

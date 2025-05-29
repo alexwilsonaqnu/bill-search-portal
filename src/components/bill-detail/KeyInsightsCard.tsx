@@ -24,12 +24,17 @@ const KeyInsightsCard = ({ bill }: KeyInsightsCardProps) => {
     enabled: activeTab === "passPercent" 
   });
   
-  // Fetch newsworthiness analysis (pass the pass chance score if available)
-  const { data: newsworthinessAnalysis, isLoading: isAnalyzingNewsworthiness } = useBillNewsworthiness({ 
+  // Fetch newsworthiness analysis - always enabled to show the score
+  const { data: newsworthinessAnalysis, isLoading: isAnalyzingNewsworthiness, error: newsworthinessError } = useBillNewsworthiness({ 
     bill,
     passChanceScore: passAnalysis?.score,
     enabled: true // Always load newsworthiness for the main display
   });
+
+  // Add some debugging
+  console.log("KeyInsightsCard: Newsworthiness analysis:", newsworthinessAnalysis);
+  console.log("KeyInsightsCard: Is analyzing:", isAnalyzingNewsworthiness);
+  console.log("KeyInsightsCard: Error:", newsworthinessError);
 
   // Calculate newsworthiness score to display
   const newsworthyScore = newsworthinessAnalysis?.score || 0;
@@ -69,7 +74,7 @@ const KeyInsightsCard = ({ bill }: KeyInsightsCardProps) => {
       <CardContent className="space-y-6">
         {/* Newsworthy score section */}
         <div className="flex justify-center items-center">
-          <div className="flex items-center">
+          <div className="flex items-center gap-2">
             <div className="border border-green-300 rounded-md p-4 bg-white text-center relative">
               {isAnalyzingNewsworthiness && (
                 <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-75 rounded-md">
@@ -87,7 +92,7 @@ const KeyInsightsCard = ({ bill }: KeyInsightsCardProps) => {
             </div>
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 ml-2">
+                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
                   <Info className="h-4 w-4 text-gray-500 hover:text-gray-700" />
                 </Button>
               </PopoverTrigger>
@@ -121,7 +126,12 @@ const KeyInsightsCard = ({ bill }: KeyInsightsCardProps) => {
                       </div>
                     </>
                   ) : (
-                    <p className="text-xs text-gray-600">Analysis unavailable. Please try again later.</p>
+                    <div className="space-y-2">
+                      <p className="text-xs text-gray-600">Analysis unavailable. Please try again later.</p>
+                      {newsworthinessError && (
+                        <p className="text-xs text-red-600">Error: {String(newsworthinessError)}</p>
+                      )}
+                    </div>
                   )}
                 </div>
               </PopoverContent>
