@@ -3,7 +3,8 @@ import { useState } from "react";
 import { Bill } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { History, Percent, Users, Loader2, CheckCircle } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { History, Percent, Users, Loader2, CheckCircle, Info } from "lucide-react";
 import BillSponsors from "@/components/bill/BillSponsors";
 import BillHistoryView from "./BillHistoryView";
 import { useBillPassAnalysis } from "@/hooks/useBillPassAnalysis";
@@ -76,12 +77,48 @@ const KeyInsightsCard = ({ bill }: KeyInsightsCardProps) => {
                   <Loader2 className="h-6 w-6 animate-spin text-green-500" />
                 </div>
               )}
-              <p className={`text-4xl font-bold ${getNewsworthinessColor(newsworthyScore)}`}>
-                {newsworthyScore}
-              </p>
-              <p className={`text-sm ${getNewsworthinessColor(newsworthyScore)}`}>
-                Newsworthy
-              </p>
+              <div className="flex items-center justify-center gap-2">
+                <div>
+                  <p className={`text-4xl font-bold ${getNewsworthinessColor(newsworthyScore)}`}>
+                    {newsworthyScore}
+                  </p>
+                  <p className={`text-sm ${getNewsworthinessColor(newsworthyScore)}`}>
+                    Newsworthy
+                  </p>
+                </div>
+                {newsworthinessAnalysis && !isAnalyzingNewsworthiness && (
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0 ml-2">
+                        <Info className="h-4 w-4 text-gray-500 hover:text-gray-700" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-80 p-4" side="bottom" align="center">
+                      <div className="space-y-3">
+                        <h4 className="font-semibold text-sm">Newsworthiness Breakdown</h4>
+                        <p className="text-xs text-gray-600 mb-3">{newsworthinessAnalysis.reasoning}</p>
+                        <div className="space-y-2">
+                          {newsworthinessAnalysis.factors.map((factor, index) => (
+                            <div key={index} className="flex items-start gap-2">
+                              <span className={`text-xs mt-0.5 ${
+                                factor.impact === 'positive' ? 'text-green-500' : 
+                                factor.impact === 'negative' ? 'text-red-500' : 
+                                'text-gray-500'
+                              }`}>
+                                {factor.impact === 'positive' ? '↗' : factor.impact === 'negative' ? '↘' : '→'}
+                              </span>
+                              <div className="flex-1">
+                                <p className="text-xs font-medium">{factor.factor}</p>
+                                <p className="text-xs text-gray-600">{factor.description}</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                )}
+              </div>
             </div>
           </div>
         </div>
