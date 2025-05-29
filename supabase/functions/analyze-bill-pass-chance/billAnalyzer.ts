@@ -58,16 +58,17 @@ export function checkRulesReferral(changes: any[]): RulesReferralResult {
     return { hasRulesReferral: false, description: "" };
   }
 
-  // Enhanced patterns to detect rules committee re-referrals
+  // Enhanced patterns to detect rules committee RE-REFERRALS only (not initial referrals)
   const rulesPatterns = [
     /re-?referred.*rules/i,
     /rules.*committee.*re-?referred/i,
-    /assigned.*rules.*committee/i,
     /referred.*back.*rules/i,
     /rules.*re-?assignment/i,
     /rule\s*19.*re-?referred.*rules/i,
     /re-?referred.*rules.*committee/i,
-    /rules.*committee.*referral/i
+    // Removed patterns that could match initial referrals:
+    // - /assigned.*rules.*committee/i (this is normal initial assignment)
+    // - /rules.*committee.*referral/i (this could be initial referral)
   ];
 
   // Sort changes by date to find the most recent rules referral
