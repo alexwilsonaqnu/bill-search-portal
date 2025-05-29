@@ -1,3 +1,4 @@
+
 import { BillAnalysisData, RulesReferralResult } from "./types.ts";
 
 /**
@@ -49,7 +50,7 @@ function parseDate(dateStr: string): Date {
 
 /**
  * Check if a bill has been re-referred to Rules Committee
- * Only flags actual re-referrals, not initial referrals
+ * CRITICAL: Only flags actual re-referrals, not initial referrals
  */
 export function checkRulesReferral(changes: any[]): RulesReferralResult {
   if (!changes || changes.length === 0) {
@@ -63,8 +64,8 @@ export function checkRulesReferral(changes: any[]): RulesReferralResult {
     return dateA.getTime() - dateB.getTime();
   });
 
-  // Patterns that indicate NORMAL progression and should NOT be flagged
-  const normalProgressionPatterns = [
+  // Patterns that indicate the bill has successfully passed/been adopted
+  const finalPassedIndicators = [
     /adopted/i,
     /passed/i,
     /approved/i,
@@ -80,7 +81,7 @@ export function checkRulesReferral(changes: any[]): RulesReferralResult {
   // First, check if the bill has actually passed or been adopted
   const hasPassedOrAdopted = sortedChanges.some(change => {
     const action = String(change.description || change.action || '').toLowerCase();
-    return normalProgressionPatterns.some(pattern => pattern.test(action));
+    return finalPassedIndicators.some(pattern => pattern.test(action));
   });
 
   // If the bill has passed/been adopted, it definitely wasn't problematically re-referred
@@ -88,32 +89,31 @@ export function checkRulesReferral(changes: any[]): RulesReferralResult {
     return { hasRulesReferral: false, description: "" };
   }
 
-  // Look for actual re-referrals by checking the sequence of events
-  let hasInitialRulesReferral = false;
+  // Track the legislative progression
   let hasSubstantiveCommitteeWork = false;
   let rulesReferralAfterCommitteeWork = null;
   let daysSinceReferral = 0;
+  let rulesReferralCount = 0;
 
   for (let i = 0; i < sortedChanges.length; i++) {
     const change = sortedChanges[i];
     const action = String(change.description || change.action || '').toLowerCase().trim();
     
-    // Skip if this looks like normal progression
-    if (normalProgressionPatterns.some(pattern => pattern.test(action))) {
+    // Skip if this looks like final passage/adoption
+    if (finalPassedIndicators.some(pattern => pattern.test(action))) {
       continue;
     }
     
-    // Check for Rules Committee mentions
-    const isRulesAction = action.includes('referred to rules') || 
-                         action.includes('rules committee') ||
-                         /re-?referred.*to.*rules/i.test(action);
+    // Check for Rules Committee referrals
+    const isRulesReferral = action.includes('referred to rules') || 
+                           action.includes('rules committee') ||
+                           /re-?referred.*to.*rules/i.test(action);
     
-    if (isRulesAction) {
-      if (!hasInitialRulesReferral && !hasSubstantiveCommitteeWork) {
-        // This is the initial referral to Rules Committee - normal process
-        hasInitialRulesReferral = true;
-      } else if (hasSubstantiveCommitteeWork) {
-        // This is a re-referral after substantive work - problematic
+    if (isRulesReferral) {
+      rulesReferralCount++;
+      
+      // CRITICAL: Only flag if this is NOT the first Rules referral AND there's been substantive work
+      if (rulesReferralCount > 1 || (rulesReferralCount === 1 && hasSubstantiveCommitteeWork)) {
         rulesReferralAfterCommitteeWork = change;
         
         // Calculate days since this re-referral
@@ -130,7 +130,7 @@ export function checkRulesReferral(changes: any[]): RulesReferralResult {
         break;
       }
     } else {
-      // Check if there's been substantive committee work
+      // Check if there's been substantive committee work (excluding Rules)
       if (action.includes('committee') && 
           !action.includes('rules') &&
           (action.includes('hearing') || 
@@ -139,22 +139,24 @@ export function checkRulesReferral(changes: any[]): RulesReferralResult {
            action.includes('reported') ||
            action.includes('assigned') ||
            action.includes('do pass') ||
-           action.includes('recommend'))) {
+           action.includes('recommend') ||
+           action.includes('committee report') ||
+           action.includes('committee substitute'))) {
         hasSubstantiveCommitteeWork = true;
       }
     }
   }
 
   // Only flag if there was actual re-referral after committee work
-  if (rulesReferralAfterCommitteeWork && hasSubstantiveCommitteeWork) {
+  if (rulesReferralAfterCommitteeWork && (rulesReferralCount > 1 || hasSubstantiveCommitteeWork)) {
     return {
       hasRulesReferral: true,
-      description: `Bill re-referred to Rules Committee after substantive committee work${daysSinceReferral > 0 ? ` ${daysSinceReferral} days ago` : ''}, typically indicating stagnation or political difficulties`,
+      description: `Bill re-referred to Rules Committee after ${hasSubstantiveCommitteeWork ? 'substantive committee work' : 'initial referral'}${daysSinceReferral > 0 ? ` ${daysSinceReferral} days ago` : ''}, typically indicating stagnation or political difficulties`,
       daysSinceReferral
     };
   }
 
-  // If it's just a normal initial rules referral, don't flag it
+  // Normal initial rules referral - don't flag
   return { hasRulesReferral: false, description: "" };
 }
 
