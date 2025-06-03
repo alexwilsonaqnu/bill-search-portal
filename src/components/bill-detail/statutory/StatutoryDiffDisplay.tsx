@@ -1,76 +1,126 @@
+
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { StatutoryAmendment, fetchCurrentStatuteText } from "@/services/statutoryAnalysis";
+import { StatutoryAmendment } from "@/services/statutoryAnalysis";
 import { Loader2 } from "lucide-react";
-import { diffWords } from "diff";
 
 interface StatutoryDiffDisplayProps {
   amendment: StatutoryAmendment | null;
 }
 
 const StatutoryDiffDisplay = ({ amendment }: StatutoryDiffDisplayProps) => {
-  const [currentText, setCurrentText] = useState<string | null>(null);
-  const [diffElements, setDiffElements] = useState<JSX.Element[]>([]);
+  const [processedContent, setProcessedContent] = useState<JSX.Element[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!amendment) {
-      setCurrentText(null);
-      setDiffElements([]);
+      setProcessedContent([]);
       return;
     }
 
-    const loadCurrentText = async () => {
-      setIsLoading(true);
-      setError(null);
+    setIsLoading(true);
+    
+    // Process the proposed text to extract additions and deletions
+    const processStatutoryText = (text: string): JSX.Element[] => {
+      const elements: JSX.Element[] = [];
+      let currentIndex = 0;
       
-      try {
-        const text = await fetchCurrentStatuteText(amendment.chapter, amendment.section);
-        setCurrentText(text);
+      // Split text into lines for better processing
+      const lines = text.split('\n');
+      
+      lines.forEach((line, lineIndex) => {
+        const lineElements: JSX.Element[] = [];
+        let lineText = line;
+        let elementIndex = 0;
         
-        if (text) {
-          // Generate word-level diff
-          const changes = diffWords(text, amendment.proposedText);
-          
-          // Convert diff to JSX elements, only highlighting changes
-          const elements = changes.map((change, index) => {
-            if (change.added) {
-              return (
-                <span key={index} className="bg-green-100 text-green-800 px-1">
-                  {change.value}
-                </span>
-              );
-            } else if (change.removed) {
-              return (
-                <span key={index} className="bg-red-100 text-red-800 line-through px-1">
-                  {change.value}
-                </span>
-              );
-            } else {
-              // Unchanged text - no highlighting
-              return (
-                <span key={index}>
-                  {change.value}
+        // Process underlined text (additions) - look for <u> tags or similar markup
+        const underlineRegex = /<u[^>]*>(.*?)<\/u>/gi;
+        let match;
+        let lastIndex = 0;
+        
+        while ((match = underlineRegex.exec(lineText)) !== null) {
+          // Add text before the underlined section
+          if (match.index > lastIndex) {
+            const beforeText = lineText.substring(lastIndex, match.index);
+            if (beforeText) {
+              lineElements.push(
+                <span key={`${lineIndex}-${elementIndex++}`}>
+                  {beforeText}
                 </span>
               );
             }
-          });
+          }
           
-          setDiffElements(elements);
-        } else {
-          setError("Current statute text not found in database");
+          // Add the underlined (addition) text
+          lineElements.push(
+            <span key={`${lineIndex}-${elementIndex++}`} className="bg-green-100 text-green-800 px-1 rounded">
+              {match[1]}
+            </span>
+          );
+          
+          lastIndex = match.index + match[0].length;
         }
-      } catch (err) {
-        console.error("Error loading current statute text:", err);
-        setError("Failed to load current statute text");
-      } finally {
-        setIsLoading(false);
-      }
+        
+        // Reset regex and process strikethrough text (deletions)
+        const strikeRegex = /<(s|strike|del)[^>]*>(.*?)<\/(s|strike|del)>/gi;
+        let remainingText = lastIndex === 0 ? lineText : lineText.substring(lastIndex);
+        let strikeMatch;
+        let strikeLastIndex = 0;
+        
+        while ((strikeMatch = strikeRegex.exec(remainingText)) !== null) {
+          // Add text before the strikethrough section
+          if (strikeMatch.index > strikeLastIndex) {
+            const beforeText = remainingText.substring(strikeLastIndex, strikeMatch.index);
+            if (beforeText) {
+              lineElements.push(
+                <span key={`${lineIndex}-${elementIndex++}`}>
+                  {beforeText}
+                </span>
+              );
+            }
+          }
+          
+          // Add the strikethrough (deletion) text
+          lineElements.push(
+            <span key={`${lineIndex}-${elementIndex++}`} className="bg-red-100 text-red-800 line-through px-1 rounded">
+              {strikeMatch[2]}
+            </span>
+          );
+          
+          strikeLastIndex = strikeMatch.index + strikeMatch[0].length;
+        }
+        
+        // Add any remaining text
+        if (lastIndex === 0 && strikeLastIndex === 0) {
+          // No special formatting found, add the whole line
+          lineElements.push(
+            <span key={`${lineIndex}-${elementIndex++}`}>
+              {lineText}
+            </span>
+          );
+        } else if (strikeLastIndex < remainingText.length) {
+          lineElements.push(
+            <span key={`${lineIndex}-${elementIndex++}`}>
+              {remainingText.substring(strikeLastIndex)}
+            </span>
+          );
+        }
+        
+        // Add the line with a line break
+        elements.push(
+          <div key={lineIndex} className="mb-1">
+            {lineElements}
+          </div>
+        );
+      });
+      
+      return elements;
     };
-
-    loadCurrentText();
+    
+    const elements = processStatutoryText(amendment.proposedText);
+    setProcessedContent(elements);
+    setIsLoading(false);
   }, [amendment]);
 
   if (!amendment) {
@@ -95,19 +145,7 @@ const StatutoryDiffDisplay = ({ amendment }: StatutoryDiffDisplayProps) => {
         {isLoading ? (
           <div className="flex items-center justify-center py-8">
             <Loader2 className="h-6 w-6 animate-spin" />
-            <span className="ml-2">Loading current statute text...</span>
-          </div>
-        ) : error ? (
-          <div className="text-center py-8">
-            <div className="text-red-600 mb-2">{error}</div>
-            <div className="text-sm text-gray-500">
-              Showing proposed text only:
-            </div>
-            <ScrollArea className="h-64 mt-4">
-              <div className="prose max-w-none text-sm whitespace-pre-line">
-                {amendment.proposedText}
-              </div>
-            </ScrollArea>
+            <span className="ml-2">Processing statutory changes...</span>
           </div>
         ) : (
           <ScrollArea className="h-64">
@@ -118,8 +156,8 @@ const StatutoryDiffDisplay = ({ amendment }: StatutoryDiffDisplayProps) => {
                 <span className="inline-block w-4 h-4 bg-green-100 border border-green-200 mr-2 ml-4"></span>
                 Additions
               </div>
-              <div className="font-mono text-xs leading-relaxed whitespace-pre-wrap">
-                {diffElements}
+              <div className="font-mono text-xs leading-relaxed">
+                {processedContent}
               </div>
             </div>
           </ScrollArea>
