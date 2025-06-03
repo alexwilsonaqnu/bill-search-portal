@@ -1,8 +1,8 @@
 
 import { Bill } from "@/types";
-import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { FileText, GitCompare, Scale } from "lucide-react";
+import { useSidebar } from "@/components/ui/sidebar";
 
 interface BillDetailToolbarProps {
   bill: Bill;
@@ -15,61 +15,71 @@ const BillDetailToolbar = ({
   selectedTool, 
   setSelectedTool
 }: BillDetailToolbarProps) => {
+  const { state } = useSidebar();
+  const isCollapsed = state === "collapsed";
+
   return (
-    <Card className="bg-white rounded-lg border shadow-sm p-6">
-      <h3 className="text-lg font-semibold mb-4">
-        <span className="billinois-logo">Billinois</span>
-        <span className="text-gray-700"> Choose Tool</span>
-      </h3>
+    <div className="space-y-4">
+      {!isCollapsed && (
+        <h3 className="text-lg font-semibold">
+          <span className="billinois-logo">Billinois</span>
+          <span className="text-gray-700"> Choose Tool</span>
+        </h3>
+      )}
       
       <div className="space-y-2">
         <Button
           variant={selectedTool === "overview" ? "default" : "outline"}
-          className={`w-full justify-start ${selectedTool === "overview" ? "bg-[#35B7CD] hover:bg-[#2A9BB0]" : ""}`}
+          className={`w-full ${isCollapsed ? 'px-2' : 'justify-start'} ${selectedTool === "overview" ? "bg-[#35B7CD] hover:bg-[#2A9BB0]" : ""}`}
           onClick={() => setSelectedTool("overview")}
+          size={isCollapsed ? "icon" : "default"}
         >
           <FileText className="h-4 w-4 mr-2" />
-          Overall view
+          {!isCollapsed && "Overall view"}
         </Button>
         
         <Button
           variant={selectedTool === "comparison" ? "default" : "outline"}
-          className={`w-full justify-start ${selectedTool === "comparison" ? "bg-[#35B7CD] hover:bg-[#2A9BB0]" : ""}`}
+          className={`w-full ${isCollapsed ? 'px-2' : 'justify-start'} ${selectedTool === "comparison" ? "bg-[#35B7CD] hover:bg-[#2A9BB0]" : ""}`}
           onClick={() => setSelectedTool("comparison")}
+          size={isCollapsed ? "icon" : "default"}
         >
           <GitCompare className="h-4 w-4 mr-2" />
-          Comparison Tool
+          {!isCollapsed && "Comparison Tool"}
         </Button>
         
         <Button
           variant={selectedTool === "statutory-effects" ? "default" : "outline"}
-          className={`w-full justify-start ${selectedTool === "statutory-effects" ? "bg-[#35B7CD] hover:bg-[#2A9BB0]" : ""}`}
+          className={`w-full ${isCollapsed ? 'px-2' : 'justify-start'} ${selectedTool === "statutory-effects" ? "bg-[#35B7CD] hover:bg-[#2A9BB0]" : ""}`}
           onClick={() => setSelectedTool("statutory-effects")}
+          size={isCollapsed ? "icon" : "default"}
         >
           <Scale className="h-4 w-4 mr-2" />
-          Statutory effects
+          {!isCollapsed && "Statutory effects"}
         </Button>
       </div>
       
-      <div className="mt-6 pt-6 border-t border-gray-100">
-        <h4 className="text-sm font-medium mb-3">Bill Information</h4>
-        <div className="space-y-2">
-          <p className="text-sm text-gray-600">
-            <span className="font-medium">ID:</span> {bill.id}
-          </p>
-          {bill.lastUpdated && (
+      {!isCollapsed && (
+        <div className="mt-6 pt-6 border-t border-gray-100">
+          <h4 className="text-sm font-medium mb-3">Bill Information</h4>
+          <div className="space-y-2">
             <p className="text-sm text-gray-600">
-              <span className="font-medium">Last Updated:</span> {bill.lastUpdated}
+              <span className="font-medium">ID:</span> {bill.id}
             </p>
-          )}
-          {bill.status && (
-            <p className="text-sm text-gray-600">
-              <span className="font-medium">Status:</span> {bill.status}
-            </p>
-          )}
+            {bill.lastUpdated && (
+              <p className="text-sm text-gray-600">
+                <span className="font-medium">Last Updated:</span> {bill.lastUpdated}
+              </p>
+            )}
+            {bill.status && (
+              <p className="text-sm text-gray-600">
+                <span className="font-medium">Status:</span> {bill.status}
+              </p>
+            )}
+          </div>
         </div>
-      </div>
-    </Card>
+      )}
+    </div>
   );
 };
 

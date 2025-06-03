@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { ChevronLeft } from "lucide-react";
@@ -12,6 +13,7 @@ import KeyInsightsCard from "./KeyInsightsCard";
 import ChatToggle from "./ChatToggle";
 import BillChat from "./BillChat";
 import AmendmentsIndex from "./statutory/AmendmentsIndex";
+import { SidebarProvider, Sidebar, SidebarContent, SidebarTrigger } from "@/components/ui/sidebar";
 
 interface BillDetailViewProps {
   bill: Bill;
@@ -103,23 +105,11 @@ const BillDetailView = ({ bill }: BillDetailViewProps) => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 page-transition-wrapper w-full">
-      <div className="max-w-6xl mx-auto pb-20 px-6">
-        <div className="mb-4">
-          <Link to="/" className="inline-flex items-center text-gray-600 hover:text-gray-900 transition-colors">
-            <ChevronLeft className="h-4 w-4 mr-1" />
-            Back to search
-          </Link>
-        </div>
-        
-        <div className="mb-6">
-          <h1 className="text-3xl md:text-4xl font-bold mb-1">{bill.title}</h1>
-          <p className="text-gray-600">{versionInfo} {lastUpdated}</p>
-        </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-          {/* Left sidebar - reduced from col-span-1 to smaller proportion */}
-          <div className="md:col-span-1">
+    <SidebarProvider>
+      <div className="min-h-screen bg-gray-50 page-transition-wrapper w-full flex">
+        {/* Collapsible Sidebar */}
+        <Sidebar className="border-r bg-white" collapsible="icon">
+          <SidebarContent className="p-4">
             <BillDetailToolbar 
               bill={bill} 
               selectedTool={selectedTool}
@@ -134,10 +124,29 @@ const BillDetailView = ({ bill }: BillDetailViewProps) => {
             )}
             
             <BillNotificationSignup bill={bill} />
+          </SidebarContent>
+        </Sidebar>
+
+        {/* Main Content Area */}
+        <div className="flex-1 flex flex-col">
+          {/* Header with trigger button */}
+          <div className="p-6 pb-4">
+            <div className="flex items-center gap-4 mb-4">
+              <SidebarTrigger />
+              <Link to="/" className="inline-flex items-center text-gray-600 hover:text-gray-900 transition-colors">
+                <ChevronLeft className="h-4 w-4 mr-1" />
+                Back to search
+              </Link>
+            </div>
+            
+            <div className="mb-6">
+              <h1 className="text-3xl md:text-4xl font-bold mb-1">{bill.title}</h1>
+              <p className="text-gray-600">{versionInfo} {lastUpdated}</p>
+            </div>
           </div>
-          
-          {/* Main content area - increased from col-span-2 to col-span-3 */}
-          <div className="md:col-span-3">
+
+          {/* Main content */}
+          <div className="flex-1 px-6 pb-20">
             {selectedTool === "overview" ? (
               <>
                 {/* Bill Overview Card */}
@@ -158,24 +167,24 @@ const BillDetailView = ({ bill }: BillDetailViewProps) => {
             )}
           </div>
         </div>
+
+        {/* Chat Toggle Button */}
+        {billText && (
+          <div className="fixed bottom-4 left-4 z-10">
+            <ChatToggle onClick={toggleChat} isOpen={isChatOpen} />
+          </div>
+        )}
+
+        {/* Chat Interface */}
+        {billText && (
+          <BillChat 
+            billText={billText} 
+            isOpen={isChatOpen} 
+            onClose={toggleChat} 
+          />
+        )}
       </div>
-
-      {/* Chat Toggle Button */}
-      {billText && (
-        <div className="fixed bottom-4 left-4 z-10">
-          <ChatToggle onClick={toggleChat} isOpen={isChatOpen} />
-        </div>
-      )}
-
-      {/* Chat Interface */}
-      {billText && (
-        <BillChat 
-          billText={billText} 
-          isOpen={isChatOpen} 
-          onClose={toggleChat} 
-        />
-      )}
-    </div>
+    </SidebarProvider>
   );
 };
 

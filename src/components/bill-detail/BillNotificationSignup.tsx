@@ -8,6 +8,7 @@ import { Bill } from "@/types";
 import { toast } from "@/components/ui/use-toast";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useSidebar } from "@/components/ui/sidebar";
 
 const notificationSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address." }),
@@ -21,6 +22,8 @@ interface BillNotificationSignupProps {
 
 const BillNotificationSignup = ({ bill }: BillNotificationSignupProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { state } = useSidebar();
+  const isCollapsed = state === "collapsed";
   
   const form = useForm<NotificationFormValues>({
     resolver: zodResolver(notificationSchema),
@@ -54,8 +57,13 @@ const BillNotificationSignup = ({ bill }: BillNotificationSignupProps) => {
     }
   };
 
+  // Don't render the notification signup when collapsed
+  if (isCollapsed) {
+    return null;
+  }
+
   return (
-    <div className="bg-white rounded-lg border shadow-sm p-6 mt-6">
+    <div className="border-t border-gray-100 pt-6 mt-6">
       <h3 className="text-xl font-semibold mb-4">Get Notified of Updates</h3>
       <p className="text-gray-600 mb-4">
         Enter your email to receive notifications when this bill is updated.
