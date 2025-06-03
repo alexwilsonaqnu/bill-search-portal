@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { ChevronLeft } from "lucide-react";
@@ -118,8 +117,8 @@ const BillDetailView = ({ bill }: BillDetailViewProps) => {
           <p className="text-gray-600">{versionInfo} {lastUpdated}</p>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {/* Left sidebar */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+          {/* Left sidebar - reduced from col-span-1 to smaller proportion */}
           <div className="md:col-span-1">
             <BillDetailToolbar 
               bill={bill} 
@@ -137,8 +136,8 @@ const BillDetailView = ({ bill }: BillDetailViewProps) => {
             <BillNotificationSignup bill={bill} />
           </div>
           
-          {/* Main content area */}
-          <div className="md:col-span-2">
+          {/* Main content area - increased from col-span-2 to col-span-3 */}
+          <div className="md:col-span-3">
             {selectedTool === "overview" ? (
               <>
                 {/* Bill Overview Card */}
