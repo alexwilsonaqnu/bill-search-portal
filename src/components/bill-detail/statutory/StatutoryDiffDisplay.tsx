@@ -77,14 +77,14 @@ const StatutoryDiffDisplay = ({ amendment }: StatutoryDiffDisplayProps) => {
             <div className="text-sm text-gray-500">
               Showing proposed text only:
             </div>
-            <ScrollArea className="h-64 mt-4">
+            <ScrollArea className="h-96 mt-4">
               <div className="prose max-w-none text-sm whitespace-pre-line">
                 {amendment.proposedText}
               </div>
             </ScrollArea>
           </div>
         ) : (
-          <ScrollArea className="h-64">
+          <ScrollArea className="h-96">
             <div className="prose max-w-none text-sm">
               <div className="mb-4 text-xs text-gray-600">
                 <span className="inline-block w-4 h-4 bg-red-100 border border-red-200 mr-2"></span>
