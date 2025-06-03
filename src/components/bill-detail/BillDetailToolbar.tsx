@@ -32,7 +32,7 @@ const BillDetailToolbar = ({
         </h3>
       )}
       
-      <div className="space-y-2">
+      <div className="space-y-2 px-6">
         <Button
           variant={selectedTool === "overview" ? "default" : "outline"}
           className={`w-full ${isCollapsed ? 'min-w-10 h-10 p-0 flex items-center justify-center' : 'justify-start'} ${selectedTool === "overview" ? "bg-[#35B7CD] hover:bg-[#2A9BB0]" : ""}`}
@@ -65,7 +65,7 @@ const BillDetailToolbar = ({
       </div>
       
       {!isCollapsed && (
-        <div className="mt-6 pt-6 border-t border-gray-100 px-6">
+        <div className="mt-6 pt-6 border-t border-gray-100">
           <h4 className="text-sm font-medium mb-3">Bill Information</h4>
           <div className="space-y-2">
             <p className="text-sm text-gray-600">
