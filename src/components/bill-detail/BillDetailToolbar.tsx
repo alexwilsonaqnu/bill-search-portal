@@ -39,7 +39,7 @@ const BillDetailToolbar = ({
           onClick={() => setSelectedTool("overview")}
           size={isCollapsed ? "icon" : "default"}
         >
-          <FileText className={`h-4 w-4 mr-2 ${!isCollapsed ? 'mr-2' : ''}`} />
+          <FileText className={`h-4 w-4 ${!isCollapsed ? 'mr-2' : ''}`} />
           {!isCollapsed && "Overall view"}
         </Button>
         
@@ -49,7 +49,7 @@ const BillDetailToolbar = ({
           onClick={() => setSelectedTool("comparison")}
           size={isCollapsed ? "icon" : "default"}
         >
-          <GitCompare className={`h-4 w-4 mr-2 ${!isCollapsed ? 'mr-2' : ''}`} />
+          <GitCompare className={`h-4 w-4 ${!isCollapsed ? 'mr-2' : ''}`} />
           {!isCollapsed && "Comparison Tool"}
         </Button>
         
@@ -59,7 +59,7 @@ const BillDetailToolbar = ({
           onClick={() => setSelectedTool("statutory-effects")}
           size={isCollapsed ? "icon" : "default"}
         >
-          <Scale className={`h-4 w-4 mr-2 ${!isCollapsed ? 'mr-2' : ''}`} />
+          <Scale className={`h-4 w-4 ${!isCollapsed ? 'mr-2' : ''}`} />
           {!isCollapsed && "Statutory effects"}
         </Button>
       </div>
