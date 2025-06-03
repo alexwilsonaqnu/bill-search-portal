@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { ChevronLeft } from "lucide-react";
@@ -13,7 +12,7 @@ import KeyInsightsCard from "./KeyInsightsCard";
 import ChatToggle from "./ChatToggle";
 import BillChat from "./BillChat";
 import AmendmentsIndex from "./statutory/AmendmentsIndex";
-import { SidebarProvider, Sidebar, SidebarContent, SidebarTrigger } from "@/components/ui/sidebar";
+import { SidebarProvider, Sidebar, SidebarContent } from "@/components/ui/sidebar";
 
 interface BillDetailViewProps {
   bill: Bill;
@@ -129,10 +128,9 @@ const BillDetailView = ({ bill }: BillDetailViewProps) => {
 
         {/* Main Content Area */}
         <div className="flex-1 flex flex-col">
-          {/* Header with trigger button */}
+          {/* Header without trigger button */}
           <div className="p-6 pb-4">
             <div className="flex items-center gap-4 mb-4">
-              <SidebarTrigger />
               <Link to="/" className="inline-flex items-center text-gray-600 hover:text-gray-900 transition-colors">
                 <ChevronLeft className="h-4 w-4 mr-1" />
                 Back to search

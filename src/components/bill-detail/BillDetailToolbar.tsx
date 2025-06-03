@@ -2,7 +2,7 @@
 import { Bill } from "@/types";
 import { Button } from "@/components/ui/button";
 import { FileText, GitCompare, Scale } from "lucide-react";
-import { useSidebar } from "@/components/ui/sidebar";
+import { useSidebar, SidebarTrigger } from "@/components/ui/sidebar";
 
 interface BillDetailToolbarProps {
   bill: Bill;
@@ -20,6 +20,11 @@ const BillDetailToolbar = ({
 
   return (
     <div className="space-y-4">
+      {/* Large Sidebar Trigger at the top */}
+      <div className="flex justify-end">
+        <SidebarTrigger className="h-10 w-10" />
+      </div>
+      
       {!isCollapsed && (
         <h3 className="text-lg font-semibold">
           <span className="billinois-logo">Billinois</span>
