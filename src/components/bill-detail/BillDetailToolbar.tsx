@@ -21,7 +21,7 @@ const BillDetailToolbar = ({
   return (
     <div className="space-y-4">
       {/* Large Sidebar Trigger at the top */}
-      <div className="flex justify-end">
+      <div className="flex justify-end pb-2">
         <SidebarTrigger className="h-10 w-10" />
       </div>
       
@@ -32,7 +32,7 @@ const BillDetailToolbar = ({
         </h3>
       )}
       
-      <div className="space-y-2">
+      <div className="space-y-2 pt-2">
         <Button
           variant={selectedTool === "overview" ? "default" : "outline"}
           className={`${isCollapsed ? 'w-10 h-10 min-w-10 p-0 flex items-center justify-center' : 'w-full justify-start'} ${selectedTool === "overview" ? "bg-[#35B7CD] hover:bg-[#2A9BB0]" : ""}`}
