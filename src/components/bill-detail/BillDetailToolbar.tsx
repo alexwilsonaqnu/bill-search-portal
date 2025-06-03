@@ -21,7 +21,7 @@ const BillDetailToolbar = ({
   return (
     <div className="space-y-4">
       {/* Large Sidebar Trigger at the top */}
-      <div className="flex justify-end pb-2">
+      <div className="flex justify-end">
         <SidebarTrigger className="h-10 w-10" />
       </div>
       
@@ -32,31 +32,34 @@ const BillDetailToolbar = ({
         </h3>
       )}
       
-      <div className="space-y-2 pt-2">
+      <div className="space-y-2">
         <Button
           variant={selectedTool === "overview" ? "default" : "outline"}
-          className={`${isCollapsed ? 'w-10 h-10 min-w-10 p-0 flex items-center justify-center' : 'w-full justify-start'} ${selectedTool === "overview" ? "bg-[#35B7CD] hover:bg-[#2A9BB0]" : ""}`}
+          className={`w-full ${isCollapsed ? 'px-2' : 'justify-start'} ${selectedTool === "overview" ? "bg-[#35B7CD] hover:bg-[#2A9BB0]" : ""}`}
           onClick={() => setSelectedTool("overview")}
+          size={isCollapsed ? "icon" : "default"}
         >
-          <FileText className={`h-4 w-4 ${!isCollapsed ? 'mr-2' : ''}`} />
+          <FileText className="h-4 w-4 mr-2" />
           {!isCollapsed && "Overall view"}
         </Button>
         
         <Button
           variant={selectedTool === "comparison" ? "default" : "outline"}
-          className={`${isCollapsed ? 'w-10 h-10 min-w-10 p-0 flex items-center justify-center' : 'w-full justify-start'} ${selectedTool === "comparison" ? "bg-[#35B7CD] hover:bg-[#2A9BB0]" : ""}`}
+          className={`w-full ${isCollapsed ? 'px-2' : 'justify-start'} ${selectedTool === "comparison" ? "bg-[#35B7CD] hover:bg-[#2A9BB0]" : ""}`}
           onClick={() => setSelectedTool("comparison")}
+          size={isCollapsed ? "icon" : "default"}
         >
-          <GitCompare className={`h-4 w-4 ${!isCollapsed ? 'mr-2' : ''}`} />
+          <GitCompare className="h-4 w-4 mr-2" />
           {!isCollapsed && "Comparison Tool"}
         </Button>
         
         <Button
           variant={selectedTool === "statutory-effects" ? "default" : "outline"}
-          className={`${isCollapsed ? 'w-10 h-10 min-w-10 p-0 flex items-center justify-center' : 'w-full justify-start'} ${selectedTool === "statutory-effects" ? "bg-[#35B7CD] hover:bg-[#2A9BB0]" : ""}`}
+          className={`w-full ${isCollapsed ? 'px-2' : 'justify-start'} ${selectedTool === "statutory-effects" ? "bg-[#35B7CD] hover:bg-[#2A9BB0]" : ""}`}
           onClick={() => setSelectedTool("statutory-effects")}
+          size={isCollapsed ? "icon" : "default"}
         >
-          <Scale className={`h-4 w-4 ${!isCollapsed ? 'mr-2' : ''}`} />
+          <Scale className="h-4 w-4 mr-2" />
           {!isCollapsed && "Statutory effects"}
         </Button>
       </div>
