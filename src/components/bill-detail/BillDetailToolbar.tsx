@@ -22,7 +22,7 @@ const BillDetailToolbar = ({
     <div className="space-y-4">
       {/* Large Sidebar Trigger at the top */}
       <div className="flex justify-end">
-        <SidebarTrigger className="h-10 w-10" />
+        <SidebarTrigger className="min-h-10 min-w-10" />
       </div>
       
       {!isCollapsed && (
