@@ -1,9 +1,9 @@
-
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { StatutoryAmendment, fetchCurrentStatuteText, generateTextDiff } from "@/services/statutoryAnalysis";
+import { StatutoryAmendment, fetchCurrentStatuteText } from "@/services/statutoryAnalysis";
 import { Loader2 } from "lucide-react";
+import { diffWords } from "diff";
 
 interface StatutoryDiffDisplayProps {
   amendment: StatutoryAmendment | null;
@@ -11,14 +11,14 @@ interface StatutoryDiffDisplayProps {
 
 const StatutoryDiffDisplay = ({ amendment }: StatutoryDiffDisplayProps) => {
   const [currentText, setCurrentText] = useState<string | null>(null);
-  const [diffHtml, setDiffHtml] = useState<string>("");
+  const [diffElements, setDiffElements] = useState<JSX.Element[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!amendment) {
       setCurrentText(null);
-      setDiffHtml("");
+      setDiffElements([]);
       return;
     }
 
@@ -31,8 +31,34 @@ const StatutoryDiffDisplay = ({ amendment }: StatutoryDiffDisplayProps) => {
         setCurrentText(text);
         
         if (text) {
-          const diff = generateTextDiff(text, amendment.proposedText);
-          setDiffHtml(diff);
+          // Generate word-level diff
+          const changes = diffWords(text, amendment.proposedText);
+          
+          // Convert diff to JSX elements, only highlighting changes
+          const elements = changes.map((change, index) => {
+            if (change.added) {
+              return (
+                <span key={index} className="bg-green-100 text-green-800 px-1">
+                  {change.value}
+                </span>
+              );
+            } else if (change.removed) {
+              return (
+                <span key={index} className="bg-red-100 text-red-800 line-through px-1">
+                  {change.value}
+                </span>
+              );
+            } else {
+              // Unchanged text - no highlighting
+              return (
+                <span key={index}>
+                  {change.value}
+                </span>
+              );
+            }
+          });
+          
+          setDiffElements(elements);
         } else {
           setError("Current statute text not found in database");
         }
@@ -92,10 +118,9 @@ const StatutoryDiffDisplay = ({ amendment }: StatutoryDiffDisplayProps) => {
                 <span className="inline-block w-4 h-4 bg-green-100 border border-green-200 mr-2 ml-4"></span>
                 Additions
               </div>
-              <div 
-                dangerouslySetInnerHTML={{ __html: diffHtml }}
-                className="font-mono text-xs leading-relaxed"
-              />
+              <div className="font-mono text-xs leading-relaxed whitespace-pre-wrap">
+                {diffElements}
+              </div>
             </div>
           </ScrollArea>
         )}
