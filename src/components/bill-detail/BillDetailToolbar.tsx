@@ -35,31 +35,31 @@ const BillDetailToolbar = ({
       <div className="space-y-2">
         <Button
           variant={selectedTool === "overview" ? "default" : "outline"}
-          className={`w-full ${isCollapsed ? 'px-2' : 'justify-start'} ${selectedTool === "overview" ? "bg-[#35B7CD] hover:bg-[#2A9BB0]" : ""}`}
+          className={`w-full ${isCollapsed ? 'min-w-10 h-10 p-0 flex items-center justify-center' : 'justify-start'} ${selectedTool === "overview" ? "bg-[#35B7CD] hover:bg-[#2A9BB0]" : ""}`}
           onClick={() => setSelectedTool("overview")}
           size={isCollapsed ? "icon" : "default"}
         >
-          <FileText className="h-4 w-4 mr-2" />
+          <FileText className={`h-4 w-4 ${!isCollapsed ? 'mr-2' : ''}`} />
           {!isCollapsed && "Overall view"}
         </Button>
         
         <Button
           variant={selectedTool === "comparison" ? "default" : "outline"}
-          className={`w-full ${isCollapsed ? 'px-2' : 'justify-start'} ${selectedTool === "comparison" ? "bg-[#35B7CD] hover:bg-[#2A9BB0]" : ""}`}
+          className={`w-full ${isCollapsed ? 'min-w-10 h-10 p-0 flex items-center justify-center' : 'justify-start'} ${selectedTool === "comparison" ? "bg-[#35B7CD] hover:bg-[#2A9BB0]" : ""}`}
           onClick={() => setSelectedTool("comparison")}
           size={isCollapsed ? "icon" : "default"}
         >
-          <GitCompare className="h-4 w-4 mr-2" />
+          <GitCompare className={`h-4 w-4 ${!isCollapsed ? 'mr-2' : ''}`} />
           {!isCollapsed && "Comparison Tool"}
         </Button>
         
         <Button
           variant={selectedTool === "statutory-effects" ? "default" : "outline"}
-          className={`w-full ${isCollapsed ? 'px-2' : 'justify-start'} ${selectedTool === "statutory-effects" ? "bg-[#35B7CD] hover:bg-[#2A9BB0]" : ""}`}
+          className={`w-full ${isCollapsed ? 'min-w-10 h-10 p-0 flex items-center justify-center' : 'justify-start'} ${selectedTool === "statutory-effects" ? "bg-[#35B7CD] hover:bg-[#2A9BB0]" : ""}`}
           onClick={() => setSelectedTool("statutory-effects")}
           size={isCollapsed ? "icon" : "default"}
         >
-          <Scale className="h-4 w-4 mr-2" />
+          <Scale className={`h-4 w-4 ${!isCollapsed ? 'mr-2' : ''}`} />
           {!isCollapsed && "Statutory effects"}
         </Button>
       </div>
