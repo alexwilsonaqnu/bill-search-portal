@@ -21,7 +21,7 @@ const BillDetailToolbar = ({
   return (
     <div className="space-y-4">
       {/* Large Sidebar Trigger at the top */}
-      <div className="flex justify-center">
+      <div className="flex justify-end-safe">
         <SidebarTrigger className="min-h-10 min-w-10" />
       </div>
       
