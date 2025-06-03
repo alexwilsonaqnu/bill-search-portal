@@ -1,13 +1,15 @@
+
 import { useState } from "react";
 import { Bill } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { History, Percent, Users, Loader2, CheckCircle, Info } from "lucide-react";
+import { History, Percent, Users, Loader2, CheckCircle, Info, Maximize } from "lucide-react";
 import BillSponsors from "@/components/bill/BillSponsors";
 import BillHistoryView from "./BillHistoryView";
 import { useBillPassAnalysis } from "@/hooks/useBillPassAnalysis";
 import { useBillNewsworthiness } from "@/hooks/useBillNewsworthiness";
+import NewsworthinessFullScreenDialog from "./NewsworthinessFullScreenDialog";
 
 interface KeyInsightsCardProps {
   bill: Bill;
@@ -17,6 +19,7 @@ type InsightTab = "sponsors" | "passPercent" | "history";
 
 const KeyInsightsCard = ({ bill }: KeyInsightsCardProps) => {
   const [activeTab, setActiveTab] = useState<InsightTab>("sponsors");
+  const [isNewsworthinessDialogOpen, setIsNewsworthinessDialogOpen] = useState(false);
   
   // Fetch pass chance analysis
   const { data: passAnalysis, isLoading: isAnalyzing } = useBillPassAnalysis({ 
@@ -136,15 +139,17 @@ const KeyInsightsCard = ({ bill }: KeyInsightsCardProps) => {
                 </div>
               </PopoverContent>
             </Popover>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsNewsworthinessDialogOpen(true)}
+              className="h-8 w-8 p-0 ml-1"
+              disabled={!newsworthinessAnalysis || isAnalyzingNewsworthiness}
+            >
+              <Maximize className="h-4 w-4 text-gray-500 hover:text-gray-700" />
+            </Button>
           </div>
         </div>
-        
-        {/* Show newsworthiness reasoning if available */}
-        {newsworthinessAnalysis && !isAnalyzingNewsworthiness && (
-          <div className="text-center text-sm text-gray-600 px-4">
-            {newsworthinessAnalysis.reasoning}
-          </div>
-        )}
         
         {/* Tab buttons */}
         <div className="flex justify-center gap-2">
@@ -234,6 +239,16 @@ const KeyInsightsCard = ({ bill }: KeyInsightsCardProps) => {
           )}
         </div>
       </CardContent>
+
+      {/* Newsworthiness Full Screen Dialog */}
+      <NewsworthinessFullScreenDialog
+        isOpen={isNewsworthinessDialogOpen}
+        onClose={() => setIsNewsworthinessDialogOpen(false)}
+        analysis={newsworthinessAnalysis}
+        isLoading={isAnalyzingNewsworthiness}
+        error={newsworthinessError}
+        bill={bill}
+      />
     </Card>
   );
 };
