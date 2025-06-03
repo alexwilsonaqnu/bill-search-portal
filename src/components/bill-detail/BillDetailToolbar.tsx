@@ -21,7 +21,7 @@ const BillDetailToolbar = ({
   return (
     <div className="space-y-4">
       {/* Large Sidebar Trigger at the top */}
-      <div className="flex justify-end-safe">
+      <div className="flex justify-end">
         <SidebarTrigger className="min-h-10 min-w-10" />
       </div>
       
@@ -35,7 +35,7 @@ const BillDetailToolbar = ({
       <div className="space-y-2">
         <Button
           variant={selectedTool === "overview" ? "default" : "outline"}
-          className={`w-full ${isCollapsed ? 'min-w-10 h-10 p-0 flex items-center justify-center' : 'justify-start'} ${selectedTool === "overview" ? "bg-[#35B7CD] hover:bg-[#2A9BB0]" : ""}`}
+          className={`w-full ${isCollapsed ? 'h-10 p-2 flex items-center justify-center' : 'justify-start'} ${selectedTool === "overview" ? "bg-[#35B7CD] hover:bg-[#2A9BB0]" : ""}`}
           onClick={() => setSelectedTool("overview")}
           size={isCollapsed ? "icon" : "default"}
         >
@@ -45,7 +45,7 @@ const BillDetailToolbar = ({
         
         <Button
           variant={selectedTool === "comparison" ? "default" : "outline"}
-          className={`w-full ${isCollapsed ? 'min-w-10 h-10 p-0 flex items-center justify-center' : 'justify-start'} ${selectedTool === "comparison" ? "bg-[#35B7CD] hover:bg-[#2A9BB0]" : ""}`}
+          className={`w-full ${isCollapsed ? 'h-10 p-2 flex items-center justify-center' : 'justify-start'} ${selectedTool === "comparison" ? "bg-[#35B7CD] hover:bg-[#2A9BB0]" : ""}`}
           onClick={() => setSelectedTool("comparison")}
           size={isCollapsed ? "icon" : "default"}
         >
@@ -55,7 +55,7 @@ const BillDetailToolbar = ({
         
         <Button
           variant={selectedTool === "statutory-effects" ? "default" : "outline"}
-          className={`w-full ${isCollapsed ? 'min-w-10 h-10 p-0 flex items-center justify-center' : 'justify-start'} ${selectedTool === "statutory-effects" ? "bg-[#35B7CD] hover:bg-[#2A9BB0]" : ""}`}
+          className={`w-full ${isCollapsed ? 'h-10 p-2 flex items-center justify-center' : 'justify-start'} ${selectedTool === "statutory-effects" ? "bg-[#35B7CD] hover:bg-[#2A9BB0]" : ""}`}
           onClick={() => setSelectedTool("statutory-effects")}
           size={isCollapsed ? "icon" : "default"}
         >

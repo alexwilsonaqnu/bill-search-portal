@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { ChevronLeft } from "lucide-react";
@@ -12,7 +13,7 @@ import KeyInsightsCard from "./KeyInsightsCard";
 import ChatToggle from "./ChatToggle";
 import BillChat from "./BillChat";
 import AmendmentsIndex from "./statutory/AmendmentsIndex";
-import { SidebarProvider, Sidebar, SidebarContent } from "@/components/ui/sidebar";
+import { SidebarProvider, Sidebar, SidebarContent, useSidebar } from "@/components/ui/sidebar";
 
 interface BillDetailViewProps {
   bill: Bill;
@@ -126,8 +127,8 @@ const BillDetailView = ({ bill }: BillDetailViewProps) => {
           </SidebarContent>
         </Sidebar>
 
-        {/* Main Content Area */}
-        <div className="flex-1 flex flex-col">
+        {/* Main Content Area with proper spacing for collapsed sidebar */}
+        <div className="flex-1 flex flex-col peer-data-[state=collapsed]:ml-0">
           {/* Header without trigger button */}
           <div className="p-6 pb-4">
             <div className="flex items-center gap-4 mb-4">
