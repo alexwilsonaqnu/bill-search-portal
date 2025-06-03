@@ -32,7 +32,7 @@ const BillDetailToolbar = ({
         </h3>
       )}
       
-      <div className="space-y-2 px-6">
+      <div className="space-y-2 px-auto">
         <Button
           variant={selectedTool === "overview" ? "default" : "outline"}
           className={`w-full ${isCollapsed ? 'min-w-10 h-10 p-0 flex items-center justify-center' : 'justify-start'} ${selectedTool === "overview" ? "bg-[#35B7CD] hover:bg-[#2A9BB0]" : ""}`}
