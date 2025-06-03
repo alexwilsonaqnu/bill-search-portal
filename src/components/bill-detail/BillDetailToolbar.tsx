@@ -3,6 +3,7 @@ import { Bill } from "@/types";
 import { Button } from "@/components/ui/button";
 import { FileText, GitCompare, Scale } from "lucide-react";
 import { useSidebar, SidebarTrigger } from "@/components/ui/sidebar";
+import { Link } from "react-router-dom";
 
 interface BillDetailToolbarProps {
   bill: Bill;
@@ -20,15 +21,23 @@ const BillDetailToolbar = ({
 
   return (
     <div className="space-y-4">
-      {/* Large Sidebar Trigger at the top */}
-      <div className="flex justify-end">
+      {/* Header with Billinois title and sidebar trigger */}
+      <div className="flex items-center justify-between">
+        <Link 
+          to="/"
+          className="inline-block transition-transform duration-300 hover:scale-105"
+          aria-label="Billinois Home"
+        >
+          <h1 className={`font-bold billinois-logo ${isCollapsed ? 'text-lg' : 'text-xl'}`}>
+            {isCollapsed ? 'B' : 'Billinois'}
+          </h1>
+        </Link>
         <SidebarTrigger className="min-h-10 min-w-10" />
       </div>
       
       {!isCollapsed && (
         <h3 className="text-lg font-semibold">
-          <span className="billinois-logo">Billinois</span>
-          <span className="text-gray-700"> Choose Tool</span>
+          <span className="text-gray-700">Choose Tool</span>
         </h3>
       )}
       
