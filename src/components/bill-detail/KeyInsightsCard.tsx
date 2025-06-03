@@ -3,8 +3,7 @@ import { useState } from "react";
 import { Bill } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { History, Percent, Users, Loader2, CheckCircle, Info, Maximize } from "lucide-react";
+import { History, Percent, Users, Loader2, CheckCircle, Maximize } from "lucide-react";
 import BillSponsors from "@/components/bill/BillSponsors";
 import BillHistoryView from "./BillHistoryView";
 import { useBillPassAnalysis } from "@/hooks/useBillPassAnalysis";
@@ -93,52 +92,6 @@ const KeyInsightsCard = ({ bill }: KeyInsightsCardProps) => {
                 </p>
               </div>
             </div>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                  <Info className="h-4 w-4 text-gray-500 hover:text-gray-700" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-80 p-4" side="bottom" align="center">
-                <div className="space-y-3">
-                  <h4 className="font-semibold text-sm">Newsworthiness Breakdown</h4>
-                  {isAnalyzingNewsworthiness ? (
-                    <div className="flex items-center gap-2">
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      <p className="text-xs text-gray-600">Analyzing newsworthiness...</p>
-                    </div>
-                  ) : newsworthinessAnalysis ? (
-                    <>
-                      <p className="text-xs text-gray-600 mb-3">{newsworthinessAnalysis.reasoning}</p>
-                      <div className="space-y-2">
-                        {newsworthinessAnalysis.factors.map((factor, index) => (
-                          <div key={index} className="flex items-start gap-2">
-                            <span className={`text-xs mt-0.5 ${
-                              factor.impact === 'positive' ? 'text-green-500' : 
-                              factor.impact === 'negative' ? 'text-red-500' : 
-                              'text-gray-500'
-                            }`}>
-                              {factor.impact === 'positive' ? '↗' : factor.impact === 'negative' ? '↘' : '→'}
-                            </span>
-                            <div className="flex-1">
-                              <p className="text-xs font-medium">{factor.factor}</p>
-                              <p className="text-xs text-gray-600">{factor.description}</p>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </>
-                  ) : (
-                    <div className="space-y-2">
-                      <p className="text-xs text-gray-600">Analysis unavailable. Please try again later.</p>
-                      {newsworthinessError && (
-                        <p className="text-xs text-red-600">Error: {String(newsworthinessError)}</p>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </PopoverContent>
-            </Popover>
             <Button
               variant="ghost"
               size="sm"
