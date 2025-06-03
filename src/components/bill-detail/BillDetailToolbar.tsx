@@ -65,7 +65,7 @@ const BillDetailToolbar = ({
       </div>
       
       {!isCollapsed && (
-        <div className="mt-6 pt-6 border-t border-gray-100">
+        <div className="mt-6 pt-6 border-t border-gray-100 px-6">
           <h4 className="text-sm font-medium mb-3">Bill Information</h4>
           <div className="space-y-2">
             <p className="text-sm text-gray-600">
