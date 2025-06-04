@@ -147,18 +147,16 @@ const BillDetailView = ({ bill }: BillDetailViewProps) => {
           {/* Main content */}
           <div className="flex-1 px-6 pb-20">
             {selectedTool === "overview" ? (
-              <>
+              <div className="space-y-6">
                 {/* Bill Overview Card */}
                 <BillOverview bill={bill} />
                 
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
-                  {/* Bill Text Card */}
-                  <BillTextContainer bill={bill} />
-                  
-                  {/* Key Insights Card */}
-                  <KeyInsightsCard bill={bill} />
-                </div>
-              </>
+                {/* Bill Text Card - Full Width */}
+                <BillTextContainer bill={bill} />
+                
+                {/* Key Insights Card - Full Width */}
+                <KeyInsightsCard bill={bill} />
+              </div>
             ) : selectedTool === "comparison" ? (
               <BillComparisonContainer bill={bill} />
             ) : (
