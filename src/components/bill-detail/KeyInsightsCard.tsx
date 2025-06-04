@@ -20,10 +20,10 @@ const KeyInsightsCard = ({ bill }: KeyInsightsCardProps) => {
   const [activeTab, setActiveTab] = useState<InsightTab>("sponsors");
   const [isNewsworthinessDialogOpen, setIsNewsworthinessDialogOpen] = useState(false);
   
-  // Fetch pass chance analysis
+  // Always fetch pass chance analysis in the background - no longer conditional on activeTab
   const { data: passAnalysis, isLoading: isAnalyzing } = useBillPassAnalysis({ 
     bill, 
-    enabled: activeTab === "passPercent" 
+    enabled: true // Always enabled so it runs in the background
   });
   
   // Fetch newsworthiness analysis - always enabled to show the score
