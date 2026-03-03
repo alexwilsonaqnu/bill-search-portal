@@ -3,9 +3,9 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { BillAnalysisData, PassChanceAnalysis } from "./types.ts";
 import { checkRulesReferral, buildAnalysisPrompt } from "./billAnalyzer.ts";
-import { analyzeWithOpenAI, createFallbackAnalysis } from "./openaiService.ts";
+import { analyzeWithAI, createFallbackAnalysis } from "./openaiService.ts";
 
-const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -28,9 +28,9 @@ serve(async (req) => {
       );
     }
 
-    if (!openAIApiKey) {
+    if (!lovableApiKey) {
       return new Response(
-        JSON.stringify({ error: 'OpenAI API key is not configured' }),
+        JSON.stringify({ error: 'Lovable API key is not configured' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -53,7 +53,7 @@ serve(async (req) => {
     const analysisPrompt = buildAnalysisPrompt(billData as BillAnalysisData, rulesReferralStatus);
 
     try {
-      const analysisResult = await analyzeWithOpenAI(analysisPrompt, openAIApiKey);
+      const analysisResult = await analyzeWithAI(analysisPrompt, lovableApiKey);
       console.log("Successfully parsed analysis result:", analysisResult);
       
       return new Response(
