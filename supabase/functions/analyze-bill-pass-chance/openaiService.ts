@@ -4,15 +4,15 @@ import { BillAnalysisData, PassChanceAnalysis } from "./types.ts";
 /**
  * Call OpenAI API to analyze bill pass chance
  */
-export async function analyzeWithOpenAI(prompt: string, openAIApiKey: string): Promise<PassChanceAnalysis> {
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+export async function analyzeWithAI(prompt: string, apiKey: string): Promise<PassChanceAnalysis> {
+  const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${openAIApiKey}`,
+      'Authorization': `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'gpt-4o-mini',
+      model: 'google/gemini-2.5-flash',
       messages: [
         { 
           role: "system", 
@@ -26,9 +26,9 @@ export async function analyzeWithOpenAI(prompt: string, openAIApiKey: string): P
   });
 
   if (!response.ok) {
-    const errorData = await response.json();
-    console.error('OpenAI API error:', errorData);
-    throw new Error(errorData.error?.message || 'Error calling OpenAI API');
+    const errorText = await response.text();
+    console.error('AI Gateway error:', response.status, errorText);
+    throw new Error(`AI Gateway request failed: ${response.status}`);
   }
 
   const data = await response.json();
