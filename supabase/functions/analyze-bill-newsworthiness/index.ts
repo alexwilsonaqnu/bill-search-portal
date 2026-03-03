@@ -7,7 +7,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
+const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
 
 interface BillAnalysisData {
   id: string;
@@ -178,21 +178,21 @@ function getRecentActivityDescription(changes: any[]): string {
   return descriptions.slice(0, 2).join('; ');
 }
 
-async function analyzeWithOpenAI(prompt: string, apiKey: string): Promise<NewsworthinessAnalysis> {
-  console.log("Sending newsworthiness analysis request to OpenAI");
+async function analyzeWithAI(prompt: string, apiKey: string): Promise<NewsworthinessAnalysis> {
+  console.log("Sending newsworthiness analysis request to Lovable AI Gateway");
   
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+  const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'gpt-4o-mini',
+      model: 'google/gemini-2.5-flash',
       messages: [
         {
           role: 'system',
-          content: 'You are an expert political analyst and journalist who specializes in assessing the newsworthiness of legislative bills. You understand what makes bills likely to generate media coverage and public interest.'
+          content: 'You are an expert political analyst and journalist who specializes in assessing the newsworthiness of legislative bills. You understand what makes bills likely to generate media coverage and public interest. Always respond with valid JSON only.'
         },
         {
           role: 'user',
@@ -206,26 +206,28 @@ async function analyzeWithOpenAI(prompt: string, apiKey: string): Promise<Newswo
 
   if (!response.ok) {
     const errorText = await response.text();
-    console.error(`OpenAI API error: ${response.status} - ${errorText}`);
-    throw new Error(`OpenAI API request failed: ${response.status}`);
+    console.error(`AI Gateway error: ${response.status} - ${errorText}`);
+    throw new Error(`AI Gateway request failed: ${response.status}`);
   }
 
   const data = await response.json();
   
   if (!data.choices || !data.choices[0] || !data.choices[0].message) {
-    console.error("Unexpected OpenAI response format:", data);
-    throw new Error("Invalid response format from OpenAI");
+    console.error("Unexpected AI response format:", data);
+    throw new Error("Invalid response format from AI");
   }
 
   const content = data.choices[0].message.content;
   
   try {
-    const result = JSON.parse(content);
+    // Strip markdown code fences if present
+    const cleaned = content.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+    const result = JSON.parse(cleaned);
     console.log("Successfully parsed newsworthiness analysis result:", result);
     return result;
   } catch (error) {
-    console.error("Failed to parse OpenAI response as JSON:", content);
-    throw new Error("Failed to parse analysis result from OpenAI");
+    console.error("Failed to parse AI response as JSON:", content);
+    throw new Error("Failed to parse analysis result from AI");
   }
 }
 
@@ -241,9 +243,9 @@ serve(async (req) => {
     
     console.log("analyze-bill-newsworthiness: Analyzing newsworthiness for bill:", billData.title);
     
-    if (!OPENAI_API_KEY) {
-      console.error("analyze-bill-newsworthiness: OpenAI API key not configured");
-      throw new Error("OpenAI API key not configured");
+    if (!LOVABLE_API_KEY) {
+      console.error("analyze-bill-newsworthiness: Lovable API key not configured");
+      throw new Error("Lovable API key not configured");
     }
 
     if (!billData || !billData.title) {
@@ -255,8 +257,8 @@ serve(async (req) => {
     const prompt = buildNewsworthinessPrompt(billData);
     console.log("analyze-bill-newsworthiness: Built prompt for analysis");
     
-    // Get analysis from OpenAI
-    const analysis = await analyzeWithOpenAI(prompt, OPENAI_API_KEY);
+    // Get analysis from AI
+    const analysis = await analyzeWithAI(prompt, LOVABLE_API_KEY);
     
     console.log("analyze-bill-newsworthiness: Successfully analyzed newsworthiness:", analysis);
     
