@@ -103,16 +103,11 @@ serve(async (req) => {
         }
         
         // Token limit error handling
-        if (errorData?.error?.type === 'invalid_request_error' && 
-            errorData?.error?.message.includes('maximum context length')) {
-          return new Response(
-            JSON.stringify({ 
-              error: 'Token limit exceeded. The bill text is too large for the AI model.',
-              userMessage: 'This bill is too long for the AI to process completely. Try asking about specific sections instead.'
-            }),
-            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          );
-        }
+        // General error
+        return new Response(
+          JSON.stringify({ error: `AI Gateway error: ${response.status}`, userMessage: 'Failed to get AI response. Please try again.' }),
+          { status: response.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
         
         // General API error
         return new Response(
