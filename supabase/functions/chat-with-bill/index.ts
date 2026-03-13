@@ -28,9 +28,9 @@ serve(async (req) => {
     // Allow empty bill text, but display a message about it
     const billContent = billText || "No bill text available. I can still try to answer general questions.";
 
-    if (!openAIApiKey) {
+    if (!apiKey) {
       return new Response(
-        JSON.stringify({ error: 'OpenAI API key is not configured' }),
+        JSON.stringify({ error: 'Lovable API key is not configured' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
