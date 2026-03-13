@@ -85,8 +85,8 @@ serve(async (req) => {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        console.error('OpenAI API error:', errorData);
+        const errorText = await response.text();
+        console.error('AI Gateway error:', response.status, errorText);
         
         // Check for specific organization error
         if (errorData?.error?.type === 'invalid_request_error' && 
