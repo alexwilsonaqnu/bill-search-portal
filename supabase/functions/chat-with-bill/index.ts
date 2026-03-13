@@ -67,20 +67,20 @@ serve(async (req) => {
       ...messages
     ];
 
-    console.log("Calling OpenAI API with model: gpt-4o-mini");
+    console.log("Calling Lovable AI Gateway");
 
     try {
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${openAIApiKey}`,
+          'Authorization': `Bearer ${apiKey}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'gpt-4o-mini',
+          model: 'google/gemini-2.5-flash',
           messages: fullMessages,
-          temperature: 0.3, // Lower temperature for more focused, factual responses
-          max_tokens: 1000, // Reasonable response length
+          temperature: 0.3,
+          max_tokens: 1000,
         }),
       });
 
