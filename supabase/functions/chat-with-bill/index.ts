@@ -109,18 +109,10 @@ serve(async (req) => {
           { status: response.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
         
-        // General API error
-        return new Response(
-          JSON.stringify({ 
-            error: errorData.error?.message || 'Error calling OpenAI API',
-            userMessage: 'Failed to get response from AI. Please try again later.'
-          }),
-          { status: response.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
       }
 
       const data = await response.json();
-      console.log("Successfully received response from OpenAI");
+      console.log("Successfully received response from AI Gateway");
       
       return new Response(
         JSON.stringify({ response: data.choices[0].message }),
