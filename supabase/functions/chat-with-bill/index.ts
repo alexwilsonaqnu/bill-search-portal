@@ -89,14 +89,16 @@ serve(async (req) => {
         console.error('AI Gateway error:', response.status, errorText);
         
         // Check for specific organization error
-        if (errorData?.error?.type === 'invalid_request_error' && 
-            errorData?.error?.code === 'invalid_organization') {
+        if (response.status === 429) {
           return new Response(
-            JSON.stringify({ 
-              error: 'Organization validation failed. Your OpenAI API key is valid but may be associated with a different organization.',
-              userMessage: 'Unable to connect to AI service. The API key is valid but may have organization restrictions.'
-            }),
-            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            JSON.stringify({ error: 'Rate limit exceeded', userMessage: 'Too many requests. Please try again later.' }),
+            { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+        if (response.status === 402) {
+          return new Response(
+            JSON.stringify({ error: 'Payment required', userMessage: 'AI credits exhausted. Please add funds.' }),
+            { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
         }
         
