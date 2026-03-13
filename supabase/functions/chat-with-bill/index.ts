@@ -119,11 +119,11 @@ serve(async (req) => {
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     } catch (error) {
-      console.error("OpenAI API request failed:", error);
+      console.error("AI Gateway request failed:", error);
       return new Response(
         JSON.stringify({ 
-          error: `OpenAI API request failed: ${error.message || 'Unknown error'}`,
-          userMessage: 'Failed to connect to OpenAI service. Please try again later.'
+          error: `AI request failed: ${error.message || 'Unknown error'}`,
+          userMessage: 'Failed to connect to AI service. Please try again later.'
         }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
